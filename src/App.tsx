@@ -2,8 +2,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PublicRoute } from "@/components/auth/PublicRoute";
+import { StatusRoute } from "@/components/auth/StatusRoute";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import AwaitingApproval from "./pages/AwaitingApproval";
+import Inactive from "./pages/Inactive";
+import AppDashboard from "./pages/App";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +22,61 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes - redirect to app if authenticated */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <PublicRoute>
+                  <Signup />
+                </PublicRoute>
+              }
+            />
+
+            {/* Status-specific routes */}
+            <Route
+              path="/awaiting-approval"
+              element={
+                <StatusRoute requiredStatus="pending">
+                  <AwaitingApproval />
+                </StatusRoute>
+              }
+            />
+            <Route
+              path="/inactive"
+              element={
+                <StatusRoute requiredStatus="inactive">
+                  <Inactive />
+                </StatusRoute>
+              }
+            />
+
+            {/* Protected route - only active users */}
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <AppDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Root redirect */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
