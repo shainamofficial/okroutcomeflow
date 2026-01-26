@@ -131,6 +131,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      domain_exists_for_other_org: {
+        Args: { _domain: string; _org_id: string }
+        Returns: boolean
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
