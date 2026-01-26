@@ -8,13 +8,16 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicRoute } from "@/components/auth/PublicRoute";
 import { StatusRoute } from "@/components/auth/StatusRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { ManagerRoute } from "@/components/auth/ManagerRoute";
 import { AppLayout } from "@/components/app/AppLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import SignupInvite from "./pages/SignupInvite";
 import AwaitingApproval from "./pages/AwaitingApproval";
 import Inactive from "./pages/Inactive";
 import Dashboard from "./pages/Dashboard";
 import OrganizationSettings from "./pages/OrganizationSettings";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +48,8 @@ const App = () => (
               }
             />
 
+            {/* Invite signup route - public */}
+            <Route path="/signup-invite" element={<SignupInvite />} />
             {/* Status-specific routes */}
             <Route
               path="/awaiting-approval"
@@ -72,6 +77,16 @@ const App = () => (
                     <Dashboard />
                   </AppLayout>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/settings/users"
+              element={
+                <ManagerRoute>
+                  <AppLayout>
+                    <UserManagement />
+                  </AppLayout>
+                </ManagerRoute>
               }
             />
             <Route

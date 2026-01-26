@@ -67,6 +67,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -131,9 +169,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_org_admins: { Args: { _org_id: string }; Returns: number }
       domain_exists_for_other_org: {
         Args: { _domain: string; _org_id: string }
         Returns: boolean
+      }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          email: string
+          id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+        }[]
       }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -143,9 +192,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_last_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
+      invitation_status: "pending" | "accepted" | "revoked"
       user_status: "pending" | "active" | "inactive"
     }
     CompositeTypes: {
@@ -275,6 +326,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "contributor", "viewer"],
+      invitation_status: ["pending", "accepted", "revoked"],
       user_status: ["pending", "active", "inactive"],
     },
   },
