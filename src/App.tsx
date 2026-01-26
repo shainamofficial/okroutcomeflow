@@ -7,11 +7,14 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicRoute } from "@/components/auth/PublicRoute";
 import { StatusRoute } from "@/components/auth/StatusRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
+import { AppLayout } from "@/components/app/AppLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AwaitingApproval from "./pages/AwaitingApproval";
 import Inactive from "./pages/Inactive";
-import AppDashboard from "./pages/App";
+import Dashboard from "./pages/Dashboard";
+import OrganizationSettings from "./pages/OrganizationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,13 +63,25 @@ const App = () => (
               }
             />
 
-            {/* Protected route - only active users */}
+            {/* Protected routes with app layout */}
             <Route
               path="/app"
               element={
                 <ProtectedRoute>
-                  <AppDashboard />
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/settings/organization"
+              element={
+                <AdminRoute>
+                  <AppLayout>
+                    <OrganizationSettings />
+                  </AppLayout>
+                </AdminRoute>
               }
             />
 
