@@ -33,7 +33,7 @@ export function EditKeyResultDialog({
 }: EditKeyResultDialogProps) {
   const [title, setTitle] = useState(keyResult.title);
   const [description, setDescription] = useState(keyResult.description || "");
-  const [ownerId, setOwnerId] = useState<string>(keyResult.owner_id || "");
+  const [ownerId, setOwnerId] = useState<string>(keyResult.owner_id || "none");
   const { updateKeyResult } = useKeyResults();
   const { users } = useOrgUsers();
   const { roles } = useAuth();
@@ -44,7 +44,7 @@ export function EditKeyResultDialog({
   useEffect(() => {
     setTitle(keyResult.title);
     setDescription(keyResult.description || "");
-    setOwnerId(keyResult.owner_id || "");
+    setOwnerId(keyResult.owner_id || "none");
   }, [keyResult]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ export function EditKeyResultDialog({
       id: keyResult.id,
       title: title.trim(),
       description: description.trim(),
-      ownerId: ownerId || undefined,
+      ownerId: ownerId === "none" ? undefined : ownerId,
     });
     onOpenChange(false);
   };
@@ -95,7 +95,7 @@ export function EditKeyResultDialog({
                   <SelectValue placeholder="Select an owner" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No owner</SelectItem>
+                  <SelectItem value="none">No owner</SelectItem>
                   {activeUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name || user.email}
