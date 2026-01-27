@@ -201,17 +201,35 @@ export function useKeyResults(objectiveId?: string) {
         throw new Error("No organization or user");
       }
 
+      // Validate hierarchy: exactly one of objectiveId or parentKrId must be set
+      if (!objectiveId && !parentKrId) {
+        throw new Error("Key Result must belong to an Objective or a parent Key Result");
+      }
+      if (objectiveId && parentKrId) {
+        throw new Error("Key Result cannot belong to both an Objective and a parent Key Result");
+      }
+
+      const insertData: {
+        organization_id: string;
+        title: string;
+        description: string | null;
+        objective_id: string | null;
+        parent_kr_id: string | null;
+        owner_id: string | null;
+        created_by: string;
+      } = {
+        organization_id: profile.organization_id,
+        title,
+        description: description || null,
+        objective_id: objectiveId ?? null,
+        parent_kr_id: parentKrId ?? null,
+        owner_id: ownerId || null,
+        created_by: profile.id,
+      };
+
       const { data, error } = await supabase
         .from("key_results")
-        .insert({
-          organization_id: profile.organization_id,
-          title,
-          description: description || null,
-          objective_id: objectiveId || null,
-          parent_kr_id: parentKrId || null,
-          owner_id: ownerId || null,
-          created_by: profile.id,
-        })
+        .insert(insertData)
         .select(
           `
           *,
@@ -225,6 +243,7 @@ export function useKeyResults(objectiveId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["key-results"] });
+      queryClient.invalidateQueries({ queryKey: ["all-key-results"] });
       toast({ title: "Key Result created successfully" });
     },
     onError: (error: Error) => {
