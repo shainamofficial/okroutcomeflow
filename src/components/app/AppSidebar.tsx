@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb, CalendarClock } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -21,6 +21,7 @@ export function AppSidebar() {
     { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
     { title: 'OKRs', url: '/app/okrs', icon: Target },
     { title: 'Initiatives', url: '/app/initiatives', icon: Lightbulb },
+    { title: 'Reviews', url: '/app/reviews', icon: CalendarClock },
   ];
 
   const managerItems = (isAdmin || isManager)

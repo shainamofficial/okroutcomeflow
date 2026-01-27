@@ -22,6 +22,7 @@ import { MetricConfigForm } from "./MetricConfigForm";
 import { AddMetricValueForm } from "./AddMetricValueForm";
 import { MetricValuesTable } from "./MetricValuesTable";
 import { MetricChart } from "./MetricChart";
+import { ReviewCadenceConfig } from "@/components/reviews/ReviewCadenceConfig";
 
 interface KRDetailPanelProps {
   keyResult: KeyResult;
@@ -162,6 +163,10 @@ export function KRDetailPanel({ keyResult, open, onOpenChange }: KRDetailPanelPr
               </TabsContent>
             </Tabs>
           )}
+
+          <Separator />
+          
+          <ReviewCadenceConfig keyResultId={keyResult.id} canManage={canManage} />
         </div>
       </SheetContent>
     </Sheet>
