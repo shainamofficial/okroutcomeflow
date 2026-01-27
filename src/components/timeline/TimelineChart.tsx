@@ -34,6 +34,8 @@ interface TimelineChartProps {
     task: Task & { initiative: { id: string; organization_id: string } },
     initiative: Initiative
   ) => boolean;
+  onInitiativeClick: (initiative: Initiative) => void;
+  onTaskClick: (task: Task & { initiative: { id: string; organization_id: string } }) => void;
 }
 
 export function TimelineChart({
@@ -41,6 +43,8 @@ export function TimelineChart({
   zoomLevel,
   canDragInitiative,
   canDragTask,
+  onInitiativeClick,
+  onTaskClick,
 }: TimelineChartProps) {
   const { toast } = useToast();
   const { updateInitiative } = useInitiatives();
@@ -214,6 +218,8 @@ export function TimelineChart({
                 canDragTask={(task) => canDragTask(task, initiative)}
                 onInitiativeDrag={handleInitiativeDrag}
                 onTaskDrag={handleTaskDrag}
+                onInitiativeClick={() => onInitiativeClick(initiative)}
+                onTaskClick={onTaskClick}
                 columns={columns}
                 columnWidth={columnWidth}
               />

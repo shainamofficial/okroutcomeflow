@@ -16,6 +16,7 @@ interface TimelineBarProps {
   dayWidth: number;
   canDrag: boolean;
   onDragEnd: (newStartDate: Date, newEndDate: Date) => void;
+  onClick?: () => void;
   variant: "initiative" | "task";
   label: string;
 }
@@ -30,6 +31,7 @@ export function TimelineBar({
   dayWidth,
   canDrag,
   onDragEnd,
+  onClick,
   variant,
   label,
 }: TimelineBarProps) {
@@ -39,8 +41,11 @@ export function TimelineBar({
   const [tempEnd, setTempEnd] = useState<Date>(endDate);
   const barRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef<number>(0);
+  const dragStartY = useRef<number>(0);
   const initialStart = useRef<Date>(startDate);
   const initialEnd = useRef<Date>(endDate);
+  const hasMoved = useRef<boolean>(false);
+  const CLICK_THRESHOLD = 5;
 
   const left = getPositionForDate(isDragging ? tempStart : startDate);
   const width = Math.max(
@@ -51,17 +56,18 @@ export function TimelineBar({
   );
 
   const handleMouseDown = (e: React.MouseEvent, mode: DragMode) => {
-    if (!canDrag) return;
     e.preventDefault();
     e.stopPropagation();
 
     setIsDragging(true);
     setDragMode(mode);
     dragStartX.current = e.clientX;
+    dragStartY.current = e.clientY;
     initialStart.current = startDate;
     initialEnd.current = endDate;
     setTempStart(startDate);
     setTempEnd(endDate);
+    hasMoved.current = false;
   };
 
   useEffect(() => {
@@ -69,6 +75,15 @@ export function TimelineBar({
 
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - dragStartX.current;
+      const deltaY = e.clientY - dragStartY.current;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
+      if (distance > CLICK_THRESHOLD) {
+        hasMoved.current = true;
+      }
+
+      if (!canDrag || !hasMoved.current) return;
+
       const deltaDays = Math.round(deltaX / dayWidth);
 
       if (dragMode === "move") {
@@ -99,10 +114,18 @@ export function TimelineBar({
       setIsDragging(false);
       setDragMode(null);
 
-      // Only trigger update if dates actually changed
+      // If no significant movement, treat as click
+      if (!hasMoved.current && onClick) {
+        onClick();
+        return;
+      }
+
+      // Only trigger update if dates actually changed and dragging is allowed
       if (
-        tempStart.getTime() !== startDate.getTime() ||
-        tempEnd.getTime() !== endDate.getTime()
+        canDrag &&
+        hasMoved.current &&
+        (tempStart.getTime() !== startDate.getTime() ||
+          tempEnd.getTime() !== endDate.getTime())
       ) {
         onDragEnd(tempStart, tempEnd);
       }
@@ -115,7 +138,7 @@ export function TimelineBar({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, dragMode, tempStart, tempEnd, dayWidth, startDate, endDate, onDragEnd]);
+  }, [isDragging, dragMode, tempStart, tempEnd, dayWidth, startDate, endDate, onDragEnd, onClick, canDrag]);
 
   const barColor =
     variant === "initiative"
@@ -128,10 +151,10 @@ export function TimelineBar({
         <div
           ref={barRef}
           className={cn(
-            "absolute h-6 rounded flex items-center group/bar",
+            "absolute h-6 rounded flex items-center group/bar cursor-pointer",
             barColor,
-            canDrag && "cursor-grab",
-            isDragging && "cursor-grabbing opacity-80 shadow-lg"
+            canDrag && hasMoved.current && isDragging && "cursor-grabbing",
+            isDragging && hasMoved.current && "opacity-80 shadow-lg"
           )}
           style={{
             left,

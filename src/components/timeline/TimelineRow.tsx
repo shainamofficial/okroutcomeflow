@@ -30,6 +30,8 @@ interface TimelineRowProps {
     newStartDate: string | null,
     newDueDate: string | null
   ) => void;
+  onInitiativeClick: () => void;
+  onTaskClick: (task: Task & { initiative: { id: string; organization_id: string } }) => void;
   columns: Date[];
   columnWidth: number;
 }
@@ -43,6 +45,8 @@ export function TimelineRow({
   canDragInitiative,
   canDragTask,
   onInitiativeDrag,
+  onInitiativeClick,
+  onTaskClick,
   columns,
   columnWidth,
 }: TimelineRowProps) {
@@ -101,7 +105,10 @@ export function TimelineRow({
           ) : (
             <div className="w-6" />
           )}
-          <div className="flex-1 min-w-0">
+          <div 
+            className="flex-1 min-w-0 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1"
+            onClick={onInitiativeClick}
+          >
             <div className="flex items-center gap-2">
               <span className="font-medium truncate">{initiative.title}</span>
               <InitiativeStatusBadge status={initiative.status} />
@@ -141,6 +148,7 @@ export function TimelineRow({
                   format(newEnd, "yyyy-MM-dd")
                 )
               }
+              onClick={onInitiativeClick}
               variant="initiative"
               label={initiative.title}
             />
@@ -158,6 +166,7 @@ export function TimelineRow({
                   format(newDate, "yyyy-MM-dd")
                 )
               }
+              onClick={onInitiativeClick}
               variant="initiative"
               label={initiative.title}
             />
@@ -175,7 +184,10 @@ export function TimelineRow({
           return (
             <div key={task.id} className="flex border-b hover:bg-muted/20 group">
               <div className="w-64 min-w-64 p-2 pl-10 border-r sticky left-0 bg-background z-10 flex items-center gap-2">
-                <div className="flex-1 min-w-0">
+                <div 
+                  className="flex-1 min-w-0 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1"
+                  onClick={() => onTaskClick(task)}
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-sm truncate">{task.title}</span>
                     <TaskStatusBadge status={task.status} />
@@ -217,6 +229,7 @@ export function TimelineRow({
                         format(newEnd, "yyyy-MM-dd")
                       )
                     }
+                    onClick={() => onTaskClick(task)}
                     variant="task"
                     label={task.title}
                   />
@@ -230,6 +243,7 @@ export function TimelineRow({
                     onDragEnd={(newDate) =>
                       handleTaskDrag(task.id, null, format(newDate, "yyyy-MM-dd"))
                     }
+                    onClick={() => onTaskClick(task)}
                     variant="task"
                     label={task.title}
                   />

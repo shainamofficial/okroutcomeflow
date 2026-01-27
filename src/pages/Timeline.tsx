@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TimelineFilters, TimelineFiltersState } from "@/components/timeline/TimelineFilters";
 import { TimelineChart } from "@/components/timeline/TimelineChart";
 import { TimelineNoDates } from "@/components/timeline/TimelineNoDates";
+import { InitiativeDetailDrawer } from "@/components/initiatives/InitiativeDetailDrawer";
+import { TaskDetailDrawer } from "@/components/tasks/TaskDetailDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarRange } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,6 +35,22 @@ export default function Timeline() {
   });
 
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("month");
+
+  // Drawer state
+  const [selectedInitiative, setSelectedInitiative] = useState<Initiative | null>(null);
+  const [selectedTask, setSelectedTask] = useState<(Task & { initiative: { id: string; organization_id: string } }) | null>(null);
+  const [initiativeDrawerOpen, setInitiativeDrawerOpen] = useState(false);
+  const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
+
+  const handleInitiativeClick = (initiative: Initiative) => {
+    setSelectedInitiative(initiative);
+    setInitiativeDrawerOpen(true);
+  };
+
+  const handleTaskClick = (task: Task & { initiative: { id: string; organization_id: string } }) => {
+    setSelectedTask(task);
+    setTaskDrawerOpen(true);
+  };
 
   // Group tasks by initiative
   const tasksByInitiative = useMemo(() => {
@@ -189,13 +207,36 @@ export default function Timeline() {
               zoomLevel={zoomLevel}
               canDragInitiative={canDragInitiative}
               canDragTask={canDragTask}
+              onInitiativeClick={handleInitiativeClick}
+              onTaskClick={handleTaskClick}
             />
           )}
 
           {withoutDates.length > 0 && (
-            <TimelineNoDates initiatives={withoutDates} />
+            <TimelineNoDates 
+              initiatives={withoutDates}
+              onInitiativeClick={handleInitiativeClick}
+              onTaskClick={handleTaskClick}
+            />
           )}
         </div>
+      )}
+
+      {/* Detail Drawers */}
+      {selectedInitiative && (
+        <InitiativeDetailDrawer
+          initiative={selectedInitiative}
+          open={initiativeDrawerOpen}
+          onOpenChange={setInitiativeDrawerOpen}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDetailDrawer
+          task={selectedTask}
+          open={taskDrawerOpen}
+          onOpenChange={setTaskDrawerOpen}
+        />
       )}
     </div>
   );

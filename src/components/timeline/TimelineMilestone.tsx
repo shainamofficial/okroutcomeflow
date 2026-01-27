@@ -14,6 +14,7 @@ interface TimelineMilestoneProps {
   getDateForPosition: (position: number) => Date;
   canDrag: boolean;
   onDragEnd: (newDate: Date) => void;
+  onClick?: () => void;
   variant: "initiative" | "task";
   label: string;
 }
@@ -24,6 +25,7 @@ export function TimelineMilestone({
   getDateForPosition,
   canDrag,
   onDragEnd,
+  onClick,
   variant,
   label,
 }: TimelineMilestoneProps) {
@@ -31,34 +33,56 @@ export function TimelineMilestone({
   const [tempDate, setTempDate] = useState<Date>(date);
   const markerRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef<number>(0);
+  const dragStartY = useRef<number>(0);
   const initialDate = useRef<Date>(date);
+  const hasMoved = useRef<boolean>(false);
+  const CLICK_THRESHOLD = 5;
 
   const left = getPositionForDate(isDragging ? tempDate : date);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!canDrag) return;
     e.preventDefault();
     e.stopPropagation();
 
     setIsDragging(true);
     dragStartX.current = e.clientX;
+    dragStartY.current = e.clientY;
     initialDate.current = date;
     setTempDate(date);
+    hasMoved.current = false;
   };
 
   useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - dragStartX.current;
+      const deltaY = e.clientY - dragStartY.current;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
+      if (distance > CLICK_THRESHOLD) {
+        hasMoved.current = true;
+      }
+
+      if (!canDrag || !hasMoved.current) return;
+
       const newDate = getDateForPosition(
-        getPositionForDate(initialDate.current) + (e.clientX - dragStartX.current)
+        getPositionForDate(initialDate.current) + deltaX
       );
       setTempDate(newDate);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      if (tempDate.getTime() !== date.getTime()) {
+
+      // If no significant movement, treat as click
+      if (!hasMoved.current && onClick) {
+        onClick();
+        return;
+      }
+
+      // Only trigger update if date changed and dragging is allowed
+      if (canDrag && hasMoved.current && tempDate.getTime() !== date.getTime()) {
         onDragEnd(tempDate);
       }
     };
@@ -70,7 +94,7 @@ export function TimelineMilestone({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, tempDate, date, getPositionForDate, getDateForPosition, onDragEnd]);
+  }, [isDragging, tempDate, date, getPositionForDate, getDateForPosition, onDragEnd, onClick, canDrag]);
 
   const color = variant === "initiative" ? "text-primary" : "text-secondary";
 
@@ -80,9 +104,8 @@ export function TimelineMilestone({
         <div
           ref={markerRef}
           className={cn(
-            "absolute flex items-center justify-center",
-            canDrag && "cursor-grab",
-            isDragging && "cursor-grabbing"
+            "absolute flex items-center justify-center cursor-pointer",
+            canDrag && hasMoved.current && isDragging && "cursor-grabbing"
           )}
           style={{
             left,
