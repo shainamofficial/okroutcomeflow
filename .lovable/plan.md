@@ -1,265 +1,112 @@
 
 
-# Prompt 10: Updates + Comments + Mentions
+# Timeline Click-to-Open Detail Drawer
 
 ## Overview
 
-This feature adds collaborative capabilities to KRs, initiatives, and tasks through an activity feed system with comments, progress updates, blockers, decisions, mentions, and reactions.
+Add click functionality to the Timeline view so clicking on an Initiative or Task opens the corresponding detail drawer (side panel). This provides quick access to full details, activity feeds, and management actions without leaving the timeline.
 
 ---
 
-## Database Schema
+## Current State
 
-### New Tables
-
-| Table | Purpose |
-|-------|---------|
-| `updates` | Stores activity feed items for KRs, initiatives, and tasks |
-| `update_mentions` | Links updates to mentioned users |
-| `update_reactions` | Stores user reactions to updates |
-
-### New Enums
-
-| Enum | Values |
-|------|--------|
-| `entity_type` | `kr`, `initiative`, `task` |
-| `update_kind` | `comment`, `progress`, `blocker`, `decision` |
-
-### Schema Details
-
-```text
-updates
-+--------------------+---------------------------+
-| Column             | Type                      |
-+--------------------+---------------------------+
-| id                 | UUID (PK, auto)           |
-| organization_id    | UUID (FK organizations)   |
-| entity_type        | entity_type enum          |
-| entity_id          | UUID                      |
-| user_id            | UUID (FK users_profile)   |
-| update_kind        | update_kind enum          |
-| content            | TEXT                      |
-| pinned             | BOOLEAN (default false)   |
-| created_at         | TIMESTAMPTZ (auto)        |
-+--------------------+---------------------------+
-
-update_mentions
-+--------------------+---------------------------+
-| Column             | Type                      |
-+--------------------+---------------------------+
-| id                 | UUID (PK, auto)           |
-| update_id          | UUID (FK updates CASCADE) |
-| mentioned_user_id  | UUID (FK users_profile)   |
-+--------------------+---------------------------+
-UNIQUE(update_id, mentioned_user_id)
-
-update_reactions
-+--------------------+---------------------------+
-| Column             | Type                      |
-+--------------------+---------------------------+
-| id                 | UUID (PK, auto)           |
-| update_id          | UUID (FK updates CASCADE) |
-| user_id            | UUID (FK users_profile)   |
-| reaction_type      | TEXT                      |
-+--------------------+---------------------------+
-UNIQUE(update_id, user_id, reaction_type)
-```
+The Timeline already has:
+- `InitiativeDetailDrawer` - Full initiative details with linked KRs, tasks, and activity feed
+- `TaskDetailDrawer` - Full task details with activity feed
+- Timeline components (`TimelineRow`, `TimelineBar`, `TimelineMilestone`, `TimelineNoDates`) that display items but have no click handlers
 
 ---
 
-## Security (RLS Policies)
+## Implementation Approach
 
-### Helper Functions
+### What Will Be Clickable
 
-Create a helper function to check entity ownership:
-
-```text
-can_manage_update(user_id, entity_type, entity_id)
-- Returns TRUE if user is admin/manager
-- Returns TRUE if user owns the entity:
-  - KR: owner_id matches
-  - Initiative: owner_id matches
-  - Task: assignee_user_id matches OR user is member of assignee_team_id
-```
-
-### RLS Policy Summary
-
-| Table | Operation | Rule |
-|-------|-----------|------|
-| updates | SELECT | Same organization |
-| updates | INSERT | Org member, enforces permission rules |
-| updates | UPDATE (pinned) | Admin, manager, or entity owner |
-| updates | DELETE | Author only, or admin/manager |
-| update_mentions | SELECT | Same organization (via update) |
-| update_mentions | INSERT | Update author only |
-| update_mentions | DELETE | Update author only |
-| update_reactions | SELECT | Same organization (via update) |
-| update_reactions | INSERT | Any org member |
-| update_reactions | DELETE | Reaction owner only |
+| Location | Item Type | Opens |
+|----------|-----------|-------|
+| Timeline rows (left label area) | Initiative | InitiativeDetailDrawer |
+| Timeline rows (left label area) | Task | TaskDetailDrawer |
+| Timeline bars | Initiative | InitiativeDetailDrawer |
+| Timeline bars | Task | TaskDetailDrawer |
+| Timeline milestones | Initiative | InitiativeDetailDrawer |
+| Timeline milestones | Task | TaskDetailDrawer |
+| No Dates section cards | Initiative | InitiativeDetailDrawer |
+| No Dates section items | Task | TaskDetailDrawer |
 
 ---
 
-## Frontend Components
+## User Experience
 
-### New Files
-
-| File | Purpose |
-|------|---------|
-| `src/hooks/useUpdates.ts` | CRUD operations for updates, mentions, reactions |
-| `src/components/updates/ActivityFeed.tsx` | Main feed container with filter dropdown |
-| `src/components/updates/UpdateItem.tsx` | Individual update display with reactions |
-| `src/components/updates/UpdateComposer.tsx` | Input with @mention support |
-| `src/components/updates/UpdateKindBadge.tsx` | Visual badge for update type |
-| `src/components/updates/ReactionPicker.tsx` | Emoji reaction selector |
-| `src/components/updates/MentionInput.tsx` | Text input with @mention autocomplete |
-
-### Integration Points
-
-The ActivityFeed component will be added to:
-- `KRDetailPanel.tsx` - Below review cadence section
-- `InitiativeDetailDrawer.tsx` - Below tasks section
-- `TaskList.tsx` - Add task detail drawer with activity feed
-
----
-
-## Permission Logic
-
-### Comment Access (All authenticated users can comment)
-
-Everyone in the organization can post comments on any entity.
-
-### Progress/Blocker/Decision Updates
-
-| Role | KR | Initiative | Task |
-|------|-----|-----------|------|
-| Admin | Yes | Yes | Yes |
-| Manager | Yes | Yes | Yes |
-| KR Owner | Yes | - | - |
-| Initiative Owner | - | Yes | - |
-| Task Assignee (user) | - | - | Yes |
-| Task Assignee (team member) | - | - | Yes |
-| Viewer | No | No | No |
-| Contributor (non-owner) | No | No | No |
-
-### Pin/Unpin Updates
-
-Only admin, manager, or entity owner can pin/unpin updates.
-
----
-
-## UI Features
-
-### Activity Feed
-
-- Displays updates in reverse chronological order (newest first)
-- Filter dropdown to filter by `update_kind`
-- Pinned updates shown at top with visual indicator
-- Each update shows:
-  - Author avatar and name
-  - Update kind badge
-  - Content with rendered @mentions as links
-  - Timestamp
-  - Reaction bar
-  - Pin/unpin button (if authorized)
-
-### Composer
-
-- Textarea with @mention autocomplete
-- Dropdown to select update kind
-- Update kind selection:
-  - All users see "Comment" option
-  - Owners/managers see all options
-- Submit button
-
-### Reactions
-
-- Click to add reaction (emoji picker)
-- Show reaction counts grouped by type
-- Click existing reaction to add/remove own reaction
-
----
-
-## Implementation Steps
-
-1. **Database Migration**
-   - Create enums: `entity_type`, `update_kind`
-   - Create tables: `updates`, `update_mentions`, `update_reactions`
-   - Create helper function: `can_manage_update`
-   - Apply RLS policies
-
-2. **Hook: useUpdates.ts**
-   - `useUpdates(entityType, entityId)` - Fetch updates with author, mentions, reactions
-   - `useCreateUpdate()` - Create update with mentions
-   - `useTogglePin()` - Pin/unpin update
-   - `useDeleteUpdate()` - Delete update
-   - `useReactions()` - Add/remove reactions
-
-3. **Components**
-   - Build `UpdateKindBadge` component
-   - Build `MentionInput` with user autocomplete
-   - Build `UpdateComposer` with kind selection
-   - Build `ReactionPicker` component
-   - Build `UpdateItem` component
-   - Build `ActivityFeed` container
-
-4. **Integration**
-   - Add ActivityFeed to KRDetailPanel
-   - Add ActivityFeed to InitiativeDetailDrawer
-   - Create TaskDetailDrawer and add ActivityFeed
+1. **Click anywhere on an initiative/task row label** - Opens the detail drawer
+2. **Click on a timeline bar or milestone** - Opens the detail drawer (separate from drag interactions)
+3. **Drag interactions remain unchanged** - Dragging still adjusts dates as before
+4. **Visual feedback** - Cursor changes to pointer on clickable areas, hover states show interactivity
 
 ---
 
 ## Technical Details
 
-### Mention Detection
+### Click vs Drag Distinction
 
-Extract mentions from content using regex pattern `@[username]` or by detecting selected users from autocomplete.
+For `TimelineBar` and `TimelineMilestone`, we need to distinguish between:
+- **Click**: Quick tap with no/minimal mouse movement - opens drawer
+- **Drag**: Mouse down + movement - adjusts dates
 
-### Reaction Types
+This will be handled by tracking mouse movement distance and only triggering click if movement is below a threshold (e.g., 5 pixels).
 
-Common emoji reactions: `thumbs_up`, `thumbs_down`, `heart`, `celebrate`, `thinking`, `eyes`
+### State Management
 
-### Query Pattern
+The `Timeline.tsx` page will manage:
+- `selectedInitiative: Initiative | null` - Currently selected initiative for drawer
+- `selectedTask: Task | null` - Currently selected task for drawer
+- `initiativeDrawerOpen: boolean` - Initiative drawer visibility
+- `taskDrawerOpen: boolean` - Task drawer visibility
 
-```typescript
-// Fetch updates with related data
-supabase
-  .from("updates")
-  .select(`
-    *,
-    user:users_profile!updates_user_id_fkey(id, name, email, avatar_url),
-    mentions:update_mentions(
-      id,
-      mentioned_user:users_profile!update_mentions_mentioned_user_id_fkey(id, name, email)
-    ),
-    reactions:update_reactions(
-      id,
-      user_id,
-      reaction_type
-    )
-  `)
-  .eq("entity_type", entityType)
-  .eq("entity_id", entityId)
-  .order("pinned", { ascending: false })
-  .order("created_at", { ascending: false })
-```
+### Props to Add
+
+| Component | New Props |
+|-----------|-----------|
+| `TimelineRow` | `onInitiativeClick`, `onTaskClick` |
+| `TimelineBar` | `onClick` |
+| `TimelineMilestone` | `onClick` |
+| `TimelineNoDates` | `onInitiativeClick`, `onTaskClick` |
 
 ---
 
-## Files to Create/Modify
+## Files to Modify
 
-| File | Action |
-|------|--------|
-| `supabase/migrations/...` | Create tables, enums, RLS |
-| `src/hooks/useUpdates.ts` | New hook |
-| `src/components/updates/UpdateKindBadge.tsx` | New component |
-| `src/components/updates/MentionInput.tsx` | New component |
-| `src/components/updates/UpdateComposer.tsx` | New component |
-| `src/components/updates/ReactionPicker.tsx` | New component |
-| `src/components/updates/UpdateItem.tsx` | New component |
-| `src/components/updates/ActivityFeed.tsx` | New component |
-| `src/components/okrs/KRDetailPanel.tsx` | Add ActivityFeed |
-| `src/components/initiatives/InitiativeDetailDrawer.tsx` | Add ActivityFeed |
-| `src/components/tasks/TaskDetailDrawer.tsx` | New component with ActivityFeed |
-| `src/components/tasks/TaskList.tsx` | Open TaskDetailDrawer on click |
+| File | Changes |
+|------|---------|
+| `src/pages/Timeline.tsx` | Add drawer state, import drawers, pass click handlers |
+| `src/components/timeline/TimelineRow.tsx` | Add click handlers to row labels, pass `onClick` to Bar/Milestone |
+| `src/components/timeline/TimelineBar.tsx` | Add `onClick` prop, distinguish click from drag |
+| `src/components/timeline/TimelineMilestone.tsx` | Add `onClick` prop, distinguish click from drag |
+| `src/components/timeline/TimelineNoDates.tsx` | Add click handlers to initiative cards and task items |
+
+---
+
+## Implementation Steps
+
+1. **Update TimelineBar.tsx**
+   - Add `onClick` prop
+   - Track mouse movement to distinguish click vs drag
+   - Call `onClick` if movement < 5px on mouseup
+
+2. **Update TimelineMilestone.tsx**
+   - Add `onClick` prop
+   - Same click vs drag logic as TimelineBar
+
+3. **Update TimelineRow.tsx**
+   - Add `onInitiativeClick` and `onTaskClick` props
+   - Make initiative/task labels clickable with cursor-pointer
+   - Pass `onClick` to TimelineBar and TimelineMilestone components
+
+4. **Update TimelineNoDates.tsx**
+   - Add `onInitiativeClick` and `onTaskClick` props
+   - Make initiative cards and task items clickable
+
+5. **Update Timeline.tsx (main page)**
+   - Import `InitiativeDetailDrawer` and `TaskDetailDrawer`
+   - Add state for selected items and drawer visibility
+   - Pass click handlers to TimelineChart and TimelineNoDates
+   - Render both drawers at the bottom of the component
 
