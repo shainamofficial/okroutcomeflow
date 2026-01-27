@@ -5,6 +5,7 @@ import { TaskItem } from "./TaskItem";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { CreateTaskDialog } from "./CreateTaskDialog";
+import { TaskDetailDrawer } from "./TaskDetailDrawer";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,6 +28,7 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
   const { tasks, isLoading } = useTasks(initiativeId);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("manager");
@@ -79,7 +81,7 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
             <div key={task.id} className="relative group">
               <TaskItem
                 task={task}
-                onClick={() => canEditTask(task) && setEditingTask(task)}
+                onClick={() => setViewingTask(task)}
               />
               {(canEditTask(task) || canDeleteTask()) && (
                 <DropdownMenu>
@@ -129,6 +131,14 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
           task={deletingTask}
           open={!!deletingTask}
           onOpenChange={(open) => !open && setDeletingTask(null)}
+        />
+      )}
+
+      {viewingTask && (
+        <TaskDetailDrawer
+          task={viewingTask}
+          open={!!viewingTask}
+          onOpenChange={(open) => !open && setViewingTask(null)}
         />
       )}
     </div>

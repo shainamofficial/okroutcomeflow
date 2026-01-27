@@ -13,6 +13,7 @@ import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { TaskList } from "@/components/tasks/TaskList";
 import { useAuth } from "@/contexts/AuthContext";
+import { ActivityFeed } from "@/components/updates/ActivityFeed";
 
 interface InitiativeDetailDrawerProps {
   initiative: Initiative;
@@ -26,10 +27,12 @@ export function InitiativeDetailDrawer({
   onOpenChange,
 }: InitiativeDetailDrawerProps) {
   const { links, isLoading } = useInitiativeKRLinks(initiative.id);
-  const { roles } = useAuth();
+  const { profile, roles } = useAuth();
   
   const canManage = roles.includes("admin") || roles.includes("manager");
-
+  const isOwner = initiative.owner_id === profile?.id;
+  const canPostNonComment = canManage || isOwner;
+  const canPin = canManage || isOwner;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
@@ -120,6 +123,15 @@ export function InitiativeDetailDrawer({
             initiativeId={initiative.id}
             initiativeOwnerId={initiative.owner_id}
             canManage={canManage}
+          />
+
+          <Separator />
+
+          <ActivityFeed
+            entityType="initiative"
+            entityId={initiative.id}
+            canPostNonComment={canPostNonComment}
+            canPin={canPin}
           />
         </div>
       </SheetContent>
