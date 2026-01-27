@@ -20,6 +20,7 @@ import OrganizationSettings from "./pages/OrganizationSettings";
 import UserManagement from "./pages/UserManagement";
 import TeamManagement from "./pages/TeamManagement";
 import OKRs from "./pages/OKRs";
+import Initiatives from "./pages/Initiatives";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <OKRs />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/initiatives"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Initiatives />
                   </AppLayout>
                 </ProtectedRoute>
               }

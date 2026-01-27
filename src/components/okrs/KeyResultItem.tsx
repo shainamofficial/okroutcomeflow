@@ -10,6 +10,7 @@ import { EditKeyResultDialog } from "./EditKeyResultDialog";
 import { DeleteKeyResultDialog } from "./DeleteKeyResultDialog";
 import { KRDetailPanel } from "./KRDetailPanel";
 import { KRStatusBadge } from "./KRStatusBadge";
+import { KRLinkedInitiatives } from "./KRLinkedInitiatives";
 import { useToast } from "@/hooks/use-toast";
 
 interface KeyResultItemProps {
@@ -96,6 +97,7 @@ export function KeyResultItem({ keyResult, allKeyResults, level }: KeyResultItem
               />
             </div>
           )}
+          <KRLinkedInitiatives keyResultId={keyResult.id} />
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
