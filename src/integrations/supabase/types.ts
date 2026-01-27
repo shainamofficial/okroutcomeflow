@@ -89,6 +89,92 @@ export type Database = {
           },
         ]
       }
+      kr_metric_config: {
+        Row: {
+          direction: Database["public"]["Enums"]["metric_direction"]
+          end_date: string
+          id: string
+          key_result_id: string
+          metric_name: string
+          start_date: string
+          start_value: number
+          target_value: number
+          unit: string
+        }
+        Insert: {
+          direction: Database["public"]["Enums"]["metric_direction"]
+          end_date: string
+          id?: string
+          key_result_id: string
+          metric_name: string
+          start_date: string
+          start_value: number
+          target_value: number
+          unit: string
+        }
+        Update: {
+          direction?: Database["public"]["Enums"]["metric_direction"]
+          end_date?: string
+          id?: string
+          key_result_id?: string
+          metric_name?: string
+          start_date?: string
+          start_value?: number
+          target_value?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kr_metric_config_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: true
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kr_metric_values: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          kr_metric_config_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          kr_metric_config_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          kr_metric_config_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kr_metric_values_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kr_metric_values_kr_metric_config_id_fkey"
+            columns: ["kr_metric_config_id"]
+            isOneToOne: false
+            referencedRelation: "kr_metric_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string
@@ -354,6 +440,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_kr: {
+        Args: { _kr_id: string; _user_id: string }
+        Returns: boolean
+      }
       count_org_admins: { Args: { _org_id: string }; Returns: number }
       domain_exists_for_other_org: {
         Args: { _domain: string; _org_id: string }
@@ -369,6 +459,10 @@ export type Database = {
           status: Database["public"]["Enums"]["invitation_status"]
         }[]
       }
+      get_org_id_from_metric_config: {
+        Args: { _config_id: string }
+        Returns: string
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -382,6 +476,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
       invitation_status: "pending" | "accepted" | "revoked"
+      metric_direction: "increase" | "decrease" | "maintain"
       user_status: "pending" | "active" | "inactive"
     }
     CompositeTypes: {
@@ -512,6 +607,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "manager", "contributor", "viewer"],
       invitation_status: ["pending", "accepted", "revoked"],
+      metric_direction: ["increase", "decrease", "maintain"],
       user_status: ["pending", "active", "inactive"],
     },
   },
