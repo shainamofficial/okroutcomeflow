@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { User, Calendar, Target } from "lucide-react";
 import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
+import { TaskList } from "@/components/tasks/TaskList";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface InitiativeDetailDrawerProps {
   initiative: Initiative;
@@ -24,6 +26,9 @@ export function InitiativeDetailDrawer({
   onOpenChange,
 }: InitiativeDetailDrawerProps) {
   const { links, isLoading } = useInitiativeKRLinks(initiative.id);
+  const { roles } = useAuth();
+  
+  const canManage = roles.includes("admin") || roles.includes("manager");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -108,6 +113,14 @@ export function InitiativeDetailDrawer({
               </div>
             )}
           </div>
+
+          <Separator />
+
+          <TaskList
+            initiativeId={initiative.id}
+            initiativeOwnerId={initiative.owner_id}
+            canManage={canManage}
+          />
         </div>
       </SheetContent>
     </Sheet>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, User, Calendar, Target } from "lucide-react";
+import { Pencil, Trash2, User, Calendar, Target, ListTodo } from "lucide-react";
 import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { useAuth } from "@/contexts/AuthContext";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
@@ -10,6 +10,7 @@ import { EditInitiativeDialog } from "./EditInitiativeDialog";
 import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
 import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
 import { format } from "date-fns";
+import { useTasks } from "@/hooks/useTasks";
 
 interface InitiativeCardProps {
   initiative: Initiative;
@@ -21,6 +22,7 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const { profile, roles } = useAuth();
   const { links } = useInitiativeKRLinks(initiative.id);
+  const { tasks } = useTasks(initiative.id);
 
   const canManage = roles.includes("admin") || roles.includes("manager");
   const isOwner = initiative.owner_id === profile?.id;
@@ -97,6 +99,13 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Target className="h-4 w-4" />
                 <span>{links.length} Key Result{links.length !== 1 ? "s" : ""}</span>
+              </div>
+            )}
+
+            {tasks.length > 0 && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <ListTodo className="h-4 w-4" />
+                <span>{tasks.length} Task{tasks.length !== 1 ? "s" : ""}</span>
               </div>
             )}
           </div>

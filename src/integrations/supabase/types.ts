@@ -373,6 +373,77 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assignee_team_id: string | null
+          assignee_user_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          initiative_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+        }
+        Insert: {
+          assignee_team_id?: string | null
+          assignee_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          initiative_id: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+        }
+        Update: {
+          assignee_team_id?: string | null
+          assignee_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          initiative_id?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_team_id_fkey"
+            columns: ["assignee_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_user_id_fkey"
+            columns: ["assignee_user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
@@ -548,6 +619,10 @@ export type Database = {
         Args: { _kr_id: string; _user_id: string }
         Returns: boolean
       }
+      can_manage_task: {
+        Args: { _task_id: string; _user_id: string }
+        Returns: boolean
+      }
       count_org_admins: { Args: { _org_id: string }; Returns: number }
       domain_exists_for_other_org: {
         Args: { _domain: string; _org_id: string }
@@ -567,6 +642,7 @@ export type Database = {
         Args: { _config_id: string }
         Returns: string
       }
+      get_org_id_from_task: { Args: { _task_id: string }; Returns: string }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -582,6 +658,7 @@ export type Database = {
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
       metric_direction: "increase" | "decrease" | "maintain"
+      task_status: "todo" | "in_progress" | "blocked" | "done"
       user_status: "pending" | "active" | "inactive"
     }
     CompositeTypes: {
@@ -714,6 +791,7 @@ export const Constants = {
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
       metric_direction: ["increase", "decrease", "maintain"],
+      task_status: ["todo", "in_progress", "blocked", "done"],
       user_status: ["pending", "active", "inactive"],
     },
   },
