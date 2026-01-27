@@ -14,6 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      initiative_kr_links: {
+        Row: {
+          created_at: string
+          id: string
+          initiative_id: string
+          key_result_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initiative_id: string
+          key_result_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initiative_id?: string
+          key_result_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "initiative_kr_links_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiative_kr_links_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      initiatives: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          organization_id: string
+          owner_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["initiative_status"]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          organization_id: string
+          owner_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["initiative_status"]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          organization_id?: string
+          owner_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["initiative_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "initiatives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiatives_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiatives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       key_results: {
         Row: {
           created_at: string
@@ -440,6 +540,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_initiative: {
+        Args: { _initiative_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_manage_kr: {
         Args: { _kr_id: string; _user_id: string }
         Returns: boolean
@@ -475,6 +579,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
+      initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
       metric_direction: "increase" | "decrease" | "maintain"
       user_status: "pending" | "active" | "inactive"
@@ -606,6 +711,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "contributor", "viewer"],
+      initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
       metric_direction: ["increase", "decrease", "maintain"],
       user_status: ["pending", "active", "inactive"],

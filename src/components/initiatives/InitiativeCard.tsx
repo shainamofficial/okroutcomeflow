@@ -1,0 +1,142 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash2, User, Calendar, Target } from "lucide-react";
+import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
+import { useAuth } from "@/contexts/AuthContext";
+import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
+import { EditInitiativeDialog } from "./EditInitiativeDialog";
+import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
+import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
+import { format } from "date-fns";
+
+interface InitiativeCardProps {
+  initiative: Initiative;
+}
+
+export function InitiativeCard({ initiative }: InitiativeCardProps) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const { profile, roles } = useAuth();
+  const { links } = useInitiativeKRLinks(initiative.id);
+
+  const canManage = roles.includes("admin") || roles.includes("manager");
+  const isOwner = initiative.owner_id === profile?.id;
+  const canEdit = canManage || isOwner;
+
+  return (
+    <>
+      <Card
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setShowDetail(true)}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
+                {initiative.title}
+                <InitiativeStatusBadge status={initiative.status} />
+              </CardTitle>
+            </div>
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {canEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowEdit(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {canManage && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => setShowDelete(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {initiative.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {initiative.description}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-3 text-sm">
+            {initiative.owner && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <User className="h-4 w-4" />
+                <span>{initiative.owner.name || initiative.owner.email}</span>
+              </div>
+            )}
+
+            {(initiative.start_date || initiative.end_date) && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {initiative.start_date && format(new Date(initiative.start_date), "MMM d")}
+                  {initiative.start_date && initiative.end_date && " - "}
+                  {initiative.end_date && format(new Date(initiative.end_date), "MMM d, yyyy")}
+                </span>
+              </div>
+            )}
+
+            {links.length > 0 && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Target className="h-4 w-4" />
+                <span>{links.length} Key Result{links.length !== 1 ? "s" : ""}</span>
+              </div>
+            )}
+          </div>
+
+          {links.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {links.slice(0, 3).map((link) => (
+                <Badge key={link.id} variant="secondary" className="text-xs">
+                  {link.key_result?.title}
+                </Badge>
+              ))}
+              {links.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{links.length - 3} more
+                </Badge>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {showEdit && (
+        <EditInitiativeDialog
+          initiative={initiative}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+        />
+      )}
+
+      <DeleteInitiativeDialog
+        initiative={initiative}
+        open={showDelete}
+        onOpenChange={setShowDelete}
+      />
+
+      <InitiativeDetailDrawer
+        initiative={initiative}
+        open={showDetail}
+        onOpenChange={setShowDetail}
+      />
+    </>
+  );
+}
