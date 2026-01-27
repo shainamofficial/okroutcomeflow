@@ -34,7 +34,7 @@ export function CreateKeyResultDialog({
 }: CreateKeyResultDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState<string>("");
+  const [ownerId, setOwnerId] = useState<string>("none");
   const { createKeyResult } = useKeyResults();
   const { users } = useOrgUsers();
 
@@ -49,11 +49,11 @@ export function CreateKeyResultDialog({
       description: description.trim(),
       objectiveId,
       parentKrId,
-      ownerId: ownerId || undefined,
+      ownerId: ownerId === "none" ? undefined : ownerId,
     });
     setTitle("");
     setDescription("");
-    setOwnerId("");
+    setOwnerId("none");
     onOpenChange(false);
   };
 
@@ -93,7 +93,7 @@ export function CreateKeyResultDialog({
                 <SelectValue placeholder="Select an owner" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No owner</SelectItem>
+                <SelectItem value="none">No owner</SelectItem>
                 {activeUsers.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name || user.email}
