@@ -22,6 +22,7 @@ import TeamManagement from "./pages/TeamManagement";
 import OKRs from "./pages/OKRs";
 import Initiatives from "./pages/Initiatives";
 import Reviews from "./pages/Reviews";
+import Timeline from "./pages/Timeline";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -109,6 +110,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Reviews />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/timeline"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Timeline />
                   </AppLayout>
                 </ProtectedRoute>
               }
