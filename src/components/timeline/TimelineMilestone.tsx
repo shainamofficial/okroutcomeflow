@@ -17,6 +17,7 @@ interface TimelineMilestoneProps {
   onClick?: () => void;
   variant: "initiative" | "task";
   label: string;
+  ownerName?: string;
 }
 
 export function TimelineMilestone({
@@ -28,6 +29,7 @@ export function TimelineMilestone({
   onClick,
   variant,
   label,
+  ownerName,
 }: TimelineMilestoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(date);
@@ -124,6 +126,11 @@ export function TimelineMilestone({
         <p className="text-xs text-muted-foreground">
           Due: {format(isDragging ? tempDate : date, "MMM d, yyyy")}
         </p>
+        {ownerName && (
+          <p className="text-xs text-muted-foreground border-t border-border mt-1 pt-1">
+            {variant === "initiative" ? "Owner" : "Assignee"}: {ownerName}
+          </p>
+        )}
       </TooltipContent>
     </Tooltip>
   );
