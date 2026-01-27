@@ -618,6 +618,126 @@ export type Database = {
           },
         ]
       }
+      update_mentions: {
+        Row: {
+          id: string
+          mentioned_user_id: string
+          update_id: string
+        }
+        Insert: {
+          id?: string
+          mentioned_user_id: string
+          update_id: string
+        }
+        Update: {
+          id?: string
+          mentioned_user_id?: string
+          update_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_mentions_mentioned_user_id_fkey"
+            columns: ["mentioned_user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "update_mentions_update_id_fkey"
+            columns: ["update_id"]
+            isOneToOne: false
+            referencedRelation: "updates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      update_reactions: {
+        Row: {
+          id: string
+          reaction_type: string
+          update_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reaction_type: string
+          update_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reaction_type?: string
+          update_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_reactions_update_id_fkey"
+            columns: ["update_id"]
+            isOneToOne: false
+            referencedRelation: "updates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "update_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      updates: {
+        Row: {
+          content: string
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id: string
+          organization_id: string
+          pinned: boolean
+          update_kind: Database["public"]["Enums"]["update_kind"]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          organization_id: string
+          pinned?: boolean
+          update_kind: Database["public"]["Enums"]["update_kind"]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          organization_id?: string
+          pinned?: boolean
+          update_kind?: Database["public"]["Enums"]["update_kind"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "updates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "updates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_invitations: {
         Row: {
           created_at: string
@@ -720,6 +840,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_entity: {
+        Args: {
+          _entity_id: string
+          _entity_type: Database["public"]["Enums"]["entity_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_manage_initiative: {
         Args: { _initiative_id: string; _user_id: string }
         Returns: boolean
@@ -752,6 +880,7 @@ export type Database = {
         Returns: string
       }
       get_org_id_from_task: { Args: { _task_id: string }; Returns: string }
+      get_org_id_from_update: { Args: { _update_id: string }; Returns: string }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -764,12 +893,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
+      entity_type: "kr" | "initiative" | "task"
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
       metric_direction: "increase" | "decrease" | "maintain"
       review_frequency: "weekly" | "biweekly" | "monthly" | "quarterly"
       review_session_status: "scheduled" | "completed" | "cancelled"
       task_status: "todo" | "in_progress" | "blocked" | "done"
+      update_kind: "comment" | "progress" | "blocker" | "decision"
       user_status: "pending" | "active" | "inactive"
     }
     CompositeTypes: {
@@ -899,12 +1030,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "contributor", "viewer"],
+      entity_type: ["kr", "initiative", "task"],
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
       metric_direction: ["increase", "decrease", "maintain"],
       review_frequency: ["weekly", "biweekly", "monthly", "quarterly"],
       review_session_status: ["scheduled", "completed", "cancelled"],
       task_status: ["todo", "in_progress", "blocked", "done"],
+      update_kind: ["comment", "progress", "blocker", "decision"],
       user_status: ["pending", "active", "inactive"],
     },
   },
