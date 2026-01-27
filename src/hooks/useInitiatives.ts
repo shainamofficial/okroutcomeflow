@@ -252,8 +252,15 @@ export function useKRInitiativeLinks(keyResultId?: string) {
           *,
           initiative:initiatives(
             id,
+            organization_id,
             title,
+            description,
+            owner_id,
             status,
+            start_date,
+            end_date,
+            created_by,
+            created_at,
             owner:users_profile!initiatives_owner_id_fkey(id, name, email)
           )
         `)
