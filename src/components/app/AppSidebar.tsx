@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UsersRound, Target } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -19,6 +19,7 @@ export function AppSidebar() {
 
   const navItems = [
     { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
+    { title: 'OKRs', url: '/app/okrs', icon: Target },
   ];
 
   const managerItems = (isAdmin || isManager)
