@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UsersRound } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -22,7 +22,10 @@ export function AppSidebar() {
   ];
 
   const managerItems = (isAdmin || isManager)
-    ? [{ title: 'User Management', url: '/app/settings/users', icon: Users }]
+    ? [
+        { title: 'User Management', url: '/app/settings/users', icon: Users },
+        { title: 'Teams', url: '/app/settings/teams', icon: UsersRound },
+      ]
     : [];
 
   const adminItems = isAdmin

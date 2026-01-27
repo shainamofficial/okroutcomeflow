@@ -18,6 +18,7 @@ import Inactive from "./pages/Inactive";
 import Dashboard from "./pages/Dashboard";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import UserManagement from "./pages/UserManagement";
+import TeamManagement from "./pages/TeamManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,16 @@ const App = () => (
                 <ManagerRoute>
                   <AppLayout>
                     <UserManagement />
+                  </AppLayout>
+                </ManagerRoute>
+              }
+            />
+            <Route
+              path="/app/settings/teams"
+              element={
+                <ManagerRoute>
+                  <AppLayout>
+                    <TeamManagement />
                   </AppLayout>
                 </ManagerRoute>
               }
