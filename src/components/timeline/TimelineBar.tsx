@@ -19,7 +19,17 @@ interface TimelineBarProps {
   onClick?: () => void;
   variant: "initiative" | "task";
   label: string;
+  ownerName?: string;
 }
+
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 type DragMode = "move" | "resize-start" | "resize-end" | null;
 
@@ -34,6 +44,7 @@ export function TimelineBar({
   onClick,
   variant,
   label,
+  ownerName,
 }: TimelineBarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<DragMode>(null);
@@ -177,12 +188,26 @@ export function TimelineBar({
           {/* Label */}
           <span
             className={cn(
-              "px-2 text-xs font-medium truncate",
+              "px-2 text-xs font-medium truncate flex-1",
               variant === "initiative" ? "text-primary-foreground" : "text-secondary-foreground"
             )}
           >
             {width > 60 ? label : ""}
           </span>
+
+          {/* Owner/Assignee initials */}
+          {ownerName && width > 100 && (
+            <div
+              className={cn(
+                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0",
+                variant === "initiative"
+                  ? "bg-black/10 text-primary-foreground/80"
+                  : "bg-black/10 text-secondary-foreground/80"
+              )}
+            >
+              {getInitials(ownerName)}
+            </div>
+          )}
 
           {/* Right resize handle */}
           {canDrag && (
@@ -205,6 +230,11 @@ export function TimelineBar({
           {differenceInDays(isDragging ? tempEnd : endDate, isDragging ? tempStart : startDate) + 1}{" "}
           days
         </p>
+        {ownerName && (
+          <p className="text-xs text-muted-foreground border-t border-border mt-1 pt-1">
+            {variant === "initiative" ? "Owner" : "Assignee"}: {ownerName}
+          </p>
+        )}
       </TooltipContent>
     </Tooltip>
   );

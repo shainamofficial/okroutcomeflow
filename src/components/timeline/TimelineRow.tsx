@@ -151,6 +151,7 @@ export function TimelineRow({
               onClick={onInitiativeClick}
               variant="initiative"
               label={initiative.title}
+              ownerName={initiative.owner?.name || initiative.owner?.email}
             />
           )}
           {initiativeHasMilestone && (
@@ -169,6 +170,7 @@ export function TimelineRow({
               onClick={onInitiativeClick}
               variant="initiative"
               label={initiative.title}
+              ownerName={initiative.owner?.name || initiative.owner?.email}
             />
           )}
         </div>
@@ -232,6 +234,7 @@ export function TimelineRow({
                     onClick={() => onTaskClick(task)}
                     variant="task"
                     label={task.title}
+                    ownerName={task.assignee_user?.name || task.assignee_user?.email || task.assignee_team?.name}
                   />
                 )}
                 {taskHasMilestone && (
@@ -246,6 +249,7 @@ export function TimelineRow({
                     onClick={() => onTaskClick(task)}
                     variant="task"
                     label={task.title}
+                    ownerName={task.assignee_user?.name || task.assignee_user?.email || task.assignee_team?.name}
                   />
                 )}
               </div>
