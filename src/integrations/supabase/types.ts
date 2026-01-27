@@ -275,6 +275,115 @@ export type Database = {
           },
         ]
       }
+      kr_review_cadence: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          frequency: Database["public"]["Enums"]["review_frequency"]
+          id: string
+          key_result_id: string
+          next_review_date: string
+          time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          frequency: Database["public"]["Enums"]["review_frequency"]
+          id?: string
+          key_result_id: string
+          next_review_date: string
+          time?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          frequency?: Database["public"]["Enums"]["review_frequency"]
+          id?: string
+          key_result_id?: string
+          next_review_date?: string
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kr_review_cadence_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: true
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kr_review_participants: {
+        Row: {
+          id: string
+          review_session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          review_session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          review_session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kr_review_participants_review_session_id_fkey"
+            columns: ["review_session_id"]
+            isOneToOne: false
+            referencedRelation: "kr_review_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kr_review_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kr_review_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          key_result_id: string
+          notes: string | null
+          review_date: string
+          status: Database["public"]["Enums"]["review_session_status"]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          key_result_id: string
+          notes?: string | null
+          review_date: string
+          status?: Database["public"]["Enums"]["review_session_status"]
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          key_result_id?: string
+          notes?: string | null
+          review_date?: string
+          status?: Database["public"]["Enums"]["review_session_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kr_review_sessions_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string
@@ -658,6 +767,8 @@ export type Database = {
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
       metric_direction: "increase" | "decrease" | "maintain"
+      review_frequency: "weekly" | "biweekly" | "monthly" | "quarterly"
+      review_session_status: "scheduled" | "completed" | "cancelled"
       task_status: "todo" | "in_progress" | "blocked" | "done"
       user_status: "pending" | "active" | "inactive"
     }
@@ -791,6 +902,8 @@ export const Constants = {
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
       metric_direction: ["increase", "decrease", "maintain"],
+      review_frequency: ["weekly", "biweekly", "monthly", "quarterly"],
+      review_session_status: ["scheduled", "completed", "cancelled"],
       task_status: ["todo", "in_progress", "blocked", "done"],
       user_status: ["pending", "active", "inactive"],
     },
