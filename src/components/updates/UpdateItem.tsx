@@ -70,24 +70,43 @@ export function UpdateItem({ update, entityType, entityId, canPin }: UpdateItemP
     });
   };
 
-  // Render content with mentions highlighted
+  // Render content with mentions highlighted using React components (XSS-safe)
   const renderContent = () => {
-    let content = update.content;
+    const content = update.content;
     const mentionedNames = update.mentions
       .map((m) => m.mentioned_user?.name)
-      .filter(Boolean);
+      .filter((name): name is string => Boolean(name));
 
-    // Simple highlighting - wrap @name in spans
-    mentionedNames.forEach((name) => {
-      if (name) {
-        content = content.replace(
-          new RegExp(`@${name}`, "g"),
-          `<span class="text-primary font-medium">@${name}</span>`
-        );
-      }
-    });
+    if (mentionedNames.length === 0) {
+      // No mentions, just render the content safely
+      return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+    }
 
-    return <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: content }} />;
+    // Build a regex pattern to split on all mentions
+    const mentionPattern = new RegExp(
+      `(@(?:${mentionedNames.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}))`,
+      'g'
+    );
+    
+    // Split content by mentions, keeping the delimiters
+    const parts = content.split(mentionPattern);
+
+    return (
+      <p className="text-sm whitespace-pre-wrap">
+        {parts.map((part, index) => {
+          // Check if this part is a mention
+          const isMention = mentionedNames.some(name => part === `@${name}`);
+          if (isMention) {
+            return (
+              <span key={index} className="text-primary font-medium">
+                {part}
+              </span>
+            );
+          }
+          return <span key={index}>{part}</span>;
+        })}
+      </p>
+    );
   };
 
   return (

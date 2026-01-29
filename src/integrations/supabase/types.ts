@@ -881,6 +881,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation: {
+        Args: { _invitation_token: string; _name: string; _user_id: string }
+        Returns: boolean
+      }
       can_manage_entity: {
         Args: {
           _entity_id: string
