@@ -1,136 +1,164 @@
 
-# Handle Generic Email Domains for Invite-Only Organizations
 
-This plan prevents users with generic consumer email domains (Gmail, Hotmail, Yahoo, etc.) from claiming those domains for their organization. Instead, their organizations will be invite-only.
+# Fix Generic Email Domain Signup Flow
 
-## Overview
+## Problem Identified
 
-When a user signs up with a generic email domain like `gmail.com`:
-- They can still create a new organization and become its admin
-- However, **no domain will be registered** for that organization
-- New members can only join via invitation (existing invitation system)
-- The organization can later add a verified corporate domain if they have one
+Users signing up with generic email domains (gmail.com, hotmail.com, etc.) are incorrectly getting:
+- `status: pending` (should be `active`)
+- `role: contributor` (should be `admin`)
+- `organization_id: NULL` (should have a new org created)
 
-## Database Changes
+The `handle_new_user()` function was updated but isn't working correctly. The issue is that users with generic domains should:
+1. Get a NEW organization created for them
+2. Be set as `active` admin
+3. NOT have any domain registered (invite-only org)
 
-### 1. Create a Generic Domains Table
+## Root Cause
 
-Store a list of blocked/generic email domains that cannot be claimed:
+After investigation, the issue appears to be with how the function handles the domain lookup. When `gmail.com` is not found in `organization_domains`, it should enter the ELSE branch and create a new org. However, some users are getting the IF branch behavior (pending/contributor) with NULL org.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | uuid | Primary key |
-| `domain` | text | The generic domain (e.g., gmail.com) |
-| `created_at` | timestamp | When added |
+## Solution
 
-**Initial seed data** (common consumer email providers):
-- gmail.com
-- googlemail.com
-- hotmail.com
-- outlook.com
-- live.com
-- msn.com
-- yahoo.com
-- yahoo.co.uk
-- ymail.com
-- aol.com
-- icloud.com
-- me.com
-- mac.com
-- protonmail.com
-- proton.me
-- zoho.com
-- mail.com
-- gmx.com
-- gmx.net
-- fastmail.com
+### 1. Fix the `handle_new_user()` Function
 
-### 2. Create Helper Function
+Update the function to be more robust and explicitly handle all cases:
 
-Add a function to check if a domain is generic:
+**Key changes:**
+- Add explicit NULL check before organization insert
+- Ensure the function never leaves a user without an organization
+- Add better error handling
 
-```text
-is_generic_domain(domain TEXT) -> BOOLEAN
+### 2. Clean Up Existing Data
+
+Fix users who were incorrectly created with `organization_id: NULL`:
+
+| Email | Current State | Fix |
+|-------|---------------|-----|
+| authentickteam@gmail.com | pending, contributor, no org | Create org, set active, set admin |
+| jozzire.ps4@gmail.com | active, admin, no org | Create org |
+| shainam.iit@gmail.com | active, admin, no org | Create org |
+
+### 3. Update Frontend to Handle Edge Cases
+
+The app should gracefully handle users who might have `organization_id: NULL` and prompt them to contact support or retry signup.
+
+## Database Migration
+
+**Part 1: Robust `handle_new_user()` function**
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  user_email TEXT;
+  email_domain TEXT;
+  existing_org_id UUID;
+  new_org_id UUID;
+  user_name TEXT;
+BEGIN
+  -- Get email and convert to lowercase
+  user_email := lower(trim(NEW.email));
+  
+  -- Extract domain from email
+  email_domain := lower(trim(split_part(user_email, '@', 2)));
+  
+  -- Validate email has a domain
+  IF email_domain IS NULL OR email_domain = '' THEN
+    RAISE EXCEPTION 'Invalid email address';
+  END IF;
+  
+  -- Get user name from metadata or default to empty string
+  user_name := COALESCE(NEW.raw_user_meta_data->>'name', '');
+  
+  -- Check if domain exists in organization_domains (only for non-generic domains)
+  SELECT organization_id INTO existing_org_id
+  FROM public.organization_domains
+  WHERE domain = email_domain
+  LIMIT 1;
+  
+  IF existing_org_id IS NOT NULL THEN
+    -- Domain exists: create profile as contributor with pending status
+    INSERT INTO public.users_profile (id, organization_id, email, name, status)
+    VALUES (NEW.id, existing_org_id, user_email, user_name, 'pending')
+    ON CONFLICT (id) DO NOTHING;
+    
+    -- Add contributor role
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'contributor')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  ELSE
+    -- Domain does not exist: create new organization
+    INSERT INTO public.organizations (name)
+    VALUES ('New Organization')
+    RETURNING id INTO new_org_id;
+    
+    -- Only create organization domain if NOT a generic domain
+    IF NOT is_generic_domain(email_domain) THEN
+      INSERT INTO public.organization_domains (organization_id, domain, verified)
+      VALUES (new_org_id, email_domain, true);
+    END IF;
+    
+    -- Create profile as admin with active status
+    INSERT INTO public.users_profile (id, organization_id, email, name, status)
+    VALUES (NEW.id, new_org_id, user_email, user_name, 'active')
+    ON CONFLICT (id) DO NOTHING;
+    
+    -- Add admin role
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'admin')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
 ```
 
-### 3. Update `handle_new_user()` Function
+**Part 2: Fix existing broken users**
 
-Modify the logic when creating a new organization:
+For each user with `organization_id: NULL`, we need to:
+1. Create a new organization
+2. Update their profile with the org ID and correct status
+3. Update their role to admin
 
-```text
-Current flow:
-┌─────────────────────────────────────────────────────────┐
-│ Domain exists? ──Yes──> Join existing org (pending)    │
-│      │                                                  │
-│      No                                                 │
-│      v                                                  │
-│ Create org + Register domain (verified) + Active admin │
-└─────────────────────────────────────────────────────────┘
+```sql
+-- Fix authentickteam@gmail.com
+DO $$
+DECLARE
+  v_org_id UUID;
+BEGIN
+  INSERT INTO organizations (name) VALUES ('New Organization') RETURNING id INTO v_org_id;
+  
+  UPDATE users_profile 
+  SET organization_id = v_org_id, status = 'active' 
+  WHERE email = 'authentickteam@gmail.com';
+  
+  UPDATE user_roles 
+  SET role = 'admin' 
+  WHERE user_id = (SELECT id FROM users_profile WHERE email = 'authentickteam@gmail.com');
+END $$;
 
-New flow:
-┌─────────────────────────────────────────────────────────┐
-│ Domain exists in org_domains? ──Yes──> Join (pending)  │
-│      │                                                  │
-│      No                                                 │
-│      v                                                  │
-│ Is generic domain? ──Yes──> Create org (NO domain)     │
-│      │                       + Active admin             │
-│      No                                                 │
-│      v                                                  │
-│ Create org + Register domain (verified) + Active admin │
-└─────────────────────────────────────────────────────────┘
+-- Repeat for other broken users
 ```
-
-### 4. Update Organization Settings UI
-
-Block admins from adding generic domains manually:
-
-- Check against `generic_domains` table before inserting
-- Show clear error message: "Generic email domains like gmail.com cannot be added"
-
-## Frontend Changes
-
-### 1. Organization Settings Page
-
-Update `OrganizationSettings.tsx` to:
-- Validate new domains against the generic domains list before adding
-- Display helpful message explaining why generic domains are blocked
-
-### 2. Optional: Add Indicator for Invite-Only Orgs
-
-Show a badge or message on the domain settings card if an organization has no domains:
-- "This organization is invite-only. Add a domain to allow automatic signups."
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| New migration | Create `generic_domains` table, `is_generic_domain()` function, update `handle_new_user()` |
-| `src/pages/OrganizationSettings.tsx` | Add generic domain validation when adding domains |
+| New migration | Fix `handle_new_user()` function and repair broken user data |
 
-## Security Considerations
+## Testing After Fix
 
-- The `generic_domains` table should be readable by authenticated users (to check before adding)
-- Only platform admins should be able to modify the generic domains list
-- RLS policies will enforce these restrictions
+1. Sign up with a new gmail.com account
+2. Verify the user gets:
+   - `status: active`
+   - `role: admin`
+   - A new organization created
+   - No domain registered (invite-only org)
+3. Verify Organization Settings shows "This organization is invite-only"
 
-## User Experience
-
-**For users signing up with generic emails:**
-1. Sign up with `user@gmail.com`
-2. Organization created, user becomes admin (active)
-3. Domain settings show: "No domains configured. This organization is invite-only."
-4. Admin can invite members via the existing invitation system
-5. Admin can add a corporate domain later if available
-
-**For users signing up with corporate emails:**
-1. Sign up with `user@acme.com`
-2. If `acme.com` not claimed: Organization created with domain verified
-3. If `acme.com` already exists: User joins that org as pending contributor
-
-## Testing Scenarios
-
-1. Sign up with `test@gmail.com` → Creates invite-only org (no domain)
-2. Sign up with `test@company.com` → Creates org with `company.com` verified
-3. Try to add `gmail.com` as domain in settings → Error message shown
-4. Add `company.com` as domain in settings → Works normally
