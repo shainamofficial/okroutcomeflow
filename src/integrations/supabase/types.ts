@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      generic_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+        }
+        Relationships: []
+      }
       initiative_kr_links: {
         Row: {
           created_at: string
@@ -957,6 +975,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_generic_domain: { Args: { _domain: string }; Returns: boolean }
       is_last_admin: { Args: { _user_id: string }; Returns: boolean }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
     }
