@@ -1,195 +1,136 @@
 
-# Add Semantic Colors Throughout the Application
+# Handle Generic Email Domains for Invite-Only Organizations
 
-This plan enhances the application's usability by adding meaningful, semantic colors to status indicators, progress elements, charts, timeline bars, and role badges.
+This plan prevents users with generic consumer email domains (Gmail, Hotmail, Yahoo, etc.) from claiming those domains for their organization. Instead, their organizations will be invite-only.
 
 ## Overview
 
-The current Notion-like monochromatic design is elegant but makes it difficult to quickly distinguish between statuses. We'll add a semantic color system that:
-- Uses **green** for positive/completed states
-- Uses **blue** for active/in-progress states  
-- Uses **amber/yellow** for warning/at-risk states
-- Uses **red** for blocked/off-track states
-- Uses **gray** for neutral/not-started states
+When a user signs up with a generic email domain like `gmail.com`:
+- They can still create a new organization and become its admin
+- However, **no domain will be registered** for that organization
+- New members can only join via invitation (existing invitation system)
+- The organization can later add a verified corporate domain if they have one
 
-## 1. CSS Variable Updates
+## Database Changes
 
-Add new semantic color variables to `index.css`:
+### 1. Create a Generic Domains Table
 
-| Variable | Light Mode (HSL) | Dark Mode (HSL) | Usage |
-|----------|------------------|-----------------|-------|
-| `--success` | 142 76% 36% | 142 76% 40% | On track, completed, done |
-| `--success-foreground` | 0 0% 100% | 0 0% 100% | Text on success |
-| `--warning` | 38 92% 50% | 38 92% 50% | At risk |
-| `--warning-foreground` | 0 0% 9% | 0 0% 9% | Text on warning |
-| `--info` | 217 91% 60% | 217 91% 60% | In progress |
-| `--info-foreground` | 0 0% 100% | 0 0% 100% | Text on info |
-| `--chart-1` to `--chart-5` | Various | Various | Chart colors |
+Store a list of blocked/generic email domains that cannot be claimed:
 
-## 2. Badge Component Enhancement
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid | Primary key |
+| `domain` | text | The generic domain (e.g., gmail.com) |
+| `created_at` | timestamp | When added |
 
-Update the Badge component to support new color variants:
+**Initial seed data** (common consumer email providers):
+- gmail.com
+- googlemail.com
+- hotmail.com
+- outlook.com
+- live.com
+- msn.com
+- yahoo.com
+- yahoo.co.uk
+- ymail.com
+- aol.com
+- icloud.com
+- me.com
+- mac.com
+- protonmail.com
+- proton.me
+- zoho.com
+- mail.com
+- gmx.com
+- gmx.net
+- fastmail.com
 
-**New variants to add:**
-- `success` - Green background for completed/on-track
-- `warning` - Amber background for at-risk
-- `info` - Blue background for in-progress
+### 2. Create Helper Function
+
+Add a function to check if a domain is generic:
 
 ```text
-Badge Variants
-+-------------+------------------------+
-| Variant     | Appearance             |
-+-------------+------------------------+
-| default     | Primary (dark gray)    |
-| secondary   | Light gray background  |
-| destructive | Red background         |
-| outline     | Border only, no fill   |
-| success     | Green background       |
-| warning     | Amber background       |
-| info        | Blue background        |
-+-------------+------------------------+
+is_generic_domain(domain TEXT) -> BOOLEAN
 ```
 
-## 3. Status Badge Updates
+### 3. Update `handle_new_user()` Function
 
-### Task Status Badge
-| Status | Current | New |
-|--------|---------|-----|
-| To Do | outline (gray) | outline (gray) - no change |
-| In Progress | default (dark) | info (blue) |
-| Blocked | destructive (red) | destructive (red) - no change |
-| Done | secondary (gray) | success (green) |
+Modify the logic when creating a new organization:
 
-### Initiative Status Badge
-| Status | Current | New |
-|--------|---------|-----|
-| Not Started | outline (gray) | outline (gray) - no change |
-| In Progress | default (dark) | info (blue) |
-| Completed | secondary (gray) | success (green) |
-| Blocked | destructive (red) | destructive (red) - no change |
+```text
+Current flow:
+┌─────────────────────────────────────────────────────────┐
+│ Domain exists? ──Yes──> Join existing org (pending)    │
+│      │                                                  │
+│      No                                                 │
+│      v                                                  │
+│ Create org + Register domain (verified) + Active admin │
+└─────────────────────────────────────────────────────────┘
 
-### KR Status Badge
-| Status | Current | New |
-|--------|---------|-----|
-| No Config | outline (gray) | outline (gray) - no change |
-| No Data | secondary (gray) | secondary (gray) - no change |
-| On Track | default (dark) | success (green) |
-| At Risk | accent (gray) | warning (amber) |
-| Off Track | destructive (red) | destructive (red) - no change |
+New flow:
+┌─────────────────────────────────────────────────────────┐
+│ Domain exists in org_domains? ──Yes──> Join (pending)  │
+│      │                                                  │
+│      No                                                 │
+│      v                                                  │
+│ Is generic domain? ──Yes──> Create org (NO domain)     │
+│      │                       + Active admin             │
+│      No                                                 │
+│      v                                                  │
+│ Create org + Register domain (verified) + Active admin │
+└─────────────────────────────────────────────────────────┘
+```
 
-### Review Status Badge
-| Status | Current | New |
-|--------|---------|-----|
-| Scheduled | outline (gray) | info (blue) |
-| Completed | secondary (gray) | success (green) |
-| Cancelled | destructive (red) | destructive (red) - no change |
+### 4. Update Organization Settings UI
 
-## 4. Progress Bar Enhancement
+Block admins from adding generic domains manually:
 
-Create a color-coded progress bar that changes color based on performance:
+- Check against `generic_domains` table before inserting
+- Show clear error message: "Generic email domains like gmail.com cannot be added"
 
-**Logic:**
-- **Green** when actual progress >= expected progress
-- **Amber** when slightly behind (within 20% of expected)
-- **Red** when significantly behind (>20% below expected)
+## Frontend Changes
 
-Update `KRProgressBar.tsx` to:
-1. Accept `expectedProgress` as a prop
-2. Calculate the gap between actual and expected
-3. Apply appropriate color class to the Progress indicator
+### 1. Organization Settings Page
 
-## 5. Chart Color System
+Update `OrganizationSettings.tsx` to:
+- Validate new domains against the generic domains list before adding
+- Display helpful message explaining why generic domains are blocked
 
-Add `--chart-*` CSS variables for consistent data visualization:
+### 2. Optional: Add Indicator for Invite-Only Orgs
 
-| Variable | Color | Usage |
-|----------|-------|-------|
-| `--chart-1` | Red (0 84% 60%) | Off track / Behind |
-| `--chart-2` | Green (142 76% 36%) | On track |
-| `--chart-3` | Blue (217 91% 60%) | Neutral / Info |
-| `--chart-4` | Amber (38 92% 50%) | At risk |
-| `--chart-5` | Gray (0 0% 45%) | No data |
-
-Update `KRStatusChart.tsx` to use these defined variables.
-
-## 6. Timeline Bar Colors
-
-Update timeline bars to use semantic colors based on status:
-
-**Initiatives:**
-- Not Started: Gray
-- In Progress: Blue
-- Completed: Green
-- Blocked: Red
-
-**Tasks:**
-- To Do: Gray (lighter)
-- In Progress: Blue (lighter)
-- Done: Green (lighter)
-- Blocked: Red (lighter)
-
-## 7. Role Badge Colors
-
-Update role badges in `UserTable.tsx` and `GlobalUsersTable.tsx`:
-
-| Role | Current | New |
-|------|---------|-----|
-| Admin | default (dark) | Custom purple/indigo |
-| Manager | secondary (gray) | info (blue) |
-| Contributor | outline (gray) | success (green) |
-| Viewer | outline (gray) | outline (gray) - no change |
-
-## 8. User Status Indicators
-
-Add colored indicators for user status:
-
-| Status | Color |
-|--------|-------|
-| Active | Green dot |
-| Pending | Amber dot |
-| Inactive | Gray dot |
+Show a badge or message on the domain settings card if an organization has no domains:
+- "This organization is invite-only. Add a domain to allow automatic signups."
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/index.css` | Add chart color variables |
-| `src/tailwind.config.ts` | Add success, warning, info color mappings |
-| `src/components/ui/badge.tsx` | Add success, warning, info variants |
-| `src/components/tasks/TaskStatusBadge.tsx` | Update variant mappings |
-| `src/components/initiatives/InitiativeStatusBadge.tsx` | Update variant mappings |
-| `src/components/okrs/KRStatusBadge.tsx` | Update variant mappings |
-| `src/components/reviews/ReviewStatusBadge.tsx` | Update variant mappings |
-| `src/components/okrs/KRProgressBar.tsx` | Add color-coded progress indicator |
-| `src/components/ui/progress.tsx` | Support color variants |
-| `src/components/dashboard/KRStatusChart.tsx` | Use defined chart colors |
-| `src/components/timeline/TimelineBar.tsx` | Add status-based coloring |
-| `src/components/users/UserTable.tsx` | Update role badge colors |
-| `src/components/platform/GlobalUsersTable.tsx` | Update role badge colors, add status dots |
+| New migration | Create `generic_domains` table, `is_generic_domain()` function, update `handle_new_user()` |
+| `src/pages/OrganizationSettings.tsx` | Add generic domain validation when adding domains |
 
-## Implementation Order
+## Security Considerations
 
-1. **CSS variables** - Add all new color definitions
-2. **Tailwind config** - Map new colors
-3. **Badge component** - Add new variants
-4. **Status badges** - Update all four badge components
-5. **Progress bar** - Add color-coded logic
-6. **Charts** - Update chart colors
-7. **Timeline** - Add status-based coloring
-8. **Role/User indicators** - Final polish
+- The `generic_domains` table should be readable by authenticated users (to check before adding)
+- Only platform admins should be able to modify the generic domains list
+- RLS policies will enforce these restrictions
 
-## Visual Preview
+## User Experience
 
-```text
-Before (Monochrome):
-┌─────────────────────────────────────┐
-│ [■ In Progress] [■ Done] [■ Blocked]│  <- All look similar
-│ ████████░░░░░░░░░░░░░ 40%           │  <- Single color progress
-└─────────────────────────────────────┘
+**For users signing up with generic emails:**
+1. Sign up with `user@gmail.com`
+2. Organization created, user becomes admin (active)
+3. Domain settings show: "No domains configured. This organization is invite-only."
+4. Admin can invite members via the existing invitation system
+5. Admin can add a corporate domain later if available
 
-After (Semantic Colors):
-┌─────────────────────────────────────┐
-│ [🔵 In Progress] [🟢 Done] [🔴 Blocked]│  <- Instantly recognizable
-│ ████████░░░░░░░░░░░░░ 40% 🟡        │  <- Yellow = slightly behind
-└─────────────────────────────────────┘
-```
+**For users signing up with corporate emails:**
+1. Sign up with `user@acme.com`
+2. If `acme.com` not claimed: Organization created with domain verified
+3. If `acme.com` already exists: User joins that org as pending contributor
+
+## Testing Scenarios
+
+1. Sign up with `test@gmail.com` → Creates invite-only org (no domain)
+2. Sign up with `test@company.com` → Creates org with `company.com` verified
+3. Try to add `gmail.com` as domain in settings → Error message shown
+4. Add `company.com` as domain in settings → Works normally
