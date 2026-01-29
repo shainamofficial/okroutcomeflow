@@ -1,113 +1,207 @@
 
+# Platform Owner (Master Admin) Access System
 
-# Add Owner/Assignee to Timeline View
+This plan implements a platform-level master admin system for RoadmapOKR, allowing the SaaS owner to view and manage all organizations, users, teams, and data across the entire platform.
 
 ## Overview
 
-Enhance the timeline view to show owner/assignee information in a subtle, non-intrusive way. The information is already shown in the left panel labels, but we can make it more visible in two key places:
+The system introduces a `platform_admins` table to identify super users who can bypass organization-level scoping. It includes a new `/platform` route with views for managing organizations, users, and other platform admins.
 
-1. **Timeline bar tooltips** - Add owner/assignee to the hover tooltip
-2. **Timeline bar labels** - Show initials as a small avatar or text when the bar is wide enough
+## 1. Database Changes
 
----
+### New Table: `platform_admins`
 
-## Approach Options
-
-### Option A: Tooltip Only (Most Subtle)
-Add owner/assignee to the existing tooltip that appears on hover. This keeps the UI clean while making the information easily accessible.
-
-### Option B: Initials on Bar + Tooltip (Recommended)
-Show owner/assignee initials as a small circle or text at the end of the bar, plus enhanced tooltip. This provides at-a-glance visibility without cluttering the view.
-
-### Option C: Avatar on Bar + Tooltip
-Show a small avatar image on the bar. More visual but requires more space.
-
----
-
-## Recommended Implementation (Option B)
-
-### Changes to TimelineBar.tsx
-
-| Element | Change |
-|---------|--------|
-| Props | Add `ownerName?: string` for initiatives, `assigneeName?: string` for tasks |
-| Bar content | Show initials circle on the right side of the bar (when width > 100px) |
-| Tooltip | Add owner/assignee name below the date information |
-
-### Changes to TimelineMilestone.tsx
-
-| Element | Change |
-|---------|--------|
-| Props | Add `ownerName?: string` or `assigneeName?: string` |
-| Tooltip | Add owner/assignee name to the tooltip |
-
-### Changes to TimelineRow.tsx
-
-| Element | Change |
-|---------|--------|
-| TimelineBar props | Pass owner/assignee name from initiative or task |
-| TimelineMilestone props | Pass owner/assignee name from initiative or task |
-
----
-
-## Visual Design
-
-### Initials on Bar
 ```text
-┌────────────────────────────────────────────────────┬───┐
-│  Project Alpha                                     │JD │
-└────────────────────────────────────────────────────┴───┘
+platform_admins
++------------+---------------------------+-------------------------------------+
+| Column     | Type                      | Constraints                         |
++------------+---------------------------+-------------------------------------+
+| id         | uuid                      | primary key, default gen_random_uuid|
+| email      | text                      | not null, unique, lowercase         |
+| created_at | timestamptz               | default now()                       |
++------------+---------------------------+-------------------------------------+
 ```
-- Small circle with initials at the right edge of the bar
-- Muted/subtle background (e.g., slightly darker than bar)
-- Only shown when bar width > 100px to avoid crowding
 
-### Enhanced Tooltip
+### Initial Seed
+
+Insert `shainam.iit@gmail.com` as the first platform admin using `INSERT ... ON CONFLICT DO NOTHING`.
+
+### Helper Function
+
+Create a `SECURITY DEFINER` function `is_platform_admin(_user_id uuid)` that:
+- Looks up the user's email from `auth.users`
+- Checks if that email exists in `platform_admins`
+- Returns boolean
+
+### RLS Policies for `platform_admins`
+
+| Operation | Policy |
+|-----------|--------|
+| SELECT | Only platform admins can view |
+| INSERT | Only platform admins can add |
+| DELETE | Only platform admins can remove (with last-admin check) |
+| UPDATE | Not allowed |
+
+### RLS Policy Updates for Existing Tables
+
+Update SELECT policies on all organization-scoped tables to allow platform admins to bypass org filtering:
+
+**Tables to update:**
+- `organizations`
+- `organization_domains`
+- `users_profile`
+- `user_roles`
+- `teams`
+- `team_members`
+- `objectives`
+- `key_results`
+- `kr_metric_config`
+- `kr_metric_values`
+- `kr_review_cadence`
+- `kr_review_sessions`
+- `kr_review_participants`
+- `initiatives`
+- `initiative_kr_links`
+- `tasks`
+- `updates`
+- `update_mentions`
+- `update_reactions`
+- `notifications`
+- `user_invitations`
+
+Pattern for updated SELECT policies:
+```sql
+USING (
+  is_platform_admin(auth.uid()) OR 
+  (original_org_scoped_condition)
+)
+```
+
+Similar updates for UPDATE and DELETE policies where platform admins need write access.
+
+## 2. Frontend Changes
+
+### New Context: `PlatformAdminContext`
+
+Create a context that:
+- Checks if current user is a platform admin on auth
+- Provides `isPlatformAdmin` boolean
+- Fetches platform admin status via RPC or direct query
+
+### New Route Guard: `PlatformAdminRoute`
+
+A route guard component that:
+- Shows loading state while checking
+- Shows "No access" message for non-platform-admins
+- Renders children for platform admins
+
+### New Hooks
+
+**`usePlatformAdmins`**
+- Fetches list of platform admins
+- Mutations for add/remove platform admin
+- Includes last-admin protection
+
+**`usePlatformOrganizations`**
+- Fetches all organizations with aggregated counts (users, teams, objectives)
+- Delete organization mutation (with cascade warning)
+
+**`usePlatformUsers`**
+- Fetches all users across all organizations
+- Includes organization name, role, status
+- Mutations for status changes, role changes, delete
+
+### New Page: `/platform` (Platform.tsx)
+
+Tab-based interface with four sections:
+
+**Tab 1: Organizations**
+- Table: name, created_at, user count, team count, objective count
+- Actions: View details (opens drawer), Delete (with confirmation)
+
+**Tab 2: Organization Detail (Drawer)**
+- Profile section
+- Domains list
+- Users list
+- Teams list
+- Objectives and KRs summary
+
+**Tab 3: Global Users**
+- Table: name, email, organization, role, status, created_at
+- Actions: Activate, Deactivate, Change role, Reset to pending, Delete
+
+**Tab 4: Platform Admins**
+- List of platform admin emails
+- Add new platform admin (email input)
+- Remove platform admin (with last-admin protection)
+
+### Sidebar Update
+
+Add "Platform" navigation item that:
+- Only appears for platform admins
+- Uses a Shield or Crown icon
+- Links to `/platform`
+
+### App Router Update
+
+Add route `/platform` with `PlatformAdminRoute` guard.
+
+## 3. File Structure
+
 ```text
-┌────────────────────────────────┐
-│ Project Alpha                  │
-│ Jan 15, 2026 - Feb 28, 2026    │
-│ 45 days                        │
-│ ────────────────────────────── │
-│ Owner: John Doe                │  <- NEW
-└────────────────────────────────┘
+src/
+├── contexts/
+│   └── PlatformAdminContext.tsx      (new)
+├── components/
+│   └── auth/
+│       └── PlatformAdminRoute.tsx    (new)
+│   └── platform/
+│       ├── OrganizationsTable.tsx    (new)
+│       ├── OrganizationDetailDrawer.tsx (new)
+│       ├── GlobalUsersTable.tsx      (new)
+│       └── PlatformAdminManager.tsx  (new)
+├── hooks/
+│   ├── usePlatformAdmins.ts          (new)
+│   ├── usePlatformOrganizations.ts   (new)
+│   └── usePlatformUsers.ts           (new)
+└── pages/
+    └── Platform.tsx                   (new)
 ```
 
----
+## 4. Implementation Order
 
-## Files to Modify
+1. **Database migration** - Create `platform_admins` table, seed data, helper function, and RLS policies
+2. **Database migration (Part 2)** - Update existing table RLS policies to allow platform admin bypass
+3. **PlatformAdminContext** - Context for checking platform admin status
+4. **PlatformAdminRoute** - Route guard component
+5. **usePlatformAdmins hook** - CRUD operations for platform admins
+6. **usePlatformOrganizations hook** - Organization listing and management
+7. **usePlatformUsers hook** - Global user management
+8. **Platform page components** - Tables, drawers, forms
+9. **Platform.tsx page** - Main page assembly
+10. **Sidebar and routing updates** - Navigation and route registration
 
-| File | Changes |
-|------|---------|
-| `src/components/timeline/TimelineBar.tsx` | Add `ownerName` prop, show initials on bar, add to tooltip |
-| `src/components/timeline/TimelineMilestone.tsx` | Add `ownerName` prop, add to tooltip |
-| `src/components/timeline/TimelineRow.tsx` | Pass owner/assignee names to TimelineBar and TimelineMilestone |
+## Technical Notes
 
----
+### Security Considerations
 
-## Implementation Details
+- The `is_platform_admin` function uses `SECURITY DEFINER` to access `auth.users` safely
+- Platform admin check happens server-side in RLS policies
+- Client-side `isPlatformAdmin` state is for UI purposes only - actual access is enforced by RLS
 
-### Helper Function for Initials
-```typescript
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-};
-```
+### Last Admin Protection
 
-### Initials Display
-- Background: `bg-black/10` or `bg-white/20` (subtle)
-- Text: Same as bar text color but slightly muted
-- Size: `h-5 w-5` or smaller
-- Position: Right side of bar, inside the resize handle area
-- Hidden when bar is too narrow (< 100px)
+The system prevents removing the last platform admin by:
+1. Counting remaining platform admins before delete
+2. Blocking the operation if count would reach zero
 
-### Tooltip Enhancement
-Add a separator and owner/assignee line:
-- For initiatives: "Owner: [Name]"
-- For tasks: "Assignee: [Name/Team]" or "Unassigned" if none
+### Organization Deletion
+
+Deleting an organization will cascade delete all related data. The UI will show a confirmation dialog listing what will be deleted.
+
+### Developer Notes (Additions Beyond Spec)
+
+**`is_platform_admin` function**: Required to efficiently check platform admin status in RLS policies without repeatedly joining auth.users.
+
+**PlatformAdminContext**: Added to cache the platform admin check and make it accessible throughout the app without repeated queries.
 
