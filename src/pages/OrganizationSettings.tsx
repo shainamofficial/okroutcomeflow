@@ -223,6 +223,24 @@ export default function OrganizationSettings() {
         return;
       }
 
+      // Check if domain is a generic consumer email domain
+      const { data: isGeneric, error: genericError } = await supabase.rpc(
+        'is_generic_domain',
+        { _domain: normalizedDomain }
+      );
+
+      if (genericError) throw genericError;
+
+      if (isGeneric) {
+        toast({
+          title: 'Error',
+          description: 'Generic email domains like gmail.com, outlook.com, etc. cannot be added. Please use a corporate domain.',
+          variant: 'destructive',
+        });
+        setAddingDomain(false);
+        return;
+      }
+
       // Check if domain exists globally for another org
       const { data: existsGlobally, error: checkError } = await supabase.rpc(
         'domain_exists_for_other_org',
@@ -272,9 +290,12 @@ export default function OrganizationSettings() {
   };
 
   const canDeleteDomain = (domainToDelete: OrganizationDomain): { allowed: boolean; reason?: string } => {
-    // Must have at least one domain remaining
-    if (domains.length <= 1) {
-      return { allowed: false, reason: 'Cannot delete the only domain. At least one domain must remain.' };
+    // If this is the only domain and it's verified, prevent deletion
+    if (domains.length <= 1 && domainToDelete.verified) {
+      const verifiedCount = domains.filter((d) => d.verified).length;
+      if (verifiedCount <= 1) {
+        return { allowed: false, reason: 'Cannot delete the only verified domain. At least one verified domain must remain for automatic signups.' };
+      }
     }
 
     // If deleting a verified domain, check if there will be at least one verified domain remaining
@@ -558,7 +579,17 @@ export default function OrganizationSettings() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No domains added yet.</p>
+            <div className="border border-dashed rounded-md p-4 bg-muted/30">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">This organization is invite-only</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    No domains are configured. Members can only join via invitation. Add a corporate domain to allow automatic signups for users with matching email addresses.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
