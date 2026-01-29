@@ -14,6 +14,7 @@ import { PlatformAdminRoute } from "@/components/auth/PlatformAdminRoute";
 import { AppLayout } from "@/components/app/AppLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import LandingPage from "./pages/LandingPage";
 import SignupInvite from "./pages/SignupInvite";
 import AwaitingApproval from "./pages/AwaitingApproval";
 import Inactive from "./pages/Inactive";
@@ -182,8 +183,8 @@ const App = () => (
                 }
               />
 
-              {/* Root redirect */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Public landing page */}
+              <Route path="/" element={<LandingPage />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
