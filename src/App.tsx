@@ -4,11 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PlatformAdminProvider } from "@/contexts/PlatformAdminContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicRoute } from "@/components/auth/PublicRoute";
 import { StatusRoute } from "@/components/auth/StatusRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { ManagerRoute } from "@/components/auth/ManagerRoute";
+import { PlatformAdminRoute } from "@/components/auth/PlatformAdminRoute";
 import { AppLayout } from "@/components/app/AppLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -24,6 +26,7 @@ import Initiatives from "./pages/Initiatives";
 import Reviews from "./pages/Reviews";
 import Timeline from "./pages/Timeline";
 import MyItems from "./pages/MyItems";
+import Platform from "./pages/Platform";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,9 +38,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* Public routes - redirect to app if authenticated */}
-            <Route
+          <PlatformAdminProvider>
+            <Routes>
+              {/* Public routes - redirect to app if authenticated */}
+              <Route
               path="/login"
               element={
                 <PublicRoute>
@@ -164,14 +168,27 @@ const App = () => (
                   </AppLayout>
                 </AdminRoute>
               }
-            />
+              />
 
-            {/* Root redirect */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Platform admin route */}
+              <Route
+                path="/platform"
+                element={
+                  <PlatformAdminRoute>
+                    <AppLayout>
+                      <Platform />
+                    </AppLayout>
+                  </PlatformAdminRoute>
+                }
+              />
 
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* Root redirect */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PlatformAdminProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
