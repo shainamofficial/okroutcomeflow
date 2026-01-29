@@ -23,6 +23,7 @@ import OKRs from "./pages/OKRs";
 import Initiatives from "./pages/Initiatives";
 import Reviews from "./pages/Reviews";
 import Timeline from "./pages/Timeline";
+import MyItems from "./pages/MyItems";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Dashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/me"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <MyItems />
                   </AppLayout>
                 </ProtectedRoute>
               }

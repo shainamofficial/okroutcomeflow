@@ -1,237 +1,72 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Building2, Globe, CheckCircle, XCircle, Info } from 'lucide-react';
-
-interface Organization {
-  id: string;
-  name: string;
-  logo_url: string | null;
-  created_at: string;
-}
-
-interface OrganizationDomain {
-  id: string;
-  domain: string;
-  verified: boolean;
-  created_at: string;
-}
+import { Target, Lightbulb, CheckSquare, Flag } from "lucide-react";
+import {
+  useDashboardStats,
+  useUpcomingReviews,
+  useOverdueTasks,
+  useRecentUpdates,
+} from "@/hooks/useDashboardStats";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { KRStatusChart } from "@/components/dashboard/KRStatusChart";
+import { UpcomingReviews } from "@/components/dashboard/UpcomingReviews";
+import { OverdueTasks } from "@/components/dashboard/OverdueTasks";
+import { RecentUpdates } from "@/components/dashboard/RecentUpdates";
 
 export default function Dashboard() {
-  const { profile, roles } = useAuth();
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [domains, setDomains] = useState<OrganizationDomain[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchOrganizationData = async () => {
-      if (!profile?.organization_id) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', profile.organization_id)
-          .maybeSingle();
-
-        if (orgError) {
-          console.error('Error fetching organization:', orgError);
-        } else if (orgData) {
-          setOrganization(orgData);
-        }
-
-        const { data: domainsData, error: domainsError } = await supabase
-          .from('organization_domains')
-          .select('*')
-          .eq('organization_id', profile.organization_id);
-
-        if (domainsError) {
-          console.error('Error fetching domains:', domainsError);
-        } else if (domainsData) {
-          setDomains(domainsData);
-        }
-      } catch (error) {
-        console.error('Error fetching organization data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrganizationData();
-  }, [profile?.organization_id]);
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'default';
-      case 'manager':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: upcomingReviews = [], isLoading: reviewsLoading } = useUpcomingReviews();
+  const { data: overdueTasks = [], isLoading: tasksLoading } = useOverdueTasks();
+  const { data: recentUpdates = [], isLoading: updatesLoading } = useRecentUpdates();
 
   return (
     <div className="space-y-6">
-      {/* User Profile Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback className="text-xs">
-                {profile?.name ? getInitials(profile.name) : '??'}
-              </AvatarFallback>
-            </Avatar>
-            Your Profile
-          </CardTitle>
-          <CardDescription>Your account information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="text-sm font-medium">{profile?.name || 'Not set'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="text-sm font-medium">{profile?.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Role</p>
-              <div className="flex gap-1 mt-1">
-                {roles.length > 0 ? (
-                  roles.map((role) => (
-                    <Badge key={role} variant={getRoleBadgeVariant(role)}>
-                      {role}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant="outline">No role</Badge>
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <Badge variant={profile?.status === 'active' ? 'default' : 'secondary'}>
-                {profile?.status}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your organization's OKRs and initiatives</p>
+      </div>
 
-      {/* Organization Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Organization
-          </CardTitle>
-          <CardDescription>Your organization details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {organization ? (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Organization Name</p>
-                <p className="text-sm font-medium">{organization.name}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No organization found</p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Objectives"
+          value={statsLoading ? "..." : stats?.objectivesCount || 0}
+          icon={<Flag className="h-4 w-4" />}
+        />
+        <StatCard
+          title="Key Results"
+          value={statsLoading ? "..." : stats?.keyResultsCount || 0}
+          icon={<Target className="h-4 w-4" />}
+        />
+        <StatCard
+          title="Initiatives"
+          value={statsLoading ? "..." : stats?.initiativesCount || 0}
+          icon={<Lightbulb className="h-4 w-4" />}
+        />
+        <StatCard
+          title="Tasks"
+          value={statsLoading ? "..." : stats?.tasksCount || 0}
+          icon={<CheckSquare className="h-4 w-4" />}
+        />
+      </div>
 
-      {/* Organization Domains Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Organization Domains
-          </CardTitle>
-          <CardDescription>Domains associated with your organization</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {domains.length > 0 ? (
-            <ul className="space-y-2">
-              {domains.map((domain) => (
-                <li
-                  key={domain.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50"
-                >
-                  <span className="text-sm font-mono">{domain.domain}</span>
-                  <div className="flex items-center gap-2">
-                    {domain.verified ? (
-                      <Badge variant="default" className="gap-1">
-                        <CheckCircle className="h-3 w-3" />
-                        Verified
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="gap-1">
-                        <XCircle className="h-3 w-3" />
-                        Unverified
-                      </Badge>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">No domains found</p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Charts and Lists */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <KRStatusChart
+          distribution={
+            stats?.krStatusDistribution || {
+              onTrack: 0,
+              atRisk: 0,
+              behind: 0,
+              noData: 0,
+            }
+          }
+        />
+        <UpcomingReviews reviews={upcomingReviews} isLoading={reviewsLoading} />
+      </div>
 
-      {/* Developer Notes */}
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Info className="h-4 w-4" />
-            Developer Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-sm text-muted-foreground space-y-2">
-            <li>
-              <strong>Role storage:</strong> User roles are stored in a separate{' '}
-              <code className="bg-muted px-1 rounded">user_roles</code> table (instead of the{' '}
-              <code className="bg-muted px-1 rounded">users_profile</code> table) for security. This
-              prevents privilege escalation attacks by using a security definer function{' '}
-              <code className="bg-muted px-1 rounded">has_role()</code> to check permissions.
-            </li>
-            <li>
-              <strong>Auto-provisioning:</strong> A database trigger on{' '}
-              <code className="bg-muted px-1 rounded">auth.users</code> automatically creates
-              organization, domain, profile, and role entries on signup.
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <OverdueTasks tasks={overdueTasks} isLoading={tasksLoading} />
+        <RecentUpdates updates={recentUpdates} isLoading={updatesLoading} />
+      </div>
     </div>
   );
 }
