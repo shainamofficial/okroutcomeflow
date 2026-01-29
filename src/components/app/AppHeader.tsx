@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface Organization {
   id: string;
@@ -51,7 +53,7 @@ export function AppHeader() {
     <header className="border-b border-border bg-card h-14 flex items-center px-4 gap-4">
       <SidebarTrigger className="-ml-1" />
       
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex items-center gap-2">
         {organization?.logo_url ? (
           <img
             src={organization.logo_url}
@@ -65,12 +67,17 @@ export function AppHeader() {
             </span>
           </div>
         )}
-        <span className="font-semibold text-foreground">
+        <span className="font-semibold text-foreground hidden sm:inline">
           {organization?.name || 'Organization'}
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex-1 flex justify-center">
+        <GlobalSearch />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <NotificationBell />
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || undefined} />
@@ -78,7 +85,7 @@ export function AppHeader() {
               {profile?.name ? getInitials(profile.name) : profile?.email?.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm text-foreground hidden sm:inline">
+          <span className="text-sm text-foreground hidden md:inline">
             {profile?.name || profile?.email}
           </span>
         </div>

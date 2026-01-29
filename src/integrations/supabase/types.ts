@@ -384,6 +384,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: Database["public"]["Enums"]["entity_type"] | null
+          id: string
+          message: string
+          read: boolean
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["entity_type"] | null
+          id?: string
+          message: string
+          read?: boolean
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: Database["public"]["Enums"]["entity_type"] | null
+          id?: string
+          message?: string
+          read?: boolean
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string
@@ -879,6 +920,10 @@ export type Database = {
         Args: { _config_id: string }
         Returns: string
       }
+      get_org_id_from_notification: {
+        Args: { _notification_id: string }
+        Returns: string
+      }
       get_org_id_from_task: { Args: { _task_id: string }; Returns: string }
       get_org_id_from_update: { Args: { _update_id: string }; Returns: string }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
@@ -897,6 +942,11 @@ export type Database = {
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
       metric_direction: "increase" | "decrease" | "maintain"
+      notification_type:
+        | "mention"
+        | "review_reminder"
+        | "task_assigned"
+        | "task_overdue"
       review_frequency: "weekly" | "biweekly" | "monthly" | "quarterly"
       review_session_status: "scheduled" | "completed" | "cancelled"
       task_status: "todo" | "in_progress" | "blocked" | "done"
@@ -1034,6 +1084,12 @@ export const Constants = {
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
       metric_direction: ["increase", "decrease", "maintain"],
+      notification_type: [
+        "mention",
+        "review_reminder",
+        "task_assigned",
+        "task_overdue",
+      ],
       review_frequency: ["weekly", "biweekly", "monthly", "quarterly"],
       review_session_status: ["scheduled", "completed", "cancelled"],
       task_status: ["todo", "in_progress", "blocked", "done"],
