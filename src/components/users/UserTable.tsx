@@ -64,14 +64,14 @@ export function UserTable({
   onRoleChange,
   tableType,
 }: UserTableProps) {
-  const getRoleBadgeVariant = (role: AppRole) => {
+  const getRoleBadgeVariant = (role: AppRole): "default" | "secondary" | "outline" | "success" | "warning" | "info" => {
     switch (role) {
       case 'admin':
         return 'default';
       case 'manager':
-        return 'secondary';
+        return 'info';
       case 'contributor':
-        return 'outline';
+        return 'success';
       default:
         return 'outline';
     }

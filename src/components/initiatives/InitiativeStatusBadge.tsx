@@ -3,11 +3,11 @@ import { InitiativeStatus } from "@/hooks/useInitiatives";
 
 const statusConfig: Record<
   InitiativeStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" }
 > = {
   not_started: { label: "Not Started", variant: "outline" },
-  in_progress: { label: "In Progress", variant: "default" },
-  completed: { label: "Completed", variant: "secondary" },
+  in_progress: { label: "In Progress", variant: "info" },
+  completed: { label: "Completed", variant: "success" },
   blocked: { label: "Blocked", variant: "destructive" },
 };
 

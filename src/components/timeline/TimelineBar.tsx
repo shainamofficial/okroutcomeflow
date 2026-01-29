@@ -8,6 +8,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import type { Database } from "@/integrations/supabase/types";
+
+type InitiativeStatus = Database["public"]["Enums"]["initiative_status"];
+type TaskStatus = Database["public"]["Enums"]["task_status"];
+type CombinedStatus = InitiativeStatus | TaskStatus;
+
 interface TimelineBarProps {
   startDate: Date;
   endDate: Date;
@@ -20,6 +26,7 @@ interface TimelineBarProps {
   variant: "initiative" | "task";
   label: string;
   ownerName?: string;
+  status?: CombinedStatus;
 }
 
 const getInitials = (name: string) => {
@@ -29,6 +36,76 @@ const getInitials = (name: string) => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+};
+
+const getStatusColor = (variant: "initiative" | "task", status?: CombinedStatus): string => {
+  if (!status) {
+    return variant === "initiative"
+      ? "bg-primary hover:bg-primary/90"
+      : "bg-secondary hover:bg-secondary/90";
+  }
+
+  // Initiative status colors
+  if (variant === "initiative") {
+    switch (status) {
+      case "not_started":
+        return "bg-muted hover:bg-muted/90";
+      case "in_progress":
+        return "bg-info hover:bg-info/90";
+      case "completed":
+        return "bg-success hover:bg-success/90";
+      case "blocked":
+        return "bg-destructive hover:bg-destructive/90";
+      default:
+        return "bg-primary hover:bg-primary/90";
+    }
+  }
+
+  // Task status colors (lighter variants)
+  switch (status) {
+    case "todo":
+      return "bg-muted hover:bg-muted/90";
+    case "in_progress":
+      return "bg-info/70 hover:bg-info/60";
+    case "done":
+      return "bg-success/70 hover:bg-success/60";
+    case "blocked":
+      return "bg-destructive/70 hover:bg-destructive/60";
+    default:
+      return "bg-secondary hover:bg-secondary/90";
+  }
+};
+
+const getTextColor = (variant: "initiative" | "task", status?: CombinedStatus): string => {
+  if (!status) {
+    return variant === "initiative" ? "text-primary-foreground" : "text-secondary-foreground";
+  }
+
+  if (variant === "initiative") {
+    switch (status) {
+      case "not_started":
+        return "text-muted-foreground";
+      case "in_progress":
+        return "text-info-foreground";
+      case "completed":
+        return "text-success-foreground";
+      case "blocked":
+        return "text-destructive-foreground";
+      default:
+        return "text-primary-foreground";
+    }
+  }
+
+  switch (status) {
+    case "todo":
+      return "text-muted-foreground";
+    case "in_progress":
+    case "done":
+    case "blocked":
+      return "text-foreground";
+    default:
+      return "text-secondary-foreground";
+  }
 };
 
 type DragMode = "move" | "resize-start" | "resize-end" | null;
@@ -45,6 +122,7 @@ export function TimelineBar({
   variant,
   label,
   ownerName,
+  status,
 }: TimelineBarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<DragMode>(null);
@@ -151,10 +229,8 @@ export function TimelineBar({
     };
   }, [isDragging, dragMode, tempStart, tempEnd, dayWidth, startDate, endDate, onDragEnd, onClick, canDrag]);
 
-  const barColor =
-    variant === "initiative"
-      ? "bg-primary hover:bg-primary/90"
-      : "bg-secondary hover:bg-secondary/90";
+  const barColor = getStatusColor(variant, status);
+  const textColor = getTextColor(variant, status);
 
   return (
     <Tooltip>
@@ -189,7 +265,7 @@ export function TimelineBar({
           <span
             className={cn(
               "px-2 text-xs font-medium truncate flex-1",
-              variant === "initiative" ? "text-primary-foreground" : "text-secondary-foreground"
+              textColor
             )}
           >
             {width > 60 ? label : ""}
@@ -199,10 +275,8 @@ export function TimelineBar({
           {ownerName && width > 100 && (
             <div
               className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0",
-                variant === "initiative"
-                  ? "bg-black/10 text-primary-foreground/80"
-                  : "bg-black/10 text-secondary-foreground/80"
+                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0 bg-black/10",
+                textColor.replace("text-", "text-") + "/80"
               )}
             >
               {getInitials(ownerName)}

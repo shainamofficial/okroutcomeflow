@@ -14,7 +14,7 @@ const COLORS = {
   onTrack: "hsl(var(--chart-2))",
   atRisk: "hsl(var(--chart-4))",
   behind: "hsl(var(--chart-1))",
-  noData: "hsl(var(--muted))",
+  noData: "hsl(var(--chart-5))",
 };
 
 export function KRStatusChart({ distribution }: KRStatusChartProps) {
