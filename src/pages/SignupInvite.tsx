@@ -143,49 +143,17 @@ export default function SignupInvite() {
       // Wait a moment for the trigger to create the profile
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Update the profile with the correct organization and status
-      const { error: profileError } = await supabase
-        .from('users_profile')
-        .update({
-          organization_id: invitation.organization_id,
-          status: 'active',
-          name: name.trim(),
-        })
-        .eq('id', authData.user.id);
+      // Use the secure server-side function to accept the invitation
+      // This validates the invitation, updates profile/roles, and marks invitation as accepted
+      const { error: acceptError } = await supabase.rpc('accept_invitation', {
+        _user_id: authData.user.id,
+        _invitation_token: token!,
+        _name: name.trim(),
+      });
 
-      if (profileError) {
-        console.error('Profile update error:', profileError);
-      }
-
-      // Update the role to match the invitation
-      const { error: deleteRoleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', authData.user.id);
-
-      if (deleteRoleError) {
-        console.error('Delete role error:', deleteRoleError);
-      }
-
-      const { error: insertRoleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: invitation.role,
-        });
-
-      if (insertRoleError) {
-        console.error('Insert role error:', insertRoleError);
-      }
-
-      // Mark invitation as accepted
-      const { error: inviteError } = await supabase
-        .from('user_invitations')
-        .update({ status: 'accepted' })
-        .eq('id', invitation.id);
-
-      if (inviteError) {
-        console.error('Invitation update error:', inviteError);
+      if (acceptError) {
+        console.error('Accept invitation error:', acceptError);
+        throw acceptError;
       }
 
       setSuccess(true);
