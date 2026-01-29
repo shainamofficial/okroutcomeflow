@@ -7,11 +7,11 @@ interface KRStatusBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<KRStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const statusConfig: Record<KRStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" }> = {
   no_config: { label: "No Config", variant: "outline" },
   no_data: { label: "No Data", variant: "secondary" },
-  on_track: { label: "On Track", variant: "default" },
-  at_risk: { label: "At Risk", variant: "secondary" },
+  on_track: { label: "On Track", variant: "success" },
+  at_risk: { label: "At Risk", variant: "warning" },
   off_track: { label: "Off Track", variant: "destructive" },
 };
 
@@ -19,14 +19,7 @@ export function KRStatusBadge({ status, className }: KRStatusBadgeProps) {
   const config = statusConfig[status];
 
   return (
-    <Badge
-      variant={config.variant}
-      className={cn(
-        status === "on_track" && "bg-primary text-primary-foreground",
-        status === "at_risk" && "bg-accent text-accent-foreground",
-        className
-      )}
-    >
+    <Badge variant={config.variant} className={className}>
       {config.label}
     </Badge>
   );

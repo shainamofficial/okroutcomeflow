@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { MoreHorizontal, UserCheck, UserX, RefreshCw, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { usePlatformUsers } from '@/hooks/usePlatformUsers';
 import {
   Table,
@@ -94,7 +95,18 @@ export function GlobalUsersTable() {
                     <div className="flex gap-1 flex-wrap">
                       {user.roles.length > 0 ? (
                         user.roles.map((role) => (
-                          <Badge key={role} variant="outline">
+                          <Badge
+                            key={role}
+                            variant={
+                              role === 'admin'
+                                ? 'default'
+                                : role === 'manager'
+                                ? 'info'
+                                : role === 'contributor'
+                                ? 'success'
+                                : 'outline'
+                            }
+                          >
                             {roleLabels[role]}
                           </Badge>
                         ))
@@ -104,17 +116,27 @@ export function GlobalUsersTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        user.status === 'active'
-                          ? 'default'
-                          : user.status === 'pending'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                    >
-                      {user.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          user.status === 'active' && "bg-success",
+                          user.status === 'pending' && "bg-warning",
+                          user.status === 'inactive' && "bg-muted-foreground"
+                        )}
+                      />
+                      <Badge
+                        variant={
+                          user.status === 'active'
+                            ? 'success'
+                            : user.status === 'pending'
+                            ? 'warning'
+                            : 'outline'
+                        }
+                      >
+                        {user.status}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell>{format(new Date(user.created_at), 'MMM d, yyyy')}</TableCell>
                   <TableCell className="text-right">

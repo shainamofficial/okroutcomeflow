@@ -48,6 +48,17 @@
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
+    /* Chart colors */
+    --chart-1: 0 84% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 0% 45%;
+
+    /* Role colors */
+    --role-admin: 270 60% 50%;
+    --role-admin-foreground: 0 0% 100%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 25%;
     --sidebar-primary: 0 0% 9%;
@@ -93,6 +104,17 @@
     --warning-foreground: 0 0% 9%;
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
+
+    /* Chart colors */
+    --chart-1: 0 62% 50%;
+    --chart-2: 142 76% 40%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 0% 60%;
+
+    /* Role colors */
+    --role-admin: 270 60% 60%;
+    --role-admin-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 10%;
     --sidebar-foreground: 0 0% 95%;
