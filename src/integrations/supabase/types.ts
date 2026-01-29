@@ -523,6 +523,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assignee_team_id: string | null
@@ -906,6 +924,7 @@ export type Database = {
         Returns: boolean
       }
       count_org_admins: { Args: { _org_id: string }; Returns: number }
+      count_platform_admins: { Args: never; Returns: number }
       domain_exists_for_other_org: {
         Args: { _domain: string; _org_id: string }
         Returns: boolean
@@ -939,6 +958,7 @@ export type Database = {
         Returns: boolean
       }
       is_last_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
