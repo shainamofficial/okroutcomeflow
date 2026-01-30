@@ -12,8 +12,9 @@ interface Invitation {
   email: string;
   role: AppRole;
   status: InvitationStatus;
-  token: string;
+  token: string | null;
   created_at: string;
+  expires_at: string | null;
 }
 
 function generateToken(): string {
