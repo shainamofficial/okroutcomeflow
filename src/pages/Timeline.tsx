@@ -3,16 +3,13 @@ import { isPast, isToday } from "date-fns";
 import { useInitiatives, Initiative } from "@/hooks/useInitiatives";
 import { useAllTasks, Task } from "@/hooks/useTasks";
 import { useAuth } from "@/contexts/AuthContext";
-import { TimelineFilters, TimelineFiltersState } from "@/components/timeline/TimelineFilters";
+import { TimelineFilters, TimelineFiltersState, ZoomLevel } from "@/components/timeline/TimelineFilters";
 import { TimelineChart } from "@/components/timeline/TimelineChart";
 import { TimelineNoDates } from "@/components/timeline/TimelineNoDates";
 import { InitiativeDetailDrawer } from "@/components/initiatives/InitiativeDetailDrawer";
 import { TaskDetailDrawer } from "@/components/tasks/TaskDetailDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarRange } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-export type ZoomLevel = "week" | "month" | "quarter";
 
 export interface TimelineInitiative extends Initiative {
   tasks: (Task & { initiative: { id: string; organization_id: string } })[];
@@ -163,23 +160,19 @@ export default function Timeline() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Timeline</h1>
-          <p className="text-muted-foreground mt-1">
-            Visualize initiatives and tasks on a timeline
-          </p>
-        </div>
-        <Tabs value={zoomLevel} onValueChange={(v) => setZoomLevel(v as ZoomLevel)}>
-          <TabsList>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="quarter">Quarter</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div>
+        <h1 className="text-3xl font-bold">Timeline</h1>
+        <p className="text-muted-foreground mt-1">
+          Visualize initiatives and tasks on a timeline
+        </p>
       </div>
 
-      <TimelineFilters filters={filters} onFiltersChange={setFilters} />
+      <TimelineFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        zoomLevel={zoomLevel}
+        onZoomLevelChange={setZoomLevel}
+      />
 
       {isLoading ? (
         <div className="space-y-4">
