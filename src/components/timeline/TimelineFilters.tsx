@@ -13,6 +13,8 @@ import { useTeams } from "@/hooks/useTeams";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+export type ZoomLevel = "week" | "month" | "quarter";
+
 export interface TimelineFiltersState {
   status: InitiativeStatus | "all";
   ownerId: string | "all";
@@ -24,9 +26,11 @@ export interface TimelineFiltersState {
 interface TimelineFiltersProps {
   filters: TimelineFiltersState;
   onFiltersChange: (filters: TimelineFiltersState) => void;
+  zoomLevel: ZoomLevel;
+  onZoomLevelChange: (level: ZoomLevel) => void;
 }
 
-export function TimelineFilters({ filters, onFiltersChange }: TimelineFiltersProps) {
+export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLevelChange }: TimelineFiltersProps) {
   const { users } = useOrgUsers();
   const { teams } = useTeams();
 
@@ -55,6 +59,20 @@ export function TimelineFilters({ filters, onFiltersChange }: TimelineFiltersPro
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Filters</span>
       </div>
+
+      <Select
+        value={zoomLevel}
+        onValueChange={(v) => onZoomLevelChange(v as ZoomLevel)}
+      >
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="View" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="week">Week</SelectItem>
+          <SelectItem value="month">Month</SelectItem>
+          <SelectItem value="quarter">Quarter</SelectItem>
+        </SelectContent>
+      </Select>
 
       <Select
         value={filters.status}

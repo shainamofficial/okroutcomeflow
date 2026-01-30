@@ -18,7 +18,8 @@ import {
   max,
 } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TimelineInitiative, ZoomLevel } from "@/pages/Timeline";
+import { TimelineInitiative } from "@/pages/Timeline";
+import { ZoomLevel } from "@/components/timeline/TimelineFilters";
 import { Task } from "@/hooks/useTasks";
 import { Initiative, useInitiatives } from "@/hooks/useInitiatives";
 import { useTasks } from "@/hooks/useTasks";
