@@ -819,29 +819,35 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          expires_at: string | null
           id: string
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["invitation_status"]
           token: string
+          token_hash: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          expires_at?: string | null
           id?: string
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token: string
+          token_hash?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          expires_at?: string | null
           id?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
+          token_hash?: string | null
         }
         Relationships: [
           {
