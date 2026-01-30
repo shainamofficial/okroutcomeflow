@@ -1,69 +1,85 @@
 
-# Move View Selector to Timeline Filters
+# Fix Timeline View Filter Logic
 
-## Overview
+## Problem
 
-Move the Week/Month/Quarter zoom level selector from the page header into the TimelineFilters component, consolidating all view and filter controls in one place.
+The zoom level logic is inverted. The view selector names don't match what each column represents:
 
-## Changes
+| View Selected | What User Expects | What Currently Happens |
+|---------------|-------------------|------------------------|
+| Weekly | 1 column = 1 week | 1 column = 1 day |
+| Monthly | 1 column = 1 month | 1 column = 1 week |
+| Quarterly | 1 column = 1 quarter | 1 column = 1 month |
 
-### 1. Update TimelineFilters Component
+## Solution
 
-Add the zoom level selector to the filters bar:
+Update the `TimelineChart.tsx` to correctly map zoom levels to column intervals:
 
-| Change | Details |
-|--------|---------|
-| New prop | Accept `zoomLevel` and `onZoomLevelChange` props |
-| Add selector | Add a Select dropdown for Week/Month/Quarter options |
-| Styling | Style it consistently with other filter dropdowns |
+### Column Generation Changes
 
-### 2. Update Timeline Page
+| View | Column Interval | Header Format | Column Width |
+|------|-----------------|---------------|--------------|
+| Weekly | `eachWeekOfInterval` | "Jan 6" (week start date) | 100px |
+| Monthly | `eachMonthOfInterval` | "Jan 2026" | 120px |
+| Quarterly | `eachQuarterOfInterval` (new import) | "Q1 2026" | 150px |
 
-Remove the tabs from the header and pass zoom level props to TimelineFilters:
+### Date Range Padding
 
-| Change | Details |
-|--------|---------|
-| Remove Tabs | Remove the `<Tabs>` component from the header section |
-| Clean up imports | Remove unused `Tabs` imports |
-| Pass props | Pass `zoomLevel` and `onZoomLevelChange` to TimelineFilters |
-
-## Visual Result
-
-**Before:**
-```text
-+------------------------------------------+
-| Timeline                    [Week|Month|Quarter] (tabs)
-| Visualize initiatives...
-+------------------------------------------+
-| Filters: [Status] [Owner] [User] [Team]  |
-+------------------------------------------+
-```
-
-**After:**
-```text
-+------------------------------------------+
-| Timeline                                 |
-| Visualize initiatives...                 |
-+------------------------------------------+
-| Filters: [View] [Status] [Owner] [User] [Team] |
-+------------------------------------------+
-```
+Adjust the padding around min/max dates to match the new granularity:
+- Weekly: Pad by 1-2 weeks
+- Monthly: Pad by 1-2 months  
+- Quarterly: Pad by 1 quarter
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/timeline/TimelineFilters.tsx` | Add zoom level Select dropdown and new props |
-| `src/pages/Timeline.tsx` | Remove Tabs from header, pass zoom props to TimelineFilters |
+| `src/components/timeline/TimelineChart.tsx` | Fix zoom level switch logic and add `eachQuarterOfInterval` import |
 
 ## Technical Details
 
-**TimelineFilters.tsx changes:**
-- Import `ZoomLevel` type from Timeline page
-- Add new props: `zoomLevel: ZoomLevel` and `onZoomLevelChange: (level: ZoomLevel) => void`
-- Add a new Select dropdown with options: Week, Month, Quarter
-- Position it as the first filter (left side) for prominence
+```typescript
+// Updated switch statement
+switch (zoomLevel) {
+  case "week":
+    // Each column = 1 week
+    start = startOfWeek(addDays(minDate, -14), { weekStartsOn: 1 });
+    end = endOfWeek(addDays(maxDate, 14), { weekStartsOn: 1 });
+    cols = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+    colWidth = 100;
+    break;
+  case "month":
+    // Each column = 1 month
+    start = startOfMonth(addMonths(minDate, -1));
+    end = endOfMonth(addMonths(maxDate, 1));
+    cols = eachMonthOfInterval({ start, end });
+    colWidth = 120;
+    break;
+  case "quarter":
+    // Each column = 1 quarter (3 months)
+    start = startOfQuarter(addMonths(minDate, -3));
+    end = endOfQuarter(addMonths(maxDate, 3));
+    cols = eachQuarterOfInterval({ start, end });
+    colWidth = 150;
+    break;
+}
+```
 
-**Timeline.tsx changes:**
-- Remove `Tabs`, `TabsList`, `TabsTrigger` imports and JSX
-- Pass `zoomLevel={zoomLevel}` and `onZoomLevelChange={setZoomLevel}` to `<TimelineFilters />`
+```typescript
+// Updated header formatting
+const formatColumnHeader = (date: Date): string => {
+  switch (zoomLevel) {
+    case "week":
+      return format(date, "MMM d");  // "Jan 6"
+    case "month":
+      return format(date, "MMM yyyy");  // "Jan 2026"
+    case "quarter":
+      return `Q${Math.ceil((date.getMonth() + 1) / 3)} ${format(date, "yyyy")}`;  // "Q1 2026"
+  }
+};
+```
+
+## Additional Changes
+
+- Import `addMonths` and `eachQuarterOfInterval` from date-fns
+- Update "today" highlighting logic to work with the new column granularity (check if today falls within the week/month/quarter)
