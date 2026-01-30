@@ -6,13 +6,13 @@ import {
   endOfMonth,
   startOfQuarter,
   endOfQuarter,
-  eachDayOfInterval,
   eachWeekOfInterval,
   eachMonthOfInterval,
+  eachQuarterOfInterval,
   format,
   differenceInDays,
   addDays,
-  isSameDay,
+  addMonths,
   isWithinInterval,
   min,
   max,
@@ -79,22 +79,25 @@ export function TimelineChart({
 
     switch (zoomLevel) {
       case "week":
-        start = startOfWeek(addDays(minDate, -7), { weekStartsOn: 1 });
-        end = endOfWeek(addDays(maxDate, 7), { weekStartsOn: 1 });
-        cols = eachDayOfInterval({ start, end });
-        colWidth = 40;
+        // Each column = 1 week
+        start = startOfWeek(addDays(minDate, -14), { weekStartsOn: 1 });
+        end = endOfWeek(addDays(maxDate, 14), { weekStartsOn: 1 });
+        cols = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+        colWidth = 100;
         break;
       case "month":
-        start = startOfMonth(addDays(minDate, -14));
-        end = endOfMonth(addDays(maxDate, 14));
-        cols = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
-        colWidth = 80;
+        // Each column = 1 month
+        start = startOfMonth(addMonths(minDate, -1));
+        end = endOfMonth(addMonths(maxDate, 1));
+        cols = eachMonthOfInterval({ start, end });
+        colWidth = 120;
         break;
       case "quarter":
-        start = startOfQuarter(addDays(minDate, -30));
-        end = endOfQuarter(addDays(maxDate, 30));
-        cols = eachMonthOfInterval({ start, end });
-        colWidth = 100;
+        // Each column = 1 quarter
+        start = startOfQuarter(addMonths(minDate, -3));
+        end = endOfQuarter(addMonths(maxDate, 3));
+        cols = eachQuarterOfInterval({ start, end });
+        colWidth = 150;
         break;
     }
 
@@ -157,16 +160,33 @@ export function TimelineChart({
   const formatColumnHeader = (date: Date): string => {
     switch (zoomLevel) {
       case "week":
-        return format(date, "EEE d");
+        return format(date, "MMM d"); // "Jan 6"
       case "month":
-        return format(date, "MMM d");
+        return format(date, "MMM yyyy"); // "Jan 2026"
       case "quarter":
-        return format(date, "MMM yyyy");
+        return `Q${Math.ceil((date.getMonth() + 1) / 3)} ${format(date, "yyyy")}`; // "Q1 2026"
     }
   };
 
-  const isToday = (date: Date): boolean => {
-    return isSameDay(date, new Date());
+  const isTodayInColumn = (columnDate: Date): boolean => {
+    const today = new Date();
+    switch (zoomLevel) {
+      case "week":
+        return isWithinInterval(today, {
+          start: startOfWeek(columnDate, { weekStartsOn: 1 }),
+          end: endOfWeek(columnDate, { weekStartsOn: 1 }),
+        });
+      case "month":
+        return isWithinInterval(today, {
+          start: startOfMonth(columnDate),
+          end: endOfMonth(columnDate),
+        });
+      case "quarter":
+        return isWithinInterval(today, {
+          start: startOfQuarter(columnDate),
+          end: endOfQuarter(columnDate),
+        });
+    }
   };
 
   const todayPosition = getPositionForDate(new Date());
@@ -188,7 +208,7 @@ export function TimelineChart({
                   style={{ width: columnWidth }}
                   className={cn(
                     "p-2 text-center text-xs font-medium border-r",
-                    isToday(col) && "bg-primary/10"
+                    isTodayInColumn(col) && "bg-primary/10"
                   )}
                 >
                   {formatColumnHeader(col)}
