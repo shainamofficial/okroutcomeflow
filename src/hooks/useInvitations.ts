@@ -7,14 +7,19 @@ import type { Database } from '@/integrations/supabase/types';
 type AppRole = Database['public']['Enums']['app_role'];
 type InvitationStatus = Database['public']['Enums']['invitation_status'];
 
+// Safe invitation type from the secure view (excludes token)
 interface Invitation {
   id: string;
   email: string;
   role: AppRole;
   status: InvitationStatus;
-  token: string | null;
   created_at: string;
   expires_at: string | null;
+}
+
+// Full invitation type returned after creation (includes token for sharing)
+interface NewInvitation extends Invitation {
+  token: string | null;
 }
 
 function generateToken(): string {
@@ -34,8 +39,9 @@ export function useInvitations() {
     queryFn: async () => {
       if (!profile?.organization_id) return [];
 
+      // Query the safe view that excludes sensitive token data
       const { data, error } = await supabase
-        .from('user_invitations')
+        .from('user_invitations_safe')
         .select('*')
         .eq('organization_id', profile.organization_id)
         .order('created_at', { ascending: false });

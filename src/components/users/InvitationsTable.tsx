@@ -9,19 +9,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, isPast } from 'date-fns';
-import { Copy, Check, X, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { X } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
 type InvitationStatus = Database['public']['Enums']['invitation_status'];
 
+// Safe invitation type - token is no longer exposed for security
 interface Invitation {
   id: string;
   email: string;
   role: AppRole;
   status: InvitationStatus;
-  token: string | null;
   created_at: string;
   expires_at: string | null;
 }
@@ -46,15 +45,6 @@ const statusVariants: Record<InvitationStatus, 'default' | 'secondary' | 'destru
 };
 
 export function InvitationsTable({ invitations, onRevoke, isRevoking }: InvitationsTableProps) {
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const handleCopyLink = async (token: string | null, id: string) => {
-    if (!token) return;
-    const link = `${window.location.origin}/signup-invite?token=${token}`;
-    await navigator.clipboard.writeText(link);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
 
   const isExpired = (expiresAt: string | null) => {
     if (!expiresAt) return false;
@@ -94,7 +84,6 @@ export function InvitationsTable({ invitations, onRevoke, isRevoking }: Invitati
         {invitations.map((invitation) => {
           const statusDisplay = getStatusDisplay(invitation);
           const expired = isExpired(invitation.expires_at);
-          const canCopy = invitation.status === 'pending' && !expired && invitation.token;
 
           return (
             <TableRow key={invitation.id}>
@@ -119,40 +108,15 @@ export function InvitationsTable({ invitations, onRevoke, isRevoking }: Invitati
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   {invitation.status === 'pending' && !expired && (
-                    <>
-                      {canCopy ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleCopyLink(invitation.token, invitation.id)}
-                          title="Copy invitation link"
-                        >
-                          {copiedId === invitation.id ? (
-                            <Check className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          disabled
-                          title="Token not available - invitation was created before token storage update"
-                        >
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => onRevoke(invitation.id)}
-                        disabled={isRevoking}
-                        title="Revoke invitation"
-                      >
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onRevoke(invitation.id)}
+                      disabled={isRevoking}
+                      title="Revoke invitation"
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
                   )}
                 </div>
               </TableCell>
