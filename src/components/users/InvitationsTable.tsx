@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { Copy, Check, X } from 'lucide-react';
+import { format, isPast } from 'date-fns';
+import { Copy, Check, X, Clock } from 'lucide-react';
 import { useState } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -48,11 +48,27 @@ const statusVariants: Record<InvitationStatus, 'default' | 'secondary' | 'destru
 export function InvitationsTable({ invitations, onRevoke, isRevoking }: InvitationsTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopyLink = async (token: string, id: string) => {
+  const handleCopyLink = async (token: string | null, id: string) => {
+    if (!token) return;
     const link = `${window.location.origin}/signup-invite?token=${token}`;
     await navigator.clipboard.writeText(link);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const isExpired = (expiresAt: string | null) => {
+    if (!expiresAt) return false;
+    return isPast(new Date(expiresAt));
+  };
+
+  const getStatusDisplay = (invitation: Invitation) => {
+    if (invitation.status === 'pending' && isExpired(invitation.expires_at)) {
+      return { label: 'Expired', variant: 'destructive' as const };
+    }
+    return {
+      label: invitation.status.charAt(0).toUpperCase() + invitation.status.slice(1),
+      variant: statusVariants[invitation.status],
+    };
   };
 
   if (invitations.length === 0) {
@@ -70,56 +86,79 @@ export function InvitationsTable({ invitations, onRevoke, isRevoking }: Invitati
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Created</TableHead>
+          <TableHead>Expires</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {invitations.map((invitation) => (
-          <TableRow key={invitation.id}>
-            <TableCell className="font-medium">{invitation.email}</TableCell>
-            <TableCell>
-              <Badge variant="outline">{roleLabels[invitation.role]}</Badge>
-            </TableCell>
-            <TableCell>
-              <Badge variant={statusVariants[invitation.status]}>
-                {invitation.status.charAt(0).toUpperCase() + invitation.status.slice(1)}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {format(new Date(invitation.created_at), 'MMM d, yyyy')}
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-2">
-                {invitation.status === 'pending' && (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleCopyLink(invitation.token, invitation.id)}
-                      title="Copy invitation link"
-                    >
-                      {copiedId === invitation.id ? (
-                        <Check className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => onRevoke(invitation.id)}
-                      disabled={isRevoking}
-                      title="Revoke invitation"
-                    >
-                      <X className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </>
+        {invitations.map((invitation) => {
+          const statusDisplay = getStatusDisplay(invitation);
+          const expired = isExpired(invitation.expires_at);
+          const canCopy = invitation.status === 'pending' && !expired && invitation.token;
+
+          return (
+            <TableRow key={invitation.id}>
+              <TableCell className="font-medium">{invitation.email}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{roleLabels[invitation.role]}</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant={statusDisplay.variant}>
+                  {statusDisplay.label}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {invitation.expires_at ? (
+                  <span className={expired ? 'text-destructive' : 'text-muted-foreground'}>
+                    {format(new Date(invitation.expires_at), 'MMM d, yyyy')}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
                 )}
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  {invitation.status === 'pending' && !expired && (
+                    <>
+                      {canCopy ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleCopyLink(invitation.token, invitation.id)}
+                          title="Copy invitation link"
+                        >
+                          {copiedId === invitation.id ? (
+                            <Check className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled
+                          title="Token not available - invitation was created before token storage update"
+                        >
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onRevoke(invitation.id)}
+                        disabled={isRevoking}
+                        title="Revoke invitation"
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );
