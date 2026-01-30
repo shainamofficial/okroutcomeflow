@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useInitiatives, InitiativeStatus } from "@/hooks/useInitiatives";
 import { useOrgUsers } from "@/hooks/useOrgUsers";
-import { useAllKeyResults } from "@/hooks/useOKRs";
+import { useAllKeyResults, useObjectives } from "@/hooks/useOKRs";
 import { KRMultiSelect } from "./KRMultiSelect";
 
 export function CreateInitiativeDialog() {
@@ -33,11 +33,12 @@ export function CreateInitiativeDialog() {
   const [status, setStatus] = useState<InitiativeStatus>("not_started");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [linkedKRs, setLinkedKRs] = useState<{ krId: string; weight?: number }[]>([]);
+  const [linkedKRs, setLinkedKRs] = useState<{ krId: string; weight?: number; autoLinked?: boolean }[]>([]);
 
   const { createInitiative } = useInitiatives();
   const { users } = useOrgUsers();
   const { keyResults } = useAllKeyResults();
+  const { objectives } = useObjectives();
 
   const activeUsers = users.filter((u) => u.status === "active");
 
@@ -172,6 +173,7 @@ export function CreateInitiativeDialog() {
               <Label>Linked Key Results</Label>
               <KRMultiSelect
                 keyResults={keyResults}
+                objectives={objectives}
                 selectedKRs={linkedKRs}
                 onChange={setLinkedKRs}
               />
