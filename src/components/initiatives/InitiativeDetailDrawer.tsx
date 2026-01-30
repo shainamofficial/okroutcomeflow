@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -8,12 +9,15 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Calendar, Target } from "lucide-react";
+import { User, Calendar, Target, Link } from "lucide-react";
 import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { TaskList } from "@/components/tasks/TaskList";
 import { useAuth } from "@/contexts/AuthContext";
 import { ActivityFeed } from "@/components/updates/ActivityFeed";
+import { useAllKeyResults, useObjectives } from "@/hooks/useOKRs";
+import { getKRNestingLevel, getKRObjectiveId } from "@/lib/kr-hierarchy";
+import { cn } from "@/lib/utils";
 
 interface InitiativeDetailDrawerProps {
   initiative: Initiative;
@@ -28,11 +32,28 @@ export function InitiativeDetailDrawer({
 }: InitiativeDetailDrawerProps) {
   const { links, isLoading } = useInitiativeKRLinks(initiative.id);
   const { profile, roles } = useAuth();
-  
+  const { keyResults } = useAllKeyResults();
+  const { objectives } = useObjectives();
+
   const canManage = roles.includes("admin") || roles.includes("manager");
   const isOwner = initiative.owner_id === profile?.id;
   const canPostNonComment = canManage || isOwner;
   const canPin = canManage || isOwner;
+
+  // Sort linked KRs by nesting level and group by objective
+  const sortedLinks = useMemo(() => {
+    return [...links].sort((a, b) => {
+      const levelA = getKRNestingLevel(a.key_result_id, keyResults);
+      const levelB = getKRNestingLevel(b.key_result_id, keyResults);
+      return levelA - levelB;
+    });
+  }, [links, keyResults]);
+
+  const getObjectiveTitle = (krId: string) => {
+    const objId = getKRObjectiveId(krId, keyResults);
+    if (!objId) return null;
+    return objectives.find((o) => o.id === objId)?.title;
+  };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
@@ -90,29 +111,50 @@ export function InitiativeDetailDrawer({
 
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : links.length === 0 ? (
+            ) : sortedLinks.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No Key Results linked to this initiative.
               </p>
             ) : (
               <div className="space-y-2">
-                {links.map((link) => (
-                  <div
-                    key={link.id}
-                    className="p-3 border rounded-md bg-muted/30"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-medium">
-                        {link.key_result?.title}
-                      </span>
-                      {link.weight !== null && (
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          Weight: {link.weight}
-                        </Badge>
+                {sortedLinks.map((link) => {
+                  const level = getKRNestingLevel(link.key_result_id, keyResults);
+                  const isAutoLinked = link.weight === null && level < Math.max(...sortedLinks.map(l => getKRNestingLevel(l.key_result_id, keyResults)));
+                  const objectiveTitle = level === 0 ? getObjectiveTitle(link.key_result_id) : null;
+
+                  return (
+                    <div key={link.id}>
+                      {level === 0 && objectiveTitle && (
+                        <p className="text-xs text-muted-foreground mb-1 mt-2 first:mt-0">
+                          {objectiveTitle}
+                        </p>
                       )}
+                      <div
+                        className={cn(
+                          "p-3 border rounded-md",
+                          isAutoLinked ? "bg-muted/20 border-dashed" : "bg-muted/30"
+                        )}
+                        style={{ marginLeft: `${level * 12}px` }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {isAutoLinked && (
+                              <Link className="h-3 w-3 text-muted-foreground shrink-0" />
+                            )}
+                            <span className="text-sm font-medium">
+                              {link.key_result?.title}
+                            </span>
+                          </div>
+                          {link.weight !== null && (
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              Weight: {link.weight}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
