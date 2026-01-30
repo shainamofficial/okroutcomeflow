@@ -1,37 +1,66 @@
 
-# Fix Sidebar Z-Index Issue on Timeline Scroll
+# Fix Timeline Initiative Column Z-Index
 
 ## Problem
 
-When scrolling the timeline horizontally, the timeline content moves over the sidebar instead of staying contained within its area. This happens because:
+When scrolling the timeline horizontally to the right, the date headers (Jan 2026, Feb 2026, etc.) display on top of the sticky initiative/task name column. The user expects the initiative names column to always stay on top when scrolling.
 
-1. The sidebar has `z-index: 10` (from the UI component library)
-2. The timeline's sticky "Item" column header has `z-index: 20`
-3. The main content area doesn't contain the horizontal overflow properly
+## Root Cause
+
+Both the header row and the sticky initiative column have the same z-index:
+
+| Element | Current Z-Index |
+|---------|----------------|
+| Header row with dates | `z-10` |
+| Sticky "Item" header cell | `z-20` |
+| Sticky initiative/task name column | `z-10` |
+
+When scrolling right, the header date cells overlap the initiative column because they're at the same z-level and the header comes earlier in the DOM.
 
 ## Solution
 
-Add `overflow-hidden` to the main content area in `AppLayout.tsx`. This creates a proper stacking context and ensures the timeline's horizontal scroll is contained within its boundaries, preventing it from overlapping the sidebar.
+Increase the z-index of the sticky left columns in `TimelineRow.tsx` so they render above the header:
+
+| Element | New Z-Index |
+|---------|-------------|
+| Sticky initiative name column | `z-20` (was `z-10`) |
+| Sticky task name column | `z-20` (was `z-10`) |
+
+This ensures the initiative names are always visible on top when scrolling horizontally.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/app/AppLayout.tsx` | Add `overflow-hidden` to the flex-1 content container |
+| `src/components/timeline/TimelineRow.tsx` | Update z-index on sticky left columns from `z-10` to `z-20` |
 
 ## Technical Details
 
-The fix adds `overflow-hidden` to the content wrapper div. This:
-- Creates a containing block for the timeline's horizontal scroll
-- Prevents the timeline from visually extending beyond its container
-- Keeps the sidebar always visible on top regardless of scroll position
-
+**Line 93 - Initiative row sticky column:**
 ```tsx
 // Before
-<div className="flex-1 flex flex-col">
+<div className="w-64 min-w-64 p-2 border-r sticky left-0 bg-background z-10 ...">
 
-// After  
-<div className="flex-1 flex flex-col overflow-hidden">
+// After
+<div className="w-64 min-w-64 p-2 border-r sticky left-0 bg-background z-20 ...">
 ```
 
-The `overflow-hidden` ensures that all child content (including the horizontally scrollable timeline) stays within the bounds of the main content area and cannot visually overlap the fixed sidebar.
+**Line 188 - Task row sticky column:**
+```tsx
+// Before
+<div className="w-64 min-w-64 p-2 pl-10 border-r sticky left-0 bg-background z-10 ...">
+
+// After
+<div className="w-64 min-w-64 p-2 pl-10 border-r sticky left-0 bg-background z-20 ...">
+```
+
+## Z-Index Hierarchy (After Fix)
+
+```text
+z-20: Sticky "Item" header cell (top-left corner)
+z-20: Sticky initiative/task name columns (left side)
+z-10: Header row with date columns
+z-10: Today indicator line
+```
+
+This ensures the left column stays on top of the scrolling date headers.
