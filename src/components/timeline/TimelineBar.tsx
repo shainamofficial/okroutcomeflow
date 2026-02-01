@@ -7,6 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TimelineColorPicker } from "./TimelineColorPicker";
+import { getCustomColorClasses } from "@/lib/timeline-colors";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -27,6 +29,8 @@ interface TimelineBarProps {
   label: string;
   ownerName?: string;
   status?: CombinedStatus;
+  customColor?: string | null;
+  onColorChange?: (color: string | null) => void;
 }
 
 const getInitials = (name: string) => {
@@ -123,6 +127,8 @@ export function TimelineBar({
   label,
   ownerName,
   status,
+  customColor,
+  onColorChange,
 }: TimelineBarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<DragMode>(null);
@@ -229,8 +235,14 @@ export function TimelineBar({
     };
   }, [isDragging, dragMode, tempStart, tempEnd, dayWidth, startDate, endDate, onDragEnd, onClick, canDrag]);
 
-  const barColor = getStatusColor(variant, status);
-  const textColor = getTextColor(variant, status);
+  // Use custom color if set, otherwise fall back to status-based color
+  const customColorClasses = getCustomColorClasses(customColor, variant);
+  const barColor = customColorClasses 
+    ? `${customColorClasses.bg} ${customColorClasses.hover}` 
+    : getStatusColor(variant, status);
+  const textColor = customColorClasses 
+    ? customColorClasses.text 
+    : getTextColor(variant, status);
 
   return (
     <Tooltip>
@@ -270,6 +282,15 @@ export function TimelineBar({
           >
             {width > 60 ? label : ""}
           </span>
+
+          {/* Color picker */}
+          {onColorChange && (
+            <TimelineColorPicker
+              currentColor={customColor ?? null}
+              onColorChange={onColorChange}
+              disabled={!canDrag}
+            />
+          )}
 
           {/* Owner/Assignee initials */}
           {ownerName && width > 100 && (

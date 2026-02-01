@@ -4,12 +4,14 @@ import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TimelineInitiative } from "@/pages/Timeline";
 import { Task, useTasks } from "@/hooks/useTasks";
-import { Initiative } from "@/hooks/useInitiatives";
+import { Initiative, useInitiatives } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "@/components/initiatives/InitiativeStatusBadge";
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
 import { TimelineBar } from "./TimelineBar";
 import { TimelineMilestone } from "./TimelineMilestone";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TimelineRowProps {
   initiative: TimelineInitiative;
@@ -52,6 +54,9 @@ export function TimelineRow({
 }: TimelineRowProps) {
   const [expanded, setExpanded] = useState(true);
   const { updateTask } = useTasks(initiative.id);
+  const { updateInitiative } = useInitiatives();
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const hasChildren = initiative.tasks.length > 0;
@@ -83,6 +88,29 @@ export function TimelineRow({
       });
     } catch (error) {
       // Error is handled by mutation
+    }
+  };
+
+  const handleInitiativeColorChange = async (color: string | null) => {
+    try {
+      await updateInitiative.mutateAsync({
+        id: initiative.id,
+        color,
+      });
+      queryClient.invalidateQueries({ queryKey: ["initiatives", profile?.organization_id] });
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleTaskColorChange = async (taskId: string, color: string | null) => {
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        color,
+      });
+    } catch (error) {
+      // Error handled by mutation
     }
   };
 
@@ -152,6 +180,8 @@ export function TimelineRow({
               variant="initiative"
               label={initiative.title}
               ownerName={initiative.owner?.name || initiative.owner?.email}
+              customColor={initiative.color}
+              onColorChange={canDragInitiative ? handleInitiativeColorChange : undefined}
             />
           )}
           {initiativeHasMilestone && (
@@ -171,6 +201,8 @@ export function TimelineRow({
               variant="initiative"
               label={initiative.title}
               ownerName={initiative.owner?.name || initiative.owner?.email}
+              customColor={initiative.color}
+              onColorChange={canDragInitiative ? handleInitiativeColorChange : undefined}
             />
           )}
         </div>
@@ -235,6 +267,8 @@ export function TimelineRow({
                     variant="task"
                     label={task.title}
                     ownerName={task.assignee_user?.name || task.assignee_user?.email || task.assignee_team?.name}
+                    customColor={task.color}
+                    onColorChange={taskCanDrag ? (color) => handleTaskColorChange(task.id, color) : undefined}
                   />
                 )}
                 {taskHasMilestone && (
@@ -250,6 +284,8 @@ export function TimelineRow({
                     variant="task"
                     label={task.title}
                     ownerName={task.assignee_user?.name || task.assignee_user?.email || task.assignee_team?.name}
+                    customColor={task.color}
+                    onColorChange={taskCanDrag ? (color) => handleTaskColorChange(task.id, color) : undefined}
                   />
                 )}
               </div>
