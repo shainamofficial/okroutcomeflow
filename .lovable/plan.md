@@ -1,91 +1,103 @@
 
 
-# Plan: Auto-Link Parent Key Results to Initiatives
+# Plan: Custom Colors for Timeline Gantt Bars
 
 ## Overview
-When a user links a sub-KR to an initiative, the system will automatically detect and link all parent KRs in the hierarchy (up to the top-level KR under the objective). This ensures that initiatives always show the complete KR chain they're contributing to.
+Add the ability for users to customize the color of Gantt chart bars for initiatives and tasks in the timeline view. Users will be able to pick from a predefined color palette when viewing or editing an item.
 
 ## Current Behavior
-- Users can select any Key Result (including sub-KRs) to link to an initiative
-- Only the explicitly selected KRs are stored in the `initiative_kr_links` table
-- Parent KRs are not automatically included
+- Initiative bars are colored based on their status (not_started, in_progress, completed, blocked)
+- Task bars use lighter variants of the same status colors
+- Colors are hardcoded in the `getStatusColor` function in `TimelineBar.tsx`
+- There is no way for users to override these colors
 
 ## Proposed Changes
 
-### 1. Update KRMultiSelect Component
-**File**: `src/components/initiatives/KRMultiSelect.tsx`
+### 1. Database Schema Changes
+Add a `color` column to both `initiatives` and `tasks` tables to store the user's custom color choice.
 
-- **Show KR hierarchy visually**: Display KRs with indentation to show their nesting level (using the `parent_kr_id` relationship)
-- **Group by Objective**: Organize KRs under their parent objective headers for better context
-- **Add visual indicator**: Show which KRs will be auto-linked when selecting a child
-
-### 2. Create Utility Function to Get Parent Chain
-**File**: `src/hooks/useInitiatives.ts` (or new utility)
-
-Create a helper function that:
-- Takes a KR ID and the full list of KRs
-- Walks up the hierarchy via `parent_kr_id`
-- Returns all ancestor KR IDs including the original
-
+**SQL Migration:**
 ```text
-getKRParentChain(krId, allKeyResults) -> [selectedKR, parentKR, grandparentKR, ...]
+ALTER TABLE initiatives ADD COLUMN color text;
+ALTER TABLE tasks ADD COLUMN color text;
 ```
 
-### 3. Update Selection Logic
-**File**: `src/components/initiatives/KRMultiSelect.tsx`
+The color will be stored as a simple identifier (e.g., "red", "blue", "green") that maps to predefined CSS classes.
 
-When a user selects a sub-KR:
-1. Calculate the parent chain for that KR
-2. Automatically add all parent KRs to the selection (if not already selected)
-3. Show visual feedback that parents were auto-added
-4. Optionally mark auto-linked KRs differently (e.g., "linked via child")
+### 2. Define Color Palette
+Create a set of 8-10 predefined colors that work well in both light and dark themes. Colors will be defined using Tailwind classes for consistency.
 
-### 4. Update Deselection Logic
-**File**: `src/components/initiatives/KRMultiSelect.tsx`
+**Proposed Colors:**
+- Default (uses status-based coloring)
+- Red
+- Orange  
+- Yellow
+- Green
+- Teal
+- Blue
+- Purple
+- Pink
+- Gray
 
-When a user deselects a KR:
-- If it's a parent KR: Check if any child KRs are still selected
-  - If children remain selected, prevent deselection or show warning
-- If it's a leaf KR: Allow deselection and check if parent can be removed
-  - Only remove parent if no other children depend on it
+### 3. Create Color Picker Component
+Build a reusable `ColorPicker` component that displays the available colors as clickable swatches.
 
-### 5. Enhance Initiative Detail Drawer
-**File**: `src/components/initiatives/InitiativeDetailDrawer.tsx`
+**File:** `src/components/timeline/TimelineColorPicker.tsx`
 
-- Group linked KRs by their hierarchy
-- Show indentation to indicate which KRs are parents vs directly linked
-- Optionally mark which KRs were "auto-linked via sub-KR"
+Features:
+- Grid of color swatches
+- Current selection indicator
+- "Default" option to revert to status-based coloring
+- Accessible with proper focus states
+
+### 4. Update TimelineBar Component
+Modify `TimelineBar.tsx` to accept an optional `customColor` prop and use it instead of status-based colors when provided.
+
+**Changes:**
+- Add `customColor` prop to interface
+- Update color logic: if `customColor` is set, use the custom color mapping; otherwise fall back to status-based colors
+- Create a `getCustomColor` function that maps color identifiers to Tailwind classes
+
+### 5. Update TimelineRow Component
+Pass the custom color from initiative/task data to the TimelineBar and TimelineMilestone components.
+
+### 6. Add Color Selection UI
+Add color picker to the timeline view. Users can access it through:
+- A context menu (right-click) on a bar
+- A color button that appears on hover
+
+This approach allows quick color changes without opening the full edit dialog.
+
+### 7. Update Data Hooks
+Modify `useInitiatives` and `useTasks` hooks to support the new `color` field in create/update operations.
+
+### 8. Update Initiative and Task Interfaces
+Add the `color` field to TypeScript interfaces for proper type safety.
 
 ---
 
 ## Technical Details
 
-### Parent Chain Calculation
+### Color Mapping
 ```text
-function getKRAncestors(krId: string, allKRs: KeyResult[]): string[] {
-  const result: string[] = [krId];
-  let currentKR = allKRs.find(kr => kr.id === krId);
-  
-  while (currentKR?.parent_kr_id) {
-    result.push(currentKR.parent_kr_id);
-    currentKR = allKRs.find(kr => kr.id === currentKR.parent_kr_id);
-  }
-  
-  return result;
+TIMELINE_COLORS = {
+  red: { bg: "bg-red-500", hover: "bg-red-600", text: "text-white" },
+  orange: { bg: "bg-orange-500", hover: "bg-orange-600", text: "text-white" },
+  yellow: { bg: "bg-yellow-400", hover: "bg-yellow-500", text: "text-gray-900" },
+  green: { bg: "bg-green-500", hover: "bg-green-600", text: "text-white" },
+  teal: { bg: "bg-teal-500", hover: "bg-teal-600", text: "text-white" },
+  blue: { bg: "bg-blue-500", hover: "bg-blue-600", text: "text-white" },
+  purple: { bg: "bg-purple-500", hover: "bg-purple-600", text: "text-white" },
+  pink: { bg: "bg-pink-500", hover: "bg-pink-600", text: "text-white" },
+  gray: { bg: "bg-gray-400", hover: "bg-gray-500", text: "text-white" },
 }
 ```
 
-### Updated Selection Handler
-When user selects a KR:
-1. Get all ancestors of the selected KR
-2. Merge with existing selections (avoiding duplicates)
-3. Update state with combined list
-
-### KR Hierarchy Display
-Build a tree structure for display:
-- Group KRs by `objective_id` (for L1 KRs)
-- Nest sub-KRs under their `parent_kr_id`
-- Add indentation (e.g., `ml-4` per level) for visual hierarchy
+### Context Menu Approach
+Using a Popover triggered on click of a small color dot icon that appears on hover:
+- Less intrusive than right-click context menu
+- Works on touch devices
+- Provides immediate visual feedback
 
 ---
 
@@ -93,30 +105,29 @@ Build a tree structure for display:
 
 | File | Changes |
 |------|---------|
-| `src/components/initiatives/KRMultiSelect.tsx` | Add hierarchy display, auto-link parents on selection, smart deselection logic |
-| `src/hooks/useInitiatives.ts` | Add helper function for calculating KR ancestry chain |
-| `src/components/initiatives/CreateInitiativeDialog.tsx` | Pass objectives data to KRMultiSelect for grouping |
-| `src/components/initiatives/EditInitiativeDialog.tsx` | Pass objectives data to KRMultiSelect for grouping |
-| `src/components/initiatives/InitiativeDetailDrawer.tsx` | Show linked KRs with hierarchy indicators |
+| `supabase/migrations/` | Add `color` column to `initiatives` and `tasks` tables |
+| `src/components/timeline/TimelineColorPicker.tsx` | New component for color selection UI |
+| `src/components/timeline/TimelineBar.tsx` | Accept custom color prop, update color logic |
+| `src/components/timeline/TimelineMilestone.tsx` | Accept custom color prop for milestones |
+| `src/components/timeline/TimelineRow.tsx` | Pass color data, add color picker trigger |
+| `src/hooks/useInitiatives.ts` | Add color to interface and update/create mutations |
+| `src/hooks/useTasks.ts` | Add color to interface and update/create mutations |
+| `src/pages/Timeline.tsx` | Import and use updated components |
 
 ---
 
 ## User Experience
 
-1. **Selecting a sub-KR**: User selects "Increase Mobile Downloads" (L3 KR)
-   - System auto-adds "Improve App Store Presence" (L2 parent)
-   - System auto-adds "Grow User Base" (L1 parent)
-   - UI shows all three as linked, with L1 and L2 marked as "auto-linked"
+1. **Viewing the timeline**: Bars display with their custom color (if set) or status-based color (default)
 
-2. **Visual hierarchy in dropdown**:
-   ```text
-   Objective: Q1 Growth
-     ├─ Grow User Base (L1)
-     │   ├─ Improve App Store Presence (L2)
-     │   │   └─ Increase Mobile Downloads (L3)
-     │   └─ Launch Referral Program (L2)
-     └─ Increase Revenue (L1)
-   ```
+2. **Changing color**: 
+   - Hover over a bar to reveal a small color indicator button
+   - Click the button to open a color picker popover
+   - Select a color from the palette
+   - Bar immediately updates to new color
+   - Color is saved to database
 
-3. **Deselecting parent**: If user tries to deselect "Grow User Base" while "Increase Mobile Downloads" is selected, show a message explaining the dependency
+3. **Resetting to default**: Select "Default" option in the color picker to remove custom color and revert to status-based coloring
+
+4. **Visual hierarchy**: Initiative bars remain fully opaque while task bars use slightly lighter variants of the same colors
 
