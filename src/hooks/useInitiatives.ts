@@ -16,6 +16,7 @@ export interface Initiative {
   end_date: string | null;
   created_by: string | null;
   created_at: string;
+  color: string | null;
   owner?: {
     id: string;
     name: string;
@@ -131,6 +132,7 @@ export function useInitiatives() {
       startDate?: string;
       endDate?: string;
       linkedKRs?: { krId: string; weight?: number }[];
+      color?: string | null;
     }) => {
       const updateData: Record<string, unknown> = {};
       if (params.title !== undefined) updateData.title = params.title;
@@ -139,6 +141,7 @@ export function useInitiatives() {
       if (params.status !== undefined) updateData.status = params.status;
       if (params.startDate !== undefined) updateData.start_date = params.startDate || null;
       if (params.endDate !== undefined) updateData.end_date = params.endDate || null;
+      if (params.color !== undefined) updateData.color = params.color;
 
       const { error } = await supabase
         .from("initiatives")

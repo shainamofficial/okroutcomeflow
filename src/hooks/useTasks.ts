@@ -17,6 +17,7 @@ export interface Task {
   due_date: string | null;
   created_by: string | null;
   created_at: string;
+  color: string | null;
   assignee_user?: {
     id: string;
     name: string;
@@ -109,6 +110,7 @@ export function useTasks(initiativeId?: string) {
       status?: TaskStatus;
       startDate?: string | null;
       dueDate?: string | null;
+      color?: string | null;
     }) => {
       const updateData: Record<string, unknown> = {};
       if (params.title !== undefined) updateData.title = params.title;
@@ -118,6 +120,7 @@ export function useTasks(initiativeId?: string) {
       if (params.status !== undefined) updateData.status = params.status;
       if (params.startDate !== undefined) updateData.start_date = params.startDate || null;
       if (params.dueDate !== undefined) updateData.due_date = params.dueDate || null;
+      if (params.color !== undefined) updateData.color = params.color;
 
       const { error } = await supabase
         .from("tasks")

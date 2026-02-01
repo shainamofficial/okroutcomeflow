@@ -73,6 +73,7 @@ export type Database = {
       }
       initiatives: {
         Row: {
+          color: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -85,6 +86,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           title: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -563,6 +566,7 @@ export type Database = {
         Row: {
           assignee_team_id: string | null
           assignee_user_id: string | null
+          color: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -576,6 +580,7 @@ export type Database = {
         Insert: {
           assignee_team_id?: string | null
           assignee_user_id?: string | null
+          color?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -589,6 +594,7 @@ export type Database = {
         Update: {
           assignee_team_id?: string | null
           assignee_user_id?: string | null
+          color?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
