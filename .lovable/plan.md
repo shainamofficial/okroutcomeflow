@@ -1,133 +1,92 @@
 
 
-# Plan: Custom Colors for Timeline Gantt Bars
+# Plan: Board View for Initiatives and Tasks
 
 ## Overview
-Add the ability for users to customize the color of Gantt chart bars for initiatives and tasks in the timeline view. Users will be able to pick from a predefined color palette when viewing or editing an item.
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-## Current Behavior
-- Initiative bars are colored based on their status (not_started, in_progress, completed, blocked)
-- Task bars use lighter variants of the same status colors
-- Colors are hardcoded in the `getStatusColor` function in `TimelineBar.tsx`
-- There is no way for users to override these colors
+## How It Works
 
-## Proposed Changes
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-### 1. Database Schema Changes
-Add a `color` column to both `initiatives` and `tasks` tables to store the user's custom color choice.
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
-**SQL Migration:**
-```text
-ALTER TABLE initiatives ADD COLUMN color text;
-ALTER TABLE tasks ADD COLUMN color text;
-```
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
 
-The color will be stored as a simple identifier (e.g., "red", "blue", "green") that maps to predefined CSS classes.
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
 
-### 2. Define Color Palette
-Create a set of 8-10 predefined colors that work well in both light and dark themes. Colors will be defined using Tailwind classes for consistency.
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
 
-**Proposed Colors:**
-- Default (uses status-based coloring)
-- Red
-- Orange  
-- Yellow
-- Green
-- Teal
-- Blue
-- Purple
-- Pink
-- Gray
-
-### 3. Create Color Picker Component
-Build a reusable `ColorPicker` component that displays the available colors as clickable swatches.
-
-**File:** `src/components/timeline/TimelineColorPicker.tsx`
-
-Features:
-- Grid of color swatches
-- Current selection indicator
-- "Default" option to revert to status-based coloring
-- Accessible with proper focus states
-
-### 4. Update TimelineBar Component
-Modify `TimelineBar.tsx` to accept an optional `customColor` prop and use it instead of status-based colors when provided.
-
-**Changes:**
-- Add `customColor` prop to interface
-- Update color logic: if `customColor` is set, use the custom color mapping; otherwise fall back to status-based colors
-- Create a `getCustomColor` function that maps color identifiers to Tailwind classes
-
-### 5. Update TimelineRow Component
-Pass the custom color from initiative/task data to the TimelineBar and TimelineMilestone components.
-
-### 6. Add Color Selection UI
-Add color picker to the timeline view. Users can access it through:
-- A context menu (right-click) on a bar
-- A color button that appears on hover
-
-This approach allows quick color changes without opening the full edit dialog.
-
-### 7. Update Data Hooks
-Modify `useInitiatives` and `useTasks` hooks to support the new `color` field in create/update operations.
-
-### 8. Update Initiative and Task Interfaces
-Add the `color` field to TypeScript interfaces for proper type safety.
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
 
 ---
 
-## Technical Details
+## Files to Create
 
-### Color Mapping
-```text
-TIMELINE_COLORS = {
-  red: { bg: "bg-red-500", hover: "bg-red-600", text: "text-white" },
-  orange: { bg: "bg-orange-500", hover: "bg-orange-600", text: "text-white" },
-  yellow: { bg: "bg-yellow-400", hover: "bg-yellow-500", text: "text-gray-900" },
-  green: { bg: "bg-green-500", hover: "bg-green-600", text: "text-white" },
-  teal: { bg: "bg-teal-500", hover: "bg-teal-600", text: "text-white" },
-  blue: { bg: "bg-blue-500", hover: "bg-blue-600", text: "text-white" },
-  purple: { bg: "bg-purple-500", hover: "bg-purple-600", text: "text-white" },
-  pink: { bg: "bg-pink-500", hover: "bg-pink-600", text: "text-white" },
-  gray: { bg: "bg-gray-400", hover: "bg-gray-500", text: "text-white" },
-}
-```
-
-### Context Menu Approach
-Using a Popover triggered on click of a small color dot icon that appears on hover:
-- Less intrusive than right-click context menu
-- Works on touch devices
-- Provides immediate visual feedback
-
----
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/migrations/` | Add `color` column to `initiatives` and `tasks` tables |
-| `src/components/timeline/TimelineColorPicker.tsx` | New component for color selection UI |
-| `src/components/timeline/TimelineBar.tsx` | Accept custom color prop, update color logic |
-| `src/components/timeline/TimelineMilestone.tsx` | Accept custom color prop for milestones |
-| `src/components/timeline/TimelineRow.tsx` | Pass color data, add color picker trigger |
-| `src/hooks/useInitiatives.ts` | Add color to interface and update/create mutations |
-| `src/hooks/useTasks.ts` | Add color to interface and update/create mutations |
-| `src/pages/Timeline.tsx` | Import and use updated components |
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
 
 ---
 
-## User Experience
+## Technical Details
 
-1. **Viewing the timeline**: Bars display with their custom color (if set) or status-based color (default)
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
 
-2. **Changing color**: 
-   - Hover over a bar to reveal a small color indicator button
-   - Click the button to open a color picker popover
-   - Select a color from the palette
-   - Bar immediately updates to new color
-   - Color is saved to database
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
 
-3. **Resetting to default**: Select "Default" option in the color picker to remove custom color and revert to status-based coloring
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+```
 
-4. **Visual hierarchy**: Initiative bars remain fully opaque while task bars use slightly lighter variants of the same colors
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
+
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
+
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 
