@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CreateInitiativeDialog } from "@/components/initiatives/CreateInitiativeDialog";
 import { InitiativeCard } from "@/components/initiatives/InitiativeCard";
 import { InitiativeFilters, InitiativeFiltersState } from "@/components/initiatives/InitiativeFilters";
+import { BoardView } from "@/components/initiatives/BoardView";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, List, LayoutGrid } from "lucide-react";
 import { useAllTasks } from "@/hooks/useTasks";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Initiatives() {
   const { initiatives, isLoading } = useInitiatives();
@@ -16,6 +18,7 @@ export default function Initiatives() {
 
   const canManage = roles.includes("admin") || roles.includes("manager");
 
+  const [view, setView] = useState<"list" | "board">("list");
   const [filters, setFilters] = useState<InitiativeFiltersState>({
     status: "all",
     assigneeUserId: "all",
@@ -35,17 +38,14 @@ export default function Initiatives() {
     return map;
   }, [tasks]);
 
-  // Filter initiatives based on filter state
   const filteredInitiatives = useMemo(() => {
     return initiatives.filter((initiative) => {
-      // Filter by initiative status
       if (filters.status !== "all" && initiative.status !== filters.status) {
         return false;
       }
 
       const initiativeTasks = tasksByInitiative[initiative.id] || [];
 
-      // Filter by assignee user (checks if any task in initiative has this assignee)
       if (filters.assigneeUserId !== "all") {
         const hasMatchingTask = initiativeTasks.some(
           (task) => task.assignee_user_id === filters.assigneeUserId
@@ -53,7 +53,6 @@ export default function Initiatives() {
         if (!hasMatchingTask) return false;
       }
 
-      // Filter by assignee team
       if (filters.assigneeTeamId !== "all") {
         const hasMatchingTask = initiativeTasks.some(
           (task) => task.assignee_team_id === filters.assigneeTeamId
@@ -61,7 +60,6 @@ export default function Initiatives() {
         if (!hasMatchingTask) return false;
       }
 
-      // Filter by overdue tasks
       if (filters.overdueOnly) {
         const hasOverdueTask = initiativeTasks.some(
           (task) =>
@@ -86,7 +84,21 @@ export default function Initiatives() {
             Manage initiatives and link them to Key Results
           </p>
         </div>
-        {canManage && <CreateInitiativeDialog />}
+        <div className="flex items-center gap-2">
+          <Tabs value={view} onValueChange={(v) => setView(v as "list" | "board")}>
+            <TabsList className="h-9">
+              <TabsTrigger value="list" className="gap-1.5 px-3">
+                <List className="h-4 w-4" />
+                List
+              </TabsTrigger>
+              <TabsTrigger value="board" className="gap-1.5 px-3">
+                <LayoutGrid className="h-4 w-4" />
+                Board
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {canManage && <CreateInitiativeDialog />}
+        </div>
       </div>
 
       <InitiativeFilters filters={filters} onFiltersChange={setFilters} />
@@ -111,6 +123,8 @@ export default function Initiatives() {
               : "Try adjusting your filters."}
           </p>
         </div>
+      ) : view === "board" ? (
+        <BoardView initiatives={filteredInitiatives} />
       ) : (
         <div className="grid gap-4">
           {filteredInitiatives.map((initiative) => (
