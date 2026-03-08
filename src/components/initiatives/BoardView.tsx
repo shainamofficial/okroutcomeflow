@@ -42,7 +42,7 @@ export function BoardView({ initiatives }: BoardViewProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto">
+    <div className="flex gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-x-visible sm:pb-0">
       {COLUMNS.map((col) => (
         <BoardColumn
           key={col.status}
