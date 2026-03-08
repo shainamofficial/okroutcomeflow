@@ -5,8 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { CommandPalette } from '@/components/search/CommandPalette';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Separator } from '@/components/ui/separator';
 
 interface Organization {
