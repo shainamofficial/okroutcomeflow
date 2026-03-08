@@ -15,6 +15,8 @@ import { PlatformAdminRoute } from "@/components/auth/PlatformAdminRoute";
 import { AppLayout } from "@/components/app/AppLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import LandingPage from "./pages/LandingPage";
 import SignupInvite from "./pages/SignupInvite";
 import AwaitingApproval from "./pages/AwaitingApproval";
