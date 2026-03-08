@@ -68,6 +68,89 @@ export type Database = {
           },
         ]
       }
+      custom_field_definitions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          field_type: Database["public"]["Enums"]["custom_field_type"]
+          id: string
+          name: string
+          options: Json | null
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          field_type: Database["public"]["Enums"]["custom_field_type"]
+          id?: string
+          name: string
+          options?: Json | null
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          field_type?: Database["public"]["Enums"]["custom_field_type"]
+          id?: string
+          name?: string
+          options?: Json | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_field_definitions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_field_values: {
+        Row: {
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          field_definition_id: string
+          id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          field_definition_id: string
+          id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          field_definition_id?: string
+          id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_values_field_definition_id_fkey"
+            columns: ["field_definition_id"]
+            isOneToOne: false
+            referencedRelation: "custom_field_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_attachments: {
         Row: {
           created_at: string
@@ -513,6 +596,44 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          in_app_enabled: boolean
+          notification_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          notification_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          notification_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -670,6 +791,81 @@ export type Database = {
         }
         Relationships: []
       }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          dependency_type: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_task_id: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          dependency_type?: string
+          depends_on_task_id?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_watchers: {
+        Row: {
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_watchers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_watchers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_team_id: string | null
@@ -681,6 +877,8 @@ export type Database = {
           due_date: string | null
           id: string
           initiative_id: string
+          parent_task_id: string | null
+          recurrence_rule: Json | null
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
@@ -695,6 +893,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           initiative_id: string
+          parent_task_id?: string | null
+          recurrence_rule?: Json | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
@@ -709,6 +909,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           initiative_id?: string
+          parent_task_id?: string | null
+          recurrence_rule?: Json | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
@@ -740,6 +942,13 @@ export type Database = {
             columns: ["initiative_id"]
             isOneToOne: false
             referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -1148,6 +1357,13 @@ export type Database = {
         | "all_tasks_done"
         | "initiative_status_change"
         | "due_date_passed"
+      custom_field_type:
+        | "text"
+        | "number"
+        | "select"
+        | "multi_select"
+        | "date"
+        | "checkbox"
       entity_type: "kr" | "initiative" | "task"
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
@@ -1301,6 +1517,14 @@ export const Constants = {
         "all_tasks_done",
         "initiative_status_change",
         "due_date_passed",
+      ],
+      custom_field_type: [
+        "text",
+        "number",
+        "select",
+        "multi_select",
+        "date",
+        "checkbox",
       ],
       entity_type: ["kr", "initiative", "task"],
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],

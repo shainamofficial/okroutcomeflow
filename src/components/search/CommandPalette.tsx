@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, Target, Lightbulb, CheckSquare, Flag,
   LayoutDashboard, ListTodo, Calendar, GanttChart, BarChart3,
-  Users, Settings, Activity, Table2, Zap
+  Users, Settings, Activity, Table2, Zap, Bell
 } from "lucide-react";
 import { useGlobalSearch, useSearchState } from "@/hooks/useGlobalSearch";
 import {
@@ -29,6 +29,7 @@ const navCommands = [
   { label: "Reviews", icon: CheckSquare, path: "/app/reviews" },
   { label: "Activity Log", icon: Activity, path: "/app/activity" },
   { label: "Automations", icon: Zap, path: "/app/automations" },
+  { label: "Notification Settings", icon: Bell, path: "/app/settings/notifications" },
   { label: "User Management", icon: Users, path: "/app/settings/users" },
   { label: "Team Management", icon: Users, path: "/app/settings/teams" },
   { label: "Organization Settings", icon: Settings, path: "/app/settings/organization" },

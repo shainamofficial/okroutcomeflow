@@ -7,12 +7,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { User, Calendar, Users } from "lucide-react";
+import { User, Calendar, Users, Eye, EyeOff } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { ActivityFeed } from "@/components/updates/ActivityFeed";
 import { FileAttachmentsPanel } from "@/components/files/FileAttachmentsPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTaskWatchers } from "@/hooks/useTaskWatchers";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskDetailDrawerProps {
   task: Task;
@@ -26,13 +30,11 @@ export function TaskDetailDrawer({
   onOpenChange,
 }: TaskDetailDrawerProps) {
   const { profile, roles } = useAuth();
+  const { watchers, isWatching, toggleWatch } = useTaskWatchers(task.id);
 
   const isAdminOrManager = roles.includes("admin") || roles.includes("manager");
   const isAssignee = task.assignee_user_id === profile?.id;
-  
-  // Can post non-comment updates if admin, manager, or task assignee
   const canPostNonComment = isAdminOrManager || isAssignee;
-  // Can pin if admin, manager, or task assignee
   const canPin = isAdminOrManager || isAssignee;
 
   return (
@@ -49,6 +51,38 @@ export function TaskDetailDrawer({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Watchers */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => toggleWatch.mutate()}
+            >
+              {isWatching ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {isWatching ? "Unwatch" : "Watch"}
+            </Button>
+            {watchers.length > 0 && (
+              <div className="flex -space-x-1.5">
+                {watchers.slice(0, 5).map((w) => (
+                  <Tooltip key={w.id}>
+                    <TooltipTrigger>
+                      <Avatar className="h-6 w-6 ring-2 ring-background">
+                        <AvatarImage src={w.user?.avatar_url || undefined} />
+                        <AvatarFallback className="text-[9px]">
+                          {(w.user?.name || w.user?.email || "?").slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>{w.user?.name || w.user?.email}</TooltipContent>
+                  </Tooltip>
+                ))}
+                {watchers.length > 5 && (
+                  <span className="text-xs text-muted-foreground ml-2">+{watchers.length - 5}</span>
+                )}
+              </div>
+            )}
+          </div>
         <div className="space-y-3">
             {task.assignee_user && (
               <div className="flex items-center gap-2 text-sm">

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Pencil, Trash2, ListTodo } from "lucide-react";
+import { Pencil, Trash2, ListTodo, MoreHorizontal } from "lucide-react";
 import { Task, useTasks } from "@/hooks/useTasks";
 import { TaskItem } from "./TaskItem";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { TaskDetailDrawer } from "./TaskDetailDrawer";
+import { SubtaskList } from "./SubtaskList";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -77,11 +77,14 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
         </p>
       ) : (
         <div className="space-y-2">
-          {tasks.map((task) => (
+          {/* Only show top-level tasks (no parent) */}
+          {tasks.filter(t => !t.parent_task_id).map((task) => (
             <div key={task.id} className="relative group">
               <TaskItem
                 task={task}
                 onClick={() => setViewingTask(task)}
+                subtaskCount={tasks.filter(t => t.parent_task_id === task.id).length}
+                subtaskDoneCount={tasks.filter(t => t.parent_task_id === task.id && t.status === "done").length}
               />
               {(canEditTask(task) || canDeleteTask()) && (
                 <DropdownMenu>
@@ -113,6 +116,14 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              {/* Subtask list for this task */}
+              <SubtaskList
+                parentTask={task}
+                initiativeId={initiativeId}
+                allTasks={tasks}
+                canManage={canEditTask(task)}
+                onTaskClick={(st) => setViewingTask(st)}
+              />
             </div>
           ))}
         </div>

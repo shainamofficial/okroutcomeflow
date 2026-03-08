@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb, CalendarClock, CalendarRange, CalendarDays, BarChart3, Activity, User, Shield, TableProperties, Zap } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb, CalendarClock, CalendarRange, CalendarDays, BarChart3, Activity, User, Shield, TableProperties, Zap, Bell } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformAdmin } from '@/contexts/PlatformAdminContext';
@@ -31,6 +31,7 @@ export function AppSidebar() {
     { title: 'Reviews', url: '/app/reviews', icon: CalendarClock },
     { title: 'Activity Log', url: '/app/activity', icon: Activity },
     { title: 'Automations', url: '/app/automations', icon: Zap },
+    { title: 'Notifications', url: '/app/settings/notifications', icon: Bell },
   ];
 
   const managerItems = (isAdmin || isManager)

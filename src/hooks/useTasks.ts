@@ -18,6 +18,7 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   color: string | null;
+  parent_task_id: string | null;
   assignee_user?: {
     id: string;
     name: string;
@@ -65,6 +66,7 @@ export function useTasks(initiativeId?: string) {
       status?: TaskStatus;
       startDate?: string;
       dueDate?: string;
+      parentTaskId?: string;
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
 
@@ -79,6 +81,7 @@ export function useTasks(initiativeId?: string) {
           status: params.status || "todo",
           start_date: params.startDate || null,
           due_date: params.dueDate || null,
+          parent_task_id: params.parentTaskId || null,
           created_by: profile.id,
         })
         .select()
