@@ -75,6 +75,7 @@ export function useTasks(initiativeId?: string) {
       status?: TaskStatus;
       startDate?: string;
       dueDate?: string;
+      parentTaskId?: string;
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
 
