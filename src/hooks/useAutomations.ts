@@ -45,12 +45,12 @@ export function useAutomations() {
       const { error } = await supabase.from("automations").insert({
         organization_id: profile!.organization_id!,
         name: params.name,
-        trigger_type: params.trigger_type,
+        trigger_type: params.trigger_type as any,
         trigger_config: params.trigger_config || {},
-        action_type: params.action_type,
+        action_type: params.action_type as any,
         action_config: params.action_config || {},
         created_by: profile!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
