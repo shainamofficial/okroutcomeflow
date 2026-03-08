@@ -81,6 +81,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <ThemeToggle />
         <NotificationBell />
         <Separator orientation="vertical" className="h-5 mx-1" />
         <div className="flex items-center gap-2">
