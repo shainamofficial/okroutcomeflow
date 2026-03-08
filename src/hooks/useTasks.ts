@@ -90,6 +90,7 @@ export function useTasks(initiativeId?: string) {
           status: params.status || "todo",
           start_date: params.startDate || null,
           due_date: params.dueDate || null,
+          parent_task_id: params.parentTaskId || null,
           created_by: profile.id,
         })
         .select()
