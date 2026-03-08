@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { InitiativeProgressBar } from "./InitiativeProgressBar";
 
 interface BoardInitiativeCardProps {
   initiative: Initiative;
