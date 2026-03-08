@@ -68,6 +68,8 @@ const App = () => (
                 </PublicRoute>
               }
             />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Invite signup route - public */}
             <Route path="/signup-invite" element={<SignupInvite />} />
