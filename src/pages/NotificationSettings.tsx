@@ -44,7 +44,7 @@ export default function NotificationSettings() {
           {NOTIFICATION_TYPES.map((nt) => {
             const pref = getPreference(nt.type);
             return (
-              <div key={nt.type} className="grid grid-cols-[1fr_80px_80px] items-center gap-4 py-3">
+              <div key={nt.type} className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] items-center gap-2 sm:gap-4 py-3">
                 <div>
                   <Label className="text-sm font-medium">{nt.label}</Label>
                   <p className="text-xs text-muted-foreground">{nt.description}</p>

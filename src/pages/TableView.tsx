@@ -166,15 +166,18 @@ export default function TableView() {
       <div className="p-3 border rounded-lg bg-card space-y-2">
         <div className="flex items-start justify-between gap-2">
           <span className="text-sm font-medium flex-1">{task.title}</span>
-          <TaskStatusBadge status={task.status} />
+          <InlineStatusSelect
+            status={task.status}
+            onStatusChange={(status) => updateTask(task.id, { status })}
+          />
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{task.assignee_user?.name || task.assignee_team?.name || "Unassigned"}</span>
-          {task.due_date && (
-            <span className={cn(isOverdue && "text-destructive font-medium")}>
-              {format(new Date(task.due_date), "MMM d")}
-            </span>
-          )}
+          <InlineDatePicker
+            date={task.due_date}
+            onDateChange={(date) => updateTask(task.id, { due_date: date })}
+            isOverdue={!!isOverdue}
+          />
         </div>
         {initiativeMap[task.initiative_id] && (
           <div className="text-xs text-muted-foreground truncate">

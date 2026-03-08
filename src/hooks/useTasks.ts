@@ -193,7 +193,7 @@ export function useAllTasks() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as (Task & { initiative: { id: string; organization_id: string } })[];
+      return (data || []) as (Task & { initiative: { id: string; organization_id: string }[] })[];
     },
     enabled: !!profile?.organization_id,
   });
