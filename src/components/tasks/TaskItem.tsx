@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 interface TaskItemProps {
   task: Task;
   onClick?: () => void;
+  subtaskCount?: number;
+  subtaskDoneCount?: number;
 }
 
 export function TaskItem({ task, onClick }: TaskItemProps) {
