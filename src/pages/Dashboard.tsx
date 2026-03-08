@@ -96,7 +96,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <UpcomingReviews reviews={upcomingReviews} isLoading={reviewsLoading} />
         <OverdueTasks tasks={overdueTasks} isLoading={tasksLoading} />
       </div>

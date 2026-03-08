@@ -29,8 +29,8 @@ export default function ActivityLog() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-display">Activity Log</h1>
-        <p className="text-muted-foreground mt-1">Organization-wide feed of all updates and changes</p>
+        <h1 className="text-xl sm:text-3xl font-bold font-display">Activity Log</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base hidden sm:block">Organization-wide feed of all updates and changes</p>
       </div>
 
       {isLoading ? (

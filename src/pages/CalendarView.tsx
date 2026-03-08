@@ -105,7 +105,7 @@ export default function CalendarView() {
                 <div
                   key={key}
                   className={cn(
-                    "min-h-[100px] border-b border-r p-1.5 transition-colors",
+                    "min-h-[60px] sm:min-h-[100px] border-b border-r p-1 sm:p-1.5 transition-colors",
                     !isSameMonth(day, currentMonth) && "bg-muted/20 text-muted-foreground/50",
                     isToday(day) && "bg-accent/30"
                   )}

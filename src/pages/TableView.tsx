@@ -5,8 +5,8 @@ import { useCustomFields, useCustomFieldValues } from "@/hooks/useCustomFields";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, Download } from "lucide-react";
-import { isPast, isToday } from "date-fns";
+import { ArrowUpDown, Download, Filter, ChevronDown } from "lucide-react";
+import { isPast, isToday, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,10 @@ import { InlineStatusSelect } from "@/components/table/InlineStatusSelect";
 import { InlineDatePicker } from "@/components/table/InlineDatePicker";
 import { CustomFieldCell } from "@/components/custom-fields/CustomFieldCell";
 import { CustomFieldManager } from "@/components/custom-fields/CustomFieldManager";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Badge } from "@/components/ui/badge";
+import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type SortField = "title" | "status" | "due_date" | "assignee" | "initiative";
 type SortDir = "asc" | "desc";
@@ -27,10 +31,12 @@ export default function TableView() {
   const { definitions } = useCustomFields("task");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [sortField, setSortField] = useState<SortField>("due_date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupBy, setGroupBy] = useState<"none" | "initiative" | "status">("none");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
   const { getValue, upsertValue } = useCustomFieldValues(taskIds);
@@ -120,42 +126,87 @@ export default function TableView() {
     </TableHead>
   );
 
+  const toolbar = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <CustomFieldManager entityType="task" />
+      <Button variant="outline" size="sm" onClick={exportCSV} className="h-9 text-xs gap-1.5">
+        <Download className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Export CSV</span>
+      </Button>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-[110px] sm:w-[130px] h-9 text-xs">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="todo">To Do</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="blocked">Blocked</SelectItem>
+          <SelectItem value="done">Done</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={groupBy} onValueChange={(v) => setGroupBy(v as "none" | "initiative" | "status")}>
+        <SelectTrigger className="w-[110px] sm:w-[140px] h-9 text-xs">
+          <SelectValue placeholder="Group by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No Grouping</SelectItem>
+          <SelectItem value="initiative">By Initiative</SelectItem>
+          <SelectItem value="status">By Status</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  // Mobile card view for each task
+  const MobileTaskCard = ({ task }: { task: Task }) => {
+    const isOverdue = task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
+    return (
+      <div className="p-3 border rounded-lg bg-card space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-medium flex-1">{task.title}</span>
+          <TaskStatusBadge status={task.status} />
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{task.assignee_user?.name || task.assignee_team?.name || "Unassigned"}</span>
+          {task.due_date && (
+            <span className={cn(isOverdue && "text-destructive font-medium")}>
+              {format(new Date(task.due_date), "MMM d")}
+            </span>
+          )}
+        </div>
+        {initiativeMap[task.initiative_id] && (
+          <div className="text-xs text-muted-foreground truncate">
+            {initiativeMap[task.initiative_id]}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold font-display">Table View</h1>
-          <p className="text-muted-foreground mt-1">Click any cell to edit inline</p>
+          <h1 className="text-xl sm:text-3xl font-bold font-display">Table View</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">Click any cell to edit inline</p>
         </div>
-        <div className="flex items-center gap-2">
-          <CustomFieldManager entityType="task" />
-          <Button variant="outline" size="sm" onClick={exportCSV} className="h-9 text-xs gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
-          </Button>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px] h-9 text-xs">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="blocked">Blocked</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as "none" | "initiative" | "status")}>
-            <SelectTrigger className="w-[140px] h-9 text-xs">
-              <SelectValue placeholder="Group by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Grouping</SelectItem>
-              <SelectItem value="initiative">By Initiative</SelectItem>
-              <SelectItem value="status">By Status</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {isMobile ? (
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>Filters & Actions</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              {toolbar}
+            </CollapsibleContent>
+          </Collapsible>
+        ) : toolbar}
       </div>
 
       {Object.entries(grouped).map(([group, groupTasks]) => (
@@ -163,86 +214,99 @@ export default function TableView() {
           {group && groupBy !== "none" && (
             <h3 className="text-sm font-semibold font-display mb-2 capitalize">{group.replace(/_/g, " ")}</h3>
           )}
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <SortHeader field="title">Task</SortHeader>
-                      <SortHeader field="status">Status</SortHeader>
-                      <SortHeader field="initiative">Initiative</SortHeader>
-                      <SortHeader field="assignee">Assignee</SortHeader>
-                      <SortHeader field="due_date">Due Date</SortHeader>
-                      {definitions.map((d) => (
-                        <TableHead key={d.id} className="text-xs whitespace-nowrap">{d.name}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {groupTasks.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground py-8">
-                          No tasks found
-                        </TableCell>
+
+          {/* Mobile: card layout */}
+          {isMobile ? (
+            <div className="space-y-2">
+              {groupTasks.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">No tasks found</p>
+              ) : (
+                groupTasks.map((task) => <MobileTaskCard key={task.id} task={task} />)
+              )}
+            </div>
+          ) : (
+            /* Desktop: table layout */
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <SortHeader field="title">Task</SortHeader>
+                        <SortHeader field="status">Status</SortHeader>
+                        <SortHeader field="initiative">Initiative</SortHeader>
+                        <SortHeader field="assignee">Assignee</SortHeader>
+                        <SortHeader field="due_date">Due Date</SortHeader>
+                        {definitions.map((d) => (
+                          <TableHead key={d.id} className="text-xs whitespace-nowrap">{d.name}</TableHead>
+                        ))}
                       </TableRow>
-                    ) : (
-                      groupTasks.map((task) => {
-                        const isOverdue = task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
-                        return (
-                          <TableRow key={task.id} className="hover:bg-muted/20">
-                            <TableCell className="font-medium text-sm max-w-[250px]">
-                              <InlineEditCell
-                                value={task.title}
-                                onSave={(title) => updateTask(task.id, { title })}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <InlineStatusSelect
-                                status={task.status}
-                                onStatusChange={(status) => updateTask(task.id, { status })}
-                              />
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
-                              {initiativeMap[task.initiative_id] || "—"}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {task.assignee_user?.name || task.assignee_team?.name || (
-                                <span className="text-muted-foreground">Unassigned</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <InlineDatePicker
-                                date={task.due_date}
-                                onDateChange={(date) => updateTask(task.id, { due_date: date })}
-                                isOverdue={!!isOverdue}
-                              />
-                            </TableCell>
-                            {definitions.map((d) => (
-                              <TableCell key={d.id}>
-                                <CustomFieldCell
-                                  definition={d}
-                                  value={getValue(d.id, task.id)}
-                                  onValueChange={(val) =>
-                                    upsertValue.mutate({
-                                      field_definition_id: d.id,
-                                      entity_type: "task",
-                                      entity_id: task.id,
-                                      value: val,
-                                    })
-                                  }
+                    </TableHeader>
+                    <TableBody>
+                      {groupTasks.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground py-8">
+                            No tasks found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        groupTasks.map((task) => {
+                          const isOverdue = task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
+                          return (
+                            <TableRow key={task.id} className="hover:bg-muted/20">
+                              <TableCell className="font-medium text-sm max-w-[250px]">
+                                <InlineEditCell
+                                  value={task.title}
+                                  onSave={(title) => updateTask(task.id, { title })}
                                 />
                               </TableCell>
-                            ))}
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                              <TableCell>
+                                <InlineStatusSelect
+                                  status={task.status}
+                                  onStatusChange={(status) => updateTask(task.id, { status })}
+                                />
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                                {initiativeMap[task.initiative_id] || "—"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {task.assignee_user?.name || task.assignee_team?.name || (
+                                  <span className="text-muted-foreground">Unassigned</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <InlineDatePicker
+                                  date={task.due_date}
+                                  onDateChange={(date) => updateTask(task.id, { due_date: date })}
+                                  isOverdue={!!isOverdue}
+                                />
+                              </TableCell>
+                              {definitions.map((d) => (
+                                <TableCell key={d.id}>
+                                  <CustomFieldCell
+                                    definition={d}
+                                    value={getValue(d.id, task.id)}
+                                    onValueChange={(val) =>
+                                      upsertValue.mutate({
+                                        field_definition_id: d.id,
+                                        entity_type: "task",
+                                        entity_id: task.id,
+                                        value: val,
+                                      })
+                                    }
+                                  />
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       ))}
     </div>

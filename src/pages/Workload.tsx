@@ -66,8 +66,8 @@ export default function Workload() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-display">Workload</h1>
-        <p className="text-muted-foreground mt-1">See how tasks are distributed across your team</p>
+        <h1 className="text-xl sm:text-3xl font-bold font-display">Workload</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base hidden sm:block">See how tasks are distributed across your team</p>
       </div>
 
       {/* Summary cards */}

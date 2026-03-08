@@ -56,23 +56,23 @@ export default function Initiatives() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold font-display">Initiatives</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-3xl font-bold font-display">Initiatives</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">
             Manage initiatives and link them to Key Results
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Tabs value={view} onValueChange={(v) => setView(v as "list" | "board")}>
             <TabsList className="h-9 bg-muted/60">
-              <TabsTrigger value="list" className="gap-1.5 px-3 text-xs">
+              <TabsTrigger value="list" className="gap-1.5 px-2 sm:px-3 text-xs">
                 <List className="h-3.5 w-3.5" />
-                List
+                <span className="hidden sm:inline">List</span>
               </TabsTrigger>
-              <TabsTrigger value="board" className="gap-1.5 px-3 text-xs">
+              <TabsTrigger value="board" className="gap-1.5 px-2 sm:px-3 text-xs">
                 <LayoutGrid className="h-3.5 w-3.5" />
-                Board
+                <span className="hidden sm:inline">Board</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>

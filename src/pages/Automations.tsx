@@ -53,10 +53,10 @@ export default function Automations() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold font-display">Automations</h1>
-          <p className="text-muted-foreground mt-1">Set up when-then rules to automate your workflow</p>
+          <h1 className="text-xl sm:text-3xl font-bold font-display">Automations</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">Set up when-then rules to automate your workflow</p>
         </div>
         {canManage && (
           <Dialog open={open} onOpenChange={setOpen}>
