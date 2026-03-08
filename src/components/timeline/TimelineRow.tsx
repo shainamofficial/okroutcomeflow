@@ -217,7 +217,7 @@ export function TimelineRow({
 
           return (
             <div key={task.id} className="flex border-b hover:bg-muted/20 group">
-              <div className="w-64 min-w-64 p-2 pl-10 border-r sticky left-0 bg-background z-20 flex items-center gap-2">
+              <div className="w-64 min-w-64 p-2 pl-10 border-r sticky left-0 bg-background z-30 flex items-center gap-2">
                 <div 
                   className="flex-1 min-w-0 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1"
                   onClick={() => onTaskClick(task)}
