@@ -34,6 +34,7 @@ import Workload from "./pages/Workload";
 import ActivityLog from "./pages/ActivityLog";
 import TableView from "./pages/TableView";
 import Automations from "./pages/Automations";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
