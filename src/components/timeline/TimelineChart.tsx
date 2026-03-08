@@ -198,7 +198,7 @@ export function TimelineChart({
         <div className="min-w-max" ref={containerRef}>
           {/* Header row with dates */}
           <div className="flex border-b bg-muted/50 sticky top-0 z-10">
-            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted/50 z-30">
+            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted z-30">
               Item
             </div>
             <div className="flex relative">
