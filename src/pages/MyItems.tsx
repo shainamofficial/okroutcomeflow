@@ -154,7 +154,7 @@ export default function MyItems() {
                         )}
                       </div>
                       <Badge variant={getStatusColor(initiative.status)}>
-                        {initiative.status.replace("_", " ")}
+                        {initiative.status.replace(/_/g, " ")}
                       </Badge>
                     </div>
                   ))}

@@ -1,107 +1,92 @@
 
 
-# QA Assessment Report -- OutcomeFlow Platform
+# Plan: Board View for Initiatives and Tasks
 
-## Critical Bugs
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-### BUG-1: Signup navigates to /app before email verification
-**File:** `src/pages/Signup.tsx` line 54
-**Issue:** After `signUp()`, the code immediately calls `navigate('/app')` and shows "Welcome to OutcomeFlow!". But email confirmation is required (auto-confirm is not enabled). The user will land on the protected route, which will either show "Loading profile..." forever or redirect to login since the profile won't exist until email is confirmed.
-**Fix:** After signup, show a "Check your email for verification" message instead of navigating to `/app`.
+## How It Works
 
-### BUG-2: `useAllTasks` returns tasks with `initiative` as an array due to `!inner` join, but code casts it as a single object
-**File:** `src/hooks/useTasks.ts` line 196
-**Issue:** The Supabase `!inner` join returns `initiative` as an array `{ id, organization_id }[]`, but `Task` interface doesn't include this field and the type cast hides it. Downstream consumers (e.g., Timeline) treat `task.initiative` as a single object. This may silently work due to Supabase flattening single FK joins, but the type is incorrect and fragile.
-**Fix:** Update the type assertion and interface to accurately reflect the join shape.
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-### BUG-3: `ProtectedRoute` hangs on "Loading profile..." if profile creation trigger fails
-**File:** `src/components/auth/ProtectedRoute.tsx` lines 29-34
-**Issue:** If the database trigger that creates `users_profile` after signup fails or is delayed, the user sees "Loading profile..." indefinitely with no timeout or error handling.
-**Fix:** Add a timeout (e.g., 10 seconds) that shows an error message and sign-out button if profile never loads.
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
----
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
 
-## Medium Bugs
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
 
-### BUG-4: Command palette search result selection doesn't open the specific item
-**File:** `src/components/search/CommandPalette.tsx` lines 66-78
-**Issue:** `handleSelect` navigates to the *page* (e.g., `/app/okrs` or `/app/initiatives`) but doesn't pass the selected item's ID. Users search for a specific task but land on the generic initiatives page with no indication of which item they searched for.
-**Fix:** Pass the entity ID as a URL parameter or open the detail drawer directly.
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
 
-### BUG-5: `useCustomFieldValues` query key uses unstable array reference
-**File:** `src/hooks/useCustomFields.ts` line 92
-**Issue:** `queryKey: ["custom_field_values", entityIds]` -- if `entityIds` is a new array reference on each render (which it is, from `useMemo` in TableView), React Query may refetch more than needed. However, React Query does deep comparison by default, so this is a performance concern rather than a hard bug.
-**Fix:** Consider sorting and JSON-stringifying the entityIds array in the query key.
-
-### BUG-6: Mobile task cards in TableView are read-only -- no way to edit
-**File:** `src/pages/TableView.tsx` lines 162-185
-**Issue:** The desktop table has inline editing, but the mobile card view (`MobileTaskCard`) is purely display-only. Users on mobile cannot edit task status, dates, or titles from the Table View.
-**Fix:** Add tap-to-edit interactions or a "tap to open detail" action on mobile cards.
-
-### BUG-7: Initiative status `replace("_", " ")` only replaces first underscore
-**File:** `src/pages/MyItems.tsx` line 157
-**Issue:** `initiative.status.replace("_", " ")` uses a string pattern, not regex, so it only replaces the first underscore. `not_started` becomes `not started` (works), but this is a latent bug if any status has multiple underscores.
-**Fix:** Use `.replace(/_/g, " ")` consistently (TableView does this correctly).
-
-### BUG-8: Notification Settings page header not responsive
-**File:** `src/pages/NotificationSettings.tsx` line 23
-**Issue:** The heading uses `text-3xl` without the responsive `text-xl sm:text-3xl` pattern applied to all other pages during the mobile optimization pass.
-**Fix:** Change to `text-xl sm:text-3xl`.
-
-### BUG-9: Notification preferences grid breaks on small screens
-**File:** `src/pages/NotificationSettings.tsx` line 38
-**Issue:** `grid-cols-[1fr_80px_80px]` creates a fixed 160px allocation for switches that doesn't adapt on very narrow screens (<320px). Content may overflow.
-**Fix:** Use `grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px]`.
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
 
 ---
 
-## Low / UX Issues
+## Files to Create
 
-### BUG-10: No password reset / forgot password flow
-**File:** `src/pages/Login.tsx`
-**Issue:** There is no "Forgot password?" link on the login page. Users who forget their password have no self-service recovery path.
-**Fix:** Add a forgot password link that calls `supabase.auth.resetPasswordForEmail()`.
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
 
-### BUG-11: No loading state for task inline updates in TableView
-**File:** `src/pages/TableView.tsx` line 50
-**Issue:** `updateTask` in TableView uses raw Supabase calls without showing a pending state. If the network is slow, users get no feedback that their edit is saving.
-**Fix:** Add optimistic updates or a brief saving indicator.
+## Files to Modify
 
-### BUG-12: CSV export doesn't escape values containing commas or quotes
-**File:** `src/pages/TableView.tsx` line 105
-**Issue:** Values are wrapped in double quotes (`"${c}"`), but if `c` itself contains a double quote, the CSV will be malformed.
-**Fix:** Escape inner double quotes by replacing `"` with `""` before wrapping.
-
-### BUG-13: Memory leak potential in CSV export -- `URL.createObjectURL` cleanup
-**File:** `src/pages/TableView.tsx` lines 106-112
-**Issue:** The `a.click()` is synchronous but the download is async. `URL.revokeObjectURL(url)` is called immediately, which may revoke the URL before the browser starts the download.
-**Fix:** Use `setTimeout(() => URL.revokeObjectURL(url), 1000)`.
-
-### BUG-14: `recurrence_rule` column added but no UI or backend logic uses it
-**File:** Migration `20260308215144` / `src/hooks/useTasks.ts`
-**Issue:** The `recurrence_rule` jsonb column exists on `tasks` but there is no UI to set it, no backend function to create recurring task instances, and the `Task` interface doesn't include it. It's dead schema.
-**Fix:** Either implement the recurring task feature or remove the column to avoid confusion.
-
-### BUG-15: Task dependencies table exists but no UI to manage them
-**File:** Migration `20260308214706`
-**Issue:** The `task_dependencies` table was created with proper RLS, but there is no UI anywhere to add, view, or remove task dependencies. The feature is incomplete.
-**Fix:** Add dependency management UI in the TaskDetailDrawer.
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
 
 ---
 
-## Summary
+## Technical Details
 
-| Severity | Count | Key Items |
-|----------|-------|-----------|
-| Critical | 3 | Signup flow, profile loading hang, task type mismatch |
-| Medium | 6 | Search doesn't deep-link, mobile table read-only, responsive gaps |
-| Low/UX | 6 | No password reset, dead schema, CSV escaping |
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
 
-**Recommended priority order:**
-1. Fix signup flow (BUG-1) -- users cannot onboard
-2. Add profile loading timeout (BUG-3) -- users get stuck
-3. Add forgot password (BUG-10) -- basic auth requirement
-4. Fix mobile TableView editing (BUG-6) -- feature gap
-5. Deep-link search results (BUG-4) -- broken UX expectation
-6. Complete dependencies/recurring features or remove dead schema (BUG-14, BUG-15)
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+```
+
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
+
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
+
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 

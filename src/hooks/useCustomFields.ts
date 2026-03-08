@@ -89,7 +89,7 @@ export function useCustomFieldValues(entityIds: string[]) {
   const { toast } = useToast();
 
   const { data: values = [], isLoading: loadingValues } = useQuery({
-    queryKey: ["custom_field_values", entityIds],
+    queryKey: ["custom_field_values", JSON.stringify(entityIds.slice().sort())],
     queryFn: async () => {
       if (entityIds.length === 0) return [];
       const { data, error } = await supabase

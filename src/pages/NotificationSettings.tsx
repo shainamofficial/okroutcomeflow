@@ -20,7 +20,7 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-display">Notification Settings</h1>
+        <h1 className="text-xl sm:text-3xl font-bold font-display">Notification Settings</h1>
         <p className="text-muted-foreground mt-1">Choose how you want to be notified</p>
       </div>
 
@@ -35,7 +35,7 @@ export default function NotificationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
-          <div className="grid grid-cols-[1fr_80px_80px] items-center gap-4 pb-2 text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] items-center gap-2 sm:gap-4 pb-2 text-xs font-medium text-muted-foreground">
             <span>Notification Type</span>
             <span className="text-center">In-App</span>
             <span className="text-center">Email</span>
@@ -44,7 +44,7 @@ export default function NotificationSettings() {
           {NOTIFICATION_TYPES.map((nt) => {
             const pref = getPreference(nt.type);
             return (
-              <div key={nt.type} className="grid grid-cols-[1fr_80px_80px] items-center gap-4 py-3">
+              <div key={nt.type} className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] items-center gap-2 sm:gap-4 py-3">
                 <div>
                   <Label className="text-sm font-medium">{nt.label}</Label>
                   <p className="text-xs text-muted-foreground">{nt.description}</p>
