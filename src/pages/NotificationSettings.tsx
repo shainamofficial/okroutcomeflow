@@ -35,7 +35,7 @@ export default function NotificationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
-          <div className="grid grid-cols-[1fr_80px_80px] items-center gap-4 pb-2 text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] items-center gap-2 sm:gap-4 pb-2 text-xs font-medium text-muted-foreground">
             <span>Notification Type</span>
             <span className="text-center">In-App</span>
             <span className="text-center">Email</span>
