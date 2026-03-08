@@ -1,99 +1,92 @@
 
 
-## Analysis: What's Missing vs monday.com / ClickUp
+# Plan: Board View for Initiatives and Tasks
 
-**Currently built:** Dashboard, My Items, OKRs, Initiatives (Board/List), Table View, Timeline, Calendar, Workload, Reviews, Activity Log, Automations, File Attachments, Teams, User Management, Notifications, Global Search, Org Settings.
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-**High-impact gaps** that would make this genuinely competitive:
+## How It Works
 
----
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-### 1. Custom Fields on Initiatives & Tasks
-monday.com's killer feature. Let users add Priority, Tags/Labels, Custom Dropdowns, Numbers, etc. to any item without schema changes.
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
-- Add a `custom_field_definitions` table (org-scoped: name, field_type enum, options jsonb)
-- Add a `custom_field_values` table (entity_type, entity_id, field_definition_id, value jsonb)
-- Render inline in Table View with editable cells
-- Filter/group by custom fields
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
 
-### 2. Inline Editing in Table View
-Currently read-only. monday.com lets you click any cell and edit in place.
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
 
-- Make title, status, assignee, dates all click-to-edit in the Table View
-- Use popovers for date pickers and dropdowns for selects
-- Optimistic updates via existing `updateTask` mutations
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
 
-### 3. Subtasks / Task Dependencies
-ClickUp's differentiator. Tasks can have child tasks and blocking relationships.
-
-- Add `parent_task_id` column to `tasks` table
-- Add `task_dependencies` table (task_id, depends_on_task_id, type: blocks/waiting_on)
-- Show subtask progress on parent tasks
-- Visualize dependencies on Timeline view
-
-### 4. Multiple Assignees & Watchers
-monday.com supports multiple people per item.
-
-- Add `task_watchers` table (task_id, user_id)
-- Watchers get notifications on changes
-- Show avatar stacks on cards
-
-### 5. Recurring Tasks
-Both competitors have this.
-
-- Add `recurrence_rule` jsonb column to tasks (frequency, interval, end_date)
-- Backend function to auto-create next occurrence when task is completed
-
-### 6. Dashboard Customization (Drag-and-Drop Widgets)
-monday.com dashboards are fully customizable.
-
-- Add `dashboard_widgets` table (user_id, widget_type, position, config jsonb)
-- Use `react-resizable-panels` (already installed) for layout
-- Let users add/remove/reorder stat cards, charts, task lists
-
-### 7. Dark Mode Toggle
-Both competitors support it. The app already uses CSS variables.
-
-- Add theme toggle in header using `next-themes` (already installed)
-- Switch between light/dark with persisted preference
-
-### 8. Keyboard Shortcuts & Command Palette
-ClickUp's power-user feature.
-
-- Enhance existing Global Search into a full command palette (Cmd+K)
-- Add shortcuts: N for new task, G+D for go to dashboard, etc.
-
-### 9. Email/In-App Notification Preferences
-- Add `notification_preferences` table (user_id, type, email_enabled, in_app_enabled)
-- Settings page for users to configure which events trigger notifications
-
-### 10. Export & Reporting
-- CSV export for Table View data
-- PDF summary reports for OKRs with progress snapshots
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
 
 ---
 
-### Recommended Implementation Order (by impact)
+## Files to Create
 
-| Priority | Feature | Effort |
-|----------|---------|--------|
-| 1 | Dark mode toggle | Small |
-| 2 | Inline editing in Table View | Medium |
-| 3 | Subtasks & dependencies | Medium |
-| 4 | Custom fields | Large |
-| 5 | Command palette (Cmd+K) | Small |
-| 6 | Multiple assignees & watchers | Medium |
-| 7 | CSV/PDF export | Small |
-| 8 | Recurring tasks | Medium |
-| 9 | Dashboard customization | Large |
-| 10 | Notification preferences | Medium |
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
 
-### Technical Notes
-- `next-themes` is already installed for dark mode
-- `cmdk` is already installed for command palette
-- `react-resizable-panels` is already installed for dashboard grid
-- Custom fields require 2 new DB tables + a migration
-- Subtasks require 1 new column + 1 new table
+## Files to Modify
 
-This set of features would close the biggest UX gaps with monday.com and ClickUp. I'd recommend starting with dark mode + inline table editing + command palette (all small-medium effort, high perceived value), then moving to subtasks and custom fields.
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+
+---
+
+## Technical Details
+
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
+
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+```
+
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
+
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
+
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 

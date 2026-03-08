@@ -1,16 +1,19 @@
 import { useState, useMemo } from "react";
-import { useAllTasks, Task } from "@/hooks/useTasks";
+import { useAllTasks, Task, TaskStatus } from "@/hooks/useTasks";
 import { useInitiatives } from "@/hooks/useInitiatives";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
-import { ArrowUpDown, TableProperties } from "lucide-react";
-import { format, isPast, isToday } from "date-fns";
+import { ArrowUpDown, Download } from "lucide-react";
+import { isPast, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useTasks } from "@/hooks/useTasks";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { InlineEditCell } from "@/components/table/InlineEditCell";
+import { InlineStatusSelect } from "@/components/table/InlineStatusSelect";
+import { InlineDatePicker } from "@/components/table/InlineDatePicker";
 
 type SortField = "title" | "status" | "due_date" | "assignee" | "initiative";
 type SortDir = "asc" | "desc";
@@ -18,6 +21,8 @@ type SortDir = "asc" | "desc";
 export default function TableView() {
   const { tasks } = useAllTasks();
   const { initiatives } = useInitiatives();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [sortField, setSortField] = useState<SortField>("due_date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -28,6 +33,16 @@ export default function TableView() {
     initiatives.forEach((i) => (map[i.id] = i.title));
     return map;
   }, [initiatives]);
+
+  const updateTask = async (id: string, updates: Record<string, unknown>) => {
+    const { error } = await supabase.from("tasks").update(updates).eq("id", id);
+    if (error) {
+      toast({ title: "Failed to update task", description: error.message, variant: "destructive" });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["all_tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    }
+  };
 
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
@@ -64,6 +79,25 @@ export default function TableView() {
     else { setSortField(field); setSortDir("asc"); }
   };
 
+  const exportCSV = () => {
+    const headers = ["Task", "Status", "Initiative", "Assignee", "Due Date"];
+    const rows = filteredTasks.map((t) => [
+      t.title,
+      t.status.replace(/_/g, " "),
+      initiativeMap[t.initiative_id] || "",
+      t.assignee_user?.name || t.assignee_team?.name || "Unassigned",
+      t.due_date || "",
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tasks-export.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead
       className="cursor-pointer select-none hover:bg-muted/40 transition-colors"
@@ -81,9 +115,13 @@ export default function TableView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-display">Table View</h1>
-          <p className="text-muted-foreground mt-1">All tasks in a spreadsheet-style layout</p>
+          <p className="text-muted-foreground mt-1">Click any cell to edit inline</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} className="h-9 text-xs gap-1.5">
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </Button>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[130px] h-9 text-xs">
               <SelectValue placeholder="Status" />
@@ -96,7 +134,7 @@ export default function TableView() {
               <SelectItem value="done">Done</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as any)}>
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as "none" | "initiative" | "status")}>
             <SelectTrigger className="w-[140px] h-9 text-xs">
               <SelectValue placeholder="Group by" />
             </SelectTrigger>
@@ -138,11 +176,17 @@ export default function TableView() {
                       const isOverdue = task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
                       return (
                         <TableRow key={task.id} className="hover:bg-muted/20">
-                          <TableCell className="font-medium text-sm max-w-[250px] truncate">
-                            {task.title}
+                          <TableCell className="font-medium text-sm max-w-[250px]">
+                            <InlineEditCell
+                              value={task.title}
+                              onSave={(title) => updateTask(task.id, { title })}
+                            />
                           </TableCell>
                           <TableCell>
-                            <TaskStatusBadge status={task.status} />
+                            <InlineStatusSelect
+                              status={task.status}
+                              onStatusChange={(status) => updateTask(task.id, { status })}
+                            />
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
                             {initiativeMap[task.initiative_id] || "—"}
@@ -152,9 +196,12 @@ export default function TableView() {
                               <span className="text-muted-foreground">Unassigned</span>
                             )}
                           </TableCell>
-                          <TableCell className={cn("text-xs", isOverdue && "text-destructive font-medium")}>
-                            {task.due_date ? format(new Date(task.due_date), "MMM d, yyyy") : "—"}
-                            {isOverdue && " ⚠️"}
+                          <TableCell>
+                            <InlineDatePicker
+                              date={task.due_date}
+                              onDateChange={(date) => updateTask(task.id, { due_date: date })}
+                              isOverdue={!!isOverdue}
+                            />
                           </TableCell>
                         </TableRow>
                       );
