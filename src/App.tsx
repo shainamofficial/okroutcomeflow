@@ -31,6 +31,8 @@ import Platform from "./pages/Platform";
 import CalendarView from "./pages/CalendarView";
 import Workload from "./pages/Workload";
 import ActivityLog from "./pages/ActivityLog";
+import TableView from "./pages/TableView";
+import Automations from "./pages/Automations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -169,6 +171,26 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <ActivityLog />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/table"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <TableView />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/automations"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Automations />
                   </AppLayout>
                 </ProtectedRoute>
               }

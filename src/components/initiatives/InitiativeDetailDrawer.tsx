@@ -15,6 +15,7 @@ import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { TaskList } from "@/components/tasks/TaskList";
 import { useAuth } from "@/contexts/AuthContext";
 import { ActivityFeed } from "@/components/updates/ActivityFeed";
+import { FileAttachmentsPanel } from "@/components/files/FileAttachmentsPanel";
 import { useAllKeyResults, useObjectives } from "@/hooks/useOKRs";
 import { getKRNestingLevel, getKRObjectiveId } from "@/lib/kr-hierarchy";
 import { cn } from "@/lib/utils";
@@ -166,6 +167,10 @@ export function InitiativeDetailDrawer({
             initiativeOwnerId={initiative.owner_id}
             canManage={canManage}
           />
+
+          <Separator />
+
+          <FileAttachmentsPanel entityType="initiative" entityId={initiative.id} />
 
           <Separator />
 
