@@ -6,6 +6,7 @@ import { EditTaskDialog } from "./EditTaskDialog";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { TaskDetailDrawer } from "./TaskDetailDrawer";
+import { SubtaskList } from "./SubtaskList";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +14,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
