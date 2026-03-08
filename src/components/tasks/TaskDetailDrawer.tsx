@@ -7,12 +7,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { User, Calendar, Users } from "lucide-react";
+import { User, Calendar, Users, Eye, EyeOff } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { ActivityFeed } from "@/components/updates/ActivityFeed";
 import { FileAttachmentsPanel } from "@/components/files/FileAttachmentsPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTaskWatchers } from "@/hooks/useTaskWatchers";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskDetailDrawerProps {
   task: Task;
