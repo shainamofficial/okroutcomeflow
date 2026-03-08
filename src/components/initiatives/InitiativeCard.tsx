@@ -11,6 +11,7 @@ import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
 import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
 import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
+import { InitiativeProgressBar } from "./InitiativeProgressBar";
 
 interface InitiativeCardProps {
   initiative: Initiative;
