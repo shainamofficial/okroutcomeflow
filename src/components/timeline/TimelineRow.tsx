@@ -118,7 +118,7 @@ export function TimelineRow({
     <div>
       {/* Initiative row */}
       <div className="flex border-b hover:bg-muted/20 group">
-        <div className="w-64 min-w-64 p-2 border-r sticky left-0 bg-background z-20 flex items-center gap-2">
+        <div className="w-64 min-w-64 p-2 border-r sticky left-0 bg-background z-30 flex items-center gap-2">
           {hasChildren ? (
             <button
               onClick={() => setExpanded(!expanded)}
