@@ -20,7 +20,7 @@ export default function NotificationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-display">Notification Settings</h1>
+        <h1 className="text-xl sm:text-3xl font-bold font-display">Notification Settings</h1>
         <p className="text-muted-foreground mt-1">Choose how you want to be notified</p>
       </div>
 
