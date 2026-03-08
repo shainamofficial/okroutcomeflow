@@ -25,7 +25,10 @@ export function AppSidebar() {
     { title: 'OKRs', url: '/app/okrs', icon: Target },
     { title: 'Initiatives', url: '/app/initiatives', icon: Lightbulb },
     { title: 'Timeline', url: '/app/timeline', icon: CalendarRange },
+    { title: 'Calendar', url: '/app/calendar', icon: CalendarDays },
+    { title: 'Workload', url: '/app/workload', icon: BarChart3 },
     { title: 'Reviews', url: '/app/reviews', icon: CalendarClock },
+    { title: 'Activity Log', url: '/app/activity', icon: Activity },
   ];
 
   const managerItems = (isAdmin || isManager)

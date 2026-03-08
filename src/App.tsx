@@ -144,6 +144,36 @@ const App = () => (
               }
             />
             <Route
+              path="/app/calendar"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CalendarView />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/workload"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Workload />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/activity"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ActivityLog />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/settings/users"
               element={
                 <ManagerRoute>
