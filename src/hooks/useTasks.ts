@@ -18,7 +18,17 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   color: string | null;
+  parent_task_id: string | null;
   assignee_user?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  assignee_team?: {
+    id: string;
+    name: string;
+  } | null;
+}
     id: string;
     name: string;
     email: string;
