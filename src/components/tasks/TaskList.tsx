@@ -77,11 +77,14 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
         </p>
       ) : (
         <div className="space-y-2">
-          {tasks.map((task) => (
+          {/* Only show top-level tasks (no parent) */}
+          {tasks.filter(t => !t.parent_task_id).map((task) => (
             <div key={task.id} className="relative group">
               <TaskItem
                 task={task}
                 onClick={() => setViewingTask(task)}
+                subtaskCount={tasks.filter(t => t.parent_task_id === task.id).length}
+                subtaskDoneCount={tasks.filter(t => t.parent_task_id === task.id && t.status === "done").length}
               />
               {(canEditTask(task) || canDeleteTask()) && (
                 <DropdownMenu>
@@ -113,6 +116,14 @@ export function TaskList({ initiativeId, initiativeOwnerId, canManage }: TaskLis
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              {/* Subtask list for this task */}
+              <SubtaskList
+                parentTask={task}
+                initiativeId={initiativeId}
+                allTasks={tasks}
+                canManage={canEditTask(task)}
+                onTaskClick={(st) => setViewingTask(st)}
+              />
             </div>
           ))}
         </div>
