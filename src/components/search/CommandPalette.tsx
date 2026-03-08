@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, Target, Lightbulb, CheckSquare, Flag,
   LayoutDashboard, ListTodo, Calendar, GanttChart, BarChart3,
-  Users, Settings, Activity, Table2, Zap
+  Users, Settings, Activity, Table2, Zap, Bell
 } from "lucide-react";
 import { useGlobalSearch, useSearchState } from "@/hooks/useGlobalSearch";
 import {
