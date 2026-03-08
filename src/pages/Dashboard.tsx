@@ -47,16 +47,16 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-display">
+        <h1 className="text-xl sm:text-3xl font-bold font-display">
           Welcome back, {firstName}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Here's how your organization is tracking today.
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           title="Objectives"
           value={statsLoading ? "–" : stats?.objectivesCount || 0}
@@ -80,7 +80,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         <KRStatusChart
           distribution={
             stats?.krStatusDistribution || {
@@ -96,7 +96,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <UpcomingReviews reviews={upcomingReviews} isLoading={reviewsLoading} />
         <OverdueTasks tasks={overdueTasks} isLoading={tasksLoading} />
       </div>

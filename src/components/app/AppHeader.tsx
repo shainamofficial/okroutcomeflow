@@ -52,8 +52,8 @@ export function AppHeader() {
   };
 
   return (
-    <header className="border-b border-border/60 bg-card/80 backdrop-blur-sm h-14 flex items-center px-4 gap-3 sticky top-0 z-30">
-      <SidebarTrigger className="-ml-1" />
+    <header className="border-b border-border/60 bg-card/80 backdrop-blur-sm h-12 sm:h-14 flex items-center px-2 sm:px-4 gap-2 sm:gap-3 sticky top-0 z-30">
+      <SidebarTrigger className="-ml-0.5" />
       
       <Separator orientation="vertical" className="h-5" />
 

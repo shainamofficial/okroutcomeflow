@@ -45,44 +45,49 @@ export default function MyItems() {
       </div>
 
       <Tabs defaultValue="krs" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="krs" className="gap-2">
-            <Target className="h-4 w-4" />
-            Key Results
-            {myKRs.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {myKRs.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="initiatives" className="gap-2">
-            <Lightbulb className="h-4 w-4" />
-            Initiatives
-            {myInitiatives.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {myInitiatives.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2">
-            <CheckSquare className="h-4 w-4" />
-            Tasks
-            {myTasks.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {myTasks.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
-                {unreadCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full sm:min-w-0">
+            <TabsTrigger value="krs" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+              <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Key Results</span>
+              <span className="sm:hidden">KRs</span>
+              {myKRs.length > 0 && (
+                <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
+                  {myKRs.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="initiatives" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+              <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Initiatives</span>
+              <span className="sm:hidden">Init.</span>
+              {myInitiatives.length > 0 && (
+                <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
+                  {myInitiatives.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+              <CheckSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Tasks
+              {myTasks.length > 0 && (
+                <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
+                  {myTasks.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Notif.</span>
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-0.5 h-5 px-1.5 text-xs">
+                  {unreadCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Key Results Tab */}
         <TabsContent value="krs">

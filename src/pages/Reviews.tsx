@@ -60,13 +60,11 @@ export default function Reviews() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Reviews</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage scheduled Key Result review sessions
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-3xl font-bold">Reviews</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base hidden sm:block">
+          Manage scheduled Key Result review sessions
+        </p>
       </div>
 
       {/* Summary Stats */}
