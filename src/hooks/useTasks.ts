@@ -29,15 +29,6 @@ export interface Task {
     name: string;
   } | null;
 }
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  assignee_team?: {
-    id: string;
-    name: string;
-  } | null;
-}
 
 export function useTasks(initiativeId?: string) {
   const { profile } = useAuth();
