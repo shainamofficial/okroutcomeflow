@@ -24,11 +24,13 @@ export function AppSidebar() {
     { title: 'My Items', url: '/app/me', icon: User },
     { title: 'OKRs', url: '/app/okrs', icon: Target },
     { title: 'Initiatives', url: '/app/initiatives', icon: Lightbulb },
+    { title: 'Table', url: '/app/table', icon: TableProperties },
     { title: 'Timeline', url: '/app/timeline', icon: CalendarRange },
     { title: 'Calendar', url: '/app/calendar', icon: CalendarDays },
     { title: 'Workload', url: '/app/workload', icon: BarChart3 },
     { title: 'Reviews', url: '/app/reviews', icon: CalendarClock },
     { title: 'Activity Log', url: '/app/activity', icon: Activity },
+    { title: 'Automations', url: '/app/automations', icon: Zap },
   ];
 
   const managerItems = (isAdmin || isManager)

@@ -31,6 +31,8 @@ import Platform from "./pages/Platform";
 import CalendarView from "./pages/CalendarView";
 import Workload from "./pages/Workload";
 import ActivityLog from "./pages/ActivityLog";
+import TableView from "./pages/TableView";
+import Automations from "./pages/Automations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
