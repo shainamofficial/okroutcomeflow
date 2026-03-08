@@ -198,7 +198,7 @@ export function TimelineChart({
         <div className="min-w-max" ref={containerRef}>
           {/* Header row with dates */}
           <div className="flex border-b bg-muted/50 sticky top-0 z-10">
-            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted/50 z-20">
+            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted/50 z-30">
               Item
             </div>
             <div className="flex relative">
@@ -207,7 +207,7 @@ export function TimelineChart({
                   key={index}
                   style={{ width: columnWidth }}
                   className={cn(
-                    "p-2 text-center text-xs font-medium border-r",
+                    "p-2 text-center text-xs font-medium border-r bg-muted/50",
                     isTodayInColumn(col) && "bg-primary/10"
                   )}
                 >
