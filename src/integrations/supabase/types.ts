@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      automations: {
+        Row: {
+          action_config: Json
+          action_type: Database["public"]["Enums"]["automation_action"]
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          name: string
+          organization_id: string
+          trigger_config: Json
+          trigger_type: Database["public"]["Enums"]["automation_trigger"]
+        }
+        Insert: {
+          action_config?: Json
+          action_type: Database["public"]["Enums"]["automation_action"]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          organization_id: string
+          trigger_config?: Json
+          trigger_type: Database["public"]["Enums"]["automation_trigger"]
+        }
+        Update: {
+          action_config?: Json
+          action_type?: Database["public"]["Enums"]["automation_action"]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          organization_id?: string
+          trigger_config?: Json
+          trigger_type?: Database["public"]["Enums"]["automation_trigger"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_attachments: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          file_name: string
+          file_size: number
+          file_type: string | null
+          id: string
+          organization_id: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          file_name: string
+          file_size?: number
+          file_type?: string | null
+          id?: string
+          organization_id: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          file_name?: string
+          file_size?: number
+          file_type?: string | null
+          id?: string
+          organization_id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generic_domains: {
         Row: {
           created_at: string
@@ -1030,6 +1138,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "contributor" | "viewer"
+      automation_action:
+        | "change_initiative_status"
+        | "change_task_status"
+        | "send_notification"
+        | "create_update"
+      automation_trigger:
+        | "task_status_change"
+        | "all_tasks_done"
+        | "initiative_status_change"
+        | "due_date_passed"
       entity_type: "kr" | "initiative" | "task"
       initiative_status: "not_started" | "in_progress" | "completed" | "blocked"
       invitation_status: "pending" | "accepted" | "revoked"
@@ -1172,6 +1290,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "contributor", "viewer"],
+      automation_action: [
+        "change_initiative_status",
+        "change_task_status",
+        "send_notification",
+        "create_update",
+      ],
+      automation_trigger: [
+        "task_status_change",
+        "all_tasks_done",
+        "initiative_status_change",
+        "due_date_passed",
+      ],
       entity_type: ["kr", "initiative", "task"],
       initiative_status: ["not_started", "in_progress", "completed", "blocked"],
       invitation_status: ["pending", "accepted", "revoked"],
