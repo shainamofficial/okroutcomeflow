@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { InitiativeProgressBar } from "./InitiativeProgressBar";
 
 interface BoardInitiativeCardProps {
   initiative: Initiative;
@@ -73,6 +74,13 @@ export function BoardInitiativeCard({ initiative, canDrag }: BoardInitiativeCard
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-0 space-y-1.5">
+            {tasks.length > 0 && (
+              <InitiativeProgressBar
+                total={tasks.length}
+                done={doneTasks}
+                className="mb-1"
+              />
+            )}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {initiative.owner && (
                 <span className="flex items-center gap-1"><User className="h-3 w-3" />{initiative.owner.name || initiative.owner.email}</span>

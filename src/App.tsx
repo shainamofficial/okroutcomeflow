@@ -28,6 +28,9 @@ import Reviews from "./pages/Reviews";
 import Timeline from "./pages/Timeline";
 import MyItems from "./pages/MyItems";
 import Platform from "./pages/Platform";
+import CalendarView from "./pages/CalendarView";
+import Workload from "./pages/Workload";
+import ActivityLog from "./pages/ActivityLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -136,6 +139,36 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Timeline />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/calendar"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CalendarView />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/workload"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Workload />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/activity"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ActivityLog />
                   </AppLayout>
                 </ProtectedRoute>
               }

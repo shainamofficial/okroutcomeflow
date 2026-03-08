@@ -11,6 +11,7 @@ import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
 import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
 import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
+import { InitiativeProgressBar } from "./InitiativeProgressBar";
 
 interface InitiativeCardProps {
   initiative: Initiative;
@@ -60,6 +61,12 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {tasks.length > 0 && (
+            <InitiativeProgressBar
+              total={tasks.length}
+              done={tasks.filter((t) => t.status === "done").length}
+            />
+          )}
           {initiative.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">
               {initiative.description}
