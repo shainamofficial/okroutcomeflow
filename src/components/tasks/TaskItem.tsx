@@ -11,7 +11,7 @@ interface TaskItemProps {
   subtaskDoneCount?: number;
 }
 
-export function TaskItem({ task, onClick }: TaskItemProps) {
+export function TaskItem({ task, onClick, subtaskCount = 0, subtaskDoneCount = 0 }: TaskItemProps) {
   const isOverdue = task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
   const isDueToday = task.due_date && isToday(new Date(task.due_date));
 
