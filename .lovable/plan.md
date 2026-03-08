@@ -1,92 +1,65 @@
 
 
-# Plan: Board View for Initiatives and Tasks
+## Mobile Optimization Plan
 
-## Overview
-Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
+The app currently uses fixed-width elements, horizontal filter bars, and large headings that don't adapt well to small screens. Here's what needs to change:
 
-## How It Works
+### 1. AppLayout -- reduce padding on mobile
+- Change `main` padding from `p-6 lg:p-8` to `p-3 sm:p-6 lg:p-8`
 
-### View Toggle
-A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
+### 2. AppHeader -- compact for mobile
+- Hide command palette text on small screens (icon-only trigger)
+- Reduce header horizontal padding on mobile
 
-### Board Layout
-- **4 columns**: Not Started, In Progress, Completed, Blocked
-- Each column displays initiative cards belonging to that status
-- Cards show: title, owner, date range, linked KR count, task count
-- Clicking a card opens the existing InitiativeDetailDrawer
-- Edit/delete actions remain accessible via card buttons
+### 3. Page headers -- responsive titles and action bars
+Apply across all major pages (Dashboard, OKRs, Initiatives, TableView, Timeline, MyItems, Workload, Reviews, Automations, etc.):
+- Reduce `text-3xl` headings to `text-xl sm:text-3xl`
+- Stack header title and action buttons vertically on mobile (`flex-col sm:flex-row`)
+- Hide subtitle text on very small screens where space is tight
 
-### Drag and Drop
-- Users can drag initiative cards between columns to change their status
-- Uses HTML5 drag-and-drop (no additional library needed)
-- Only users with edit permissions (admin, manager, or owner) can drag
-- Dropping a card triggers the existing `updateInitiative` mutation
+### 4. Filter bars -- collapsible on mobile
+For `TimelineFilters`, `InitiativeFilters`, and TableView toolbar:
+- Wrap filters in a collapsible section on mobile with a "Filters" toggle button
+- Make select triggers full-width on mobile (`w-full sm:w-[140px]`)
 
-### Task Sub-Board (Expandable)
-- Each initiative card has a "Tasks" expand toggle
-- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
-- Tasks can also be dragged between status columns
+### 5. TableView -- card-based mobile layout
+The spreadsheet table is unusable on small screens. On mobile:
+- Switch from `<Table>` to a stacked card layout showing task title, status badge, assignee, and due date
+- Keep the table for `sm:` and above
 
-### Navigation
-- Add a new route `/app/board` with a sidebar entry
-- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+### 6. MyItems tabs -- scrollable tab strip
+- Make `TabsList` horizontally scrollable on mobile instead of wrapping/overflowing
+- Reduce tab text size and hide icons on very small screens
 
-I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+### 7. Dashboard -- single column on mobile
+- Stats grid: `grid-cols-2` on mobile (already `md:grid-cols-2 lg:grid-cols-4`, just needs `grid-cols-2` base)
+- Charts: stack to single column on mobile (already mostly handled)
 
----
+### 8. Initiatives Board View -- horizontal scroll
+- The 4-column board grid needs `overflow-x-auto` with `min-w` columns on mobile, or switch to single-column stacked view
 
-## Files to Create
+### 9. Landing page -- verify responsive
+- Quick check that hero section, feature grid, and CTA sections use responsive utilities (likely already OK with framer-motion)
 
-| File | Purpose |
-|------|---------|
-| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
-| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
-| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
-| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+### 10. Drawers/Sheets -- full-width on mobile
+- Ensure detail drawers (`TaskDetailDrawer`, `InitiativeDetailDrawer`, `KRDetailPanel`) use full viewport width on mobile
 
 ---
 
-## Technical Details
+### Files to modify
+- `src/components/app/AppLayout.tsx` -- mobile padding
+- `src/components/app/AppHeader.tsx` -- compact header
+- `src/pages/Dashboard.tsx` -- responsive grid
+- `src/pages/OKRs.tsx` -- responsive header
+- `src/pages/Initiatives.tsx` -- responsive header + board
+- `src/pages/TableView.tsx` -- mobile card view + responsive toolbar
+- `src/pages/Timeline.tsx` -- responsive header
+- `src/pages/MyItems.tsx` -- scrollable tabs
+- `src/pages/Workload.tsx` -- responsive header
+- `src/components/timeline/TimelineFilters.tsx` -- collapsible mobile filters
+- `src/components/initiatives/InitiativeFilters.tsx` -- collapsible mobile filters
+- `src/components/initiatives/BoardView.tsx` -- mobile scroll/stack
+- `src/components/search/CommandPalette.tsx` -- compact mobile trigger
 
-### View Toggle Component
-Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
-
-### Drag-and-Drop Implementation
-Uses native HTML5 drag-and-drop API:
-- `draggable` attribute on cards
-- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
-- `onDragOver` on columns to allow drops and show visual hover state
-- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
-
-### Column Layout
-```text
-+----------------+----------------+----------------+----------------+
-|  Not Started   |  In Progress   |   Completed    |    Blocked     |
-+----------------+----------------+----------------+----------------+
-| [Card]         | [Card]         | [Card]         | [Card]         |
-| [Card]         |                |                |                |
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-```
-
-### Board Initiative Card Content
-- Title + status badge
-- Owner name
-- Date range (if set)
-- KR link count
-- Task count with completion ratio (e.g., "3/5 tasks done")
-- Edit/Delete buttons (permission-gated)
-
-### Filters
-The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
-
-### Responsive Behavior
-On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
+No database changes required. Pure UI/Tailwind adjustments.
 
