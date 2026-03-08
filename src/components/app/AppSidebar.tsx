@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb, CalendarClock, CalendarRange, User, Shield } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, UsersRound, Target, Lightbulb, CalendarClock, CalendarRange, CalendarDays, BarChart3, Activity, User, Shield } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformAdmin } from '@/contexts/PlatformAdminContext';
