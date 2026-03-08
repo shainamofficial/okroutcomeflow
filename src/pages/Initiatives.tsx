@@ -26,7 +26,6 @@ export default function Initiatives() {
     overdueOnly: false,
   });
 
-  // Group tasks by initiative for filtering
   const tasksByInitiative = useMemo(() => {
     const map: Record<string, typeof tasks> = {};
     tasks.forEach((task) => {
@@ -40,59 +39,39 @@ export default function Initiatives() {
 
   const filteredInitiatives = useMemo(() => {
     return initiatives.filter((initiative) => {
-      if (filters.status !== "all" && initiative.status !== filters.status) {
-        return false;
-      }
-
+      if (filters.status !== "all" && initiative.status !== filters.status) return false;
       const initiativeTasks = tasksByInitiative[initiative.id] || [];
-
       if (filters.assigneeUserId !== "all") {
-        const hasMatchingTask = initiativeTasks.some(
-          (task) => task.assignee_user_id === filters.assigneeUserId
-        );
-        if (!hasMatchingTask) return false;
+        if (!initiativeTasks.some((task) => task.assignee_user_id === filters.assigneeUserId)) return false;
       }
-
       if (filters.assigneeTeamId !== "all") {
-        const hasMatchingTask = initiativeTasks.some(
-          (task) => task.assignee_team_id === filters.assigneeTeamId
-        );
-        if (!hasMatchingTask) return false;
+        if (!initiativeTasks.some((task) => task.assignee_team_id === filters.assigneeTeamId)) return false;
       }
-
       if (filters.overdueOnly) {
-        const hasOverdueTask = initiativeTasks.some(
-          (task) =>
-            task.due_date &&
-            task.status !== "done" &&
-            isPast(new Date(task.due_date)) &&
-            !isToday(new Date(task.due_date))
-        );
-        if (!hasOverdueTask) return false;
+        if (!initiativeTasks.some((task) => task.due_date && task.status !== "done" && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date)))) return false;
       }
-
       return true;
     });
   }, [initiatives, filters, tasksByInitiative]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Initiatives</h1>
+          <h1 className="text-3xl font-bold font-display">Initiatives</h1>
           <p className="text-muted-foreground mt-1">
             Manage initiatives and link them to Key Results
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Tabs value={view} onValueChange={(v) => setView(v as "list" | "board")}>
-            <TabsList className="h-9">
-              <TabsTrigger value="list" className="gap-1.5 px-3">
-                <List className="h-4 w-4" />
+            <TabsList className="h-9 bg-muted/60">
+              <TabsTrigger value="list" className="gap-1.5 px-3 text-xs">
+                <List className="h-3.5 w-3.5" />
                 List
               </TabsTrigger>
-              <TabsTrigger value="board" className="gap-1.5 px-3">
-                <LayoutGrid className="h-4 w-4" />
+              <TabsTrigger value="board" className="gap-1.5 px-3 text-xs">
+                <LayoutGrid className="h-3.5 w-3.5" />
                 Board
               </TabsTrigger>
             </TabsList>
@@ -106,16 +85,18 @@ export default function Initiatives() {
       {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
           ))}
         </div>
       ) : filteredInitiatives.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Lightbulb className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mb-4">
+            <Lightbulb className="h-8 w-8 text-accent-foreground" />
+          </div>
+          <h2 className="text-xl font-bold font-display">
             {initiatives.length === 0 ? "No initiatives yet" : "No matching initiatives"}
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 max-w-sm">
             {initiatives.length === 0
               ? canManage
                 ? "Create your first initiative to get started."

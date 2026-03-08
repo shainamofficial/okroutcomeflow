@@ -11,10 +11,12 @@ interface OverdueTasksProps {
 
 export function OverdueTasks({ tasks, isLoading }: OverdueTasksProps) {
   return (
-    <Card>
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
+        <CardTitle className="text-base flex items-center gap-2 font-display">
+          <div className="h-6 w-6 rounded-md bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+          </div>
           Overdue Tasks
         </CardTitle>
       </CardHeader>
@@ -24,11 +26,11 @@ export function OverdueTasks({ tasks, isLoading }: OverdueTasksProps) {
         ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No overdue tasks 🎉</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-start justify-between p-3 rounded-md bg-destructive/10 border border-destructive/20"
+                className="flex items-start justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10"
               >
                 <div className="space-y-1">
                   <p className="text-sm font-medium">{task.title}</p>

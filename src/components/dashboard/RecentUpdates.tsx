@@ -11,16 +11,16 @@ interface RecentUpdatesProps {
 
 const UPDATE_KIND_CONFIG = {
   comment: { icon: MessageSquare, label: "Comment", variant: "secondary" as const },
-  progress: { icon: TrendingUp, label: "Progress", variant: "default" as const },
+  progress: { icon: TrendingUp, label: "Progress", variant: "info" as const },
   blocker: { icon: AlertOctagon, label: "Blocker", variant: "destructive" as const },
   decision: { icon: Gavel, label: "Decision", variant: "outline" as const },
 };
 
 export function RecentUpdates({ updates, isLoading }: RecentUpdatesProps) {
   return (
-    <Card>
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="text-base">Recent Updates (Last 7 Days)</CardTitle>
+        <CardTitle className="text-base font-display">Recent Updates</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -28,7 +28,7 @@ export function RecentUpdates({ updates, isLoading }: RecentUpdatesProps) {
         ) : updates.length === 0 ? (
           <p className="text-sm text-muted-foreground">No recent updates</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {updates.map((update) => {
               const config = UPDATE_KIND_CONFIG[update.update_kind as keyof typeof UPDATE_KIND_CONFIG];
               const Icon = config?.icon || MessageSquare;
@@ -36,15 +36,15 @@ export function RecentUpdates({ updates, isLoading }: RecentUpdatesProps) {
               return (
                 <div
                   key={update.id}
-                  className="flex items-start gap-3 p-3 rounded-md bg-muted/50"
+                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/40"
                 >
-                  <div className="mt-0.5">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  <div className="h-7 w-7 rounded-md bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Icon className="h-3.5 w-3.5 text-accent-foreground" />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <p className="text-sm line-clamp-2">{update.content}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{update.user?.name || update.user?.email || "Unknown"}</span>
+                      <span className="font-medium">{update.user?.name || update.user?.email || "Unknown"}</span>
                       <span>·</span>
                       <span>
                         {formatDistanceToNow(new Date(update.created_at), {
@@ -53,7 +53,7 @@ export function RecentUpdates({ updates, isLoading }: RecentUpdatesProps) {
                       </span>
                     </div>
                   </div>
-                  <Badge variant={config?.variant || "secondary"} className="text-xs">
+                  <Badge variant={config?.variant || "secondary"} className="text-[10px]">
                     {config?.label || update.update_kind}
                   </Badge>
                 </div>
