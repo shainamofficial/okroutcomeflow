@@ -31,6 +31,7 @@ export function AppSidebar() {
     { title: 'Reviews', url: '/app/reviews', icon: CalendarClock },
     { title: 'Activity Log', url: '/app/activity', icon: Activity },
     { title: 'Automations', url: '/app/automations', icon: Zap },
+    { title: 'Notifications', url: '/app/settings/notifications', icon: Bell },
   ];
 
   const managerItems = (isAdmin || isManager)
