@@ -30,13 +30,11 @@ export function TaskDetailDrawer({
   onOpenChange,
 }: TaskDetailDrawerProps) {
   const { profile, roles } = useAuth();
+  const { watchers, isWatching, toggleWatch } = useTaskWatchers(task.id);
 
   const isAdminOrManager = roles.includes("admin") || roles.includes("manager");
   const isAssignee = task.assignee_user_id === profile?.id;
-  
-  // Can post non-comment updates if admin, manager, or task assignee
   const canPostNonComment = isAdminOrManager || isAssignee;
-  // Can pin if admin, manager, or task assignee
   const canPin = isAdminOrManager || isAssignee;
 
   return (
