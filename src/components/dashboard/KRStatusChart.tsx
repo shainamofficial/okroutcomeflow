@@ -29,9 +29,9 @@ export function KRStatusChart({ distribution }: KRStatusChartProps) {
 
   if (total === 0) {
     return (
-      <Card>
+      <Card className="border-border/60">
         <CardHeader>
-          <CardTitle className="text-base">KR Status Distribution</CardTitle>
+          <CardTitle className="text-base font-display">KR Status Distribution</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[200px]">
           <p className="text-muted-foreground text-sm">No Key Results yet</p>
@@ -41,22 +41,23 @@ export function KRStatusChart({ distribution }: KRStatusChartProps) {
   }
 
   return (
-    <Card>
+    <Card className="border-border/60">
       <CardHeader>
-        <CardTitle className="text-base">KR Status Distribution</CardTitle>
+        <CardTitle className="text-base font-display">KR Status Distribution</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[200px]">
+        <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={2}
+                cy="45%"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={3}
                 dataKey="value"
+                strokeWidth={0}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -68,6 +69,7 @@ export function KRStatusChart({ distribution }: KRStatusChartProps) {
                   backgroundColor: "hsl(var(--popover))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "var(--radius)",
+                  fontSize: "13px",
                 }}
               />
               <Legend
