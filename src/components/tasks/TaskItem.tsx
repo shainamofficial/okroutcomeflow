@@ -61,6 +61,11 @@ export function TaskItem({ task, onClick, subtaskCount = 0, subtaskDoneCount = 0
                 <span>{format(new Date(task.due_date), "MMM d, yyyy")}</span>
               </div>
             )}
+            {subtaskCount > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {subtaskDoneCount}/{subtaskCount} subtasks
+              </span>
+            )}
           </div>
         </div>
       </div>
