@@ -170,6 +170,10 @@ export function InitiativeDetailDrawer({
 
           <Separator />
 
+          <FileAttachmentsPanel entityType="initiative" entityId={initiative.id} />
+
+          <Separator />
+
           <ActivityFeed
             entityType="initiative"
             entityId={initiative.id}

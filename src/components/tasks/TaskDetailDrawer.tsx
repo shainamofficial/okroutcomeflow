@@ -90,6 +90,10 @@ export function TaskDetailDrawer({
 
           <Separator />
 
+          <FileAttachmentsPanel entityType="task" entityId={task.id} />
+
+          <Separator />
+
           <ActivityFeed
             entityType="task"
             entityId={task.id}
