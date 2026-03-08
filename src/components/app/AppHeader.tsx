@@ -77,7 +77,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex-1 flex justify-center">
-        <GlobalSearch />
+        <CommandPalette />
       </div>
 
       <div className="flex items-center gap-1.5">
