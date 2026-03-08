@@ -11,6 +11,7 @@ import { User, Calendar, Users } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { ActivityFeed } from "@/components/updates/ActivityFeed";
+import { FileAttachmentsPanel } from "@/components/files/FileAttachmentsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TaskDetailDrawerProps {
