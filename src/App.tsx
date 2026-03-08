@@ -199,6 +199,16 @@ const App = () => (
               }
             />
             <Route
+              path="/app/settings/notifications"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <NotificationSettings />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/settings/users"
               element={
                 <ManagerRoute>
