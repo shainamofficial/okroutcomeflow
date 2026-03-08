@@ -840,6 +840,7 @@ export type Database = {
           id: string
           initiative_id: string
           parent_task_id: string | null
+          recurrence_rule: Json | null
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
@@ -855,6 +856,7 @@ export type Database = {
           id?: string
           initiative_id: string
           parent_task_id?: string | null
+          recurrence_rule?: Json | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
@@ -870,6 +872,7 @@ export type Database = {
           id?: string
           initiative_id?: string
           parent_task_id?: string | null
+          recurrence_rule?: Json | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
