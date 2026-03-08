@@ -1,4 +1,4 @@
-import { Target, Lightbulb, CheckSquare, Flag } from "lucide-react";
+import { Target, Lightbulb, CheckSquare, Flag, TrendingUp } from "lucide-react";
 import {
   useDashboardStats,
   useUpcomingReviews,
@@ -10,41 +10,49 @@ import { KRStatusChart } from "@/components/dashboard/KRStatusChart";
 import { UpcomingReviews } from "@/components/dashboard/UpcomingReviews";
 import { OverdueTasks } from "@/components/dashboard/OverdueTasks";
 import { RecentUpdates } from "@/components/dashboard/RecentUpdates";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: upcomingReviews = [], isLoading: reviewsLoading } = useUpcomingReviews();
   const { data: overdueTasks = [], isLoading: tasksLoading } = useOverdueTasks();
   const { data: recentUpdates = [], isLoading: updatesLoading } = useRecentUpdates();
+  const { profile } = useAuth();
+
+  const firstName = profile?.name?.split(" ")[0] || "there";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your organization's OKRs and initiatives</p>
+        <h1 className="text-3xl font-bold font-display">
+          Welcome back, {firstName}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Here's how your organization is tracking today.
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Objectives"
-          value={statsLoading ? "..." : stats?.objectivesCount || 0}
-          icon={<Flag className="h-4 w-4" />}
+          value={statsLoading ? "–" : stats?.objectivesCount || 0}
+          icon={<Flag className="h-5 w-5" />}
         />
         <StatCard
           title="Key Results"
-          value={statsLoading ? "..." : stats?.keyResultsCount || 0}
-          icon={<Target className="h-4 w-4" />}
+          value={statsLoading ? "–" : stats?.keyResultsCount || 0}
+          icon={<Target className="h-5 w-5" />}
         />
         <StatCard
           title="Initiatives"
-          value={statsLoading ? "..." : stats?.initiativesCount || 0}
-          icon={<Lightbulb className="h-4 w-4" />}
+          value={statsLoading ? "–" : stats?.initiativesCount || 0}
+          icon={<Lightbulb className="h-5 w-5" />}
         />
         <StatCard
           title="Tasks"
-          value={statsLoading ? "..." : stats?.tasksCount || 0}
-          icon={<CheckSquare className="h-4 w-4" />}
+          value={statsLoading ? "–" : stats?.tasksCount || 0}
+          icon={<CheckSquare className="h-5 w-5" />}
         />
       </div>
 
