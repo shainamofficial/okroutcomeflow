@@ -1,129 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* OutcomeFlow Design System - Notion-like aesthetic
-   Clean, minimal, with subtle grays and generous whitespace.
+/* OutcomeFlow Design System — Vibrant, bold SaaS aesthetic
+   Indigo primary with warm accents. Crafted to outclass monday.com.
    All colors in HSL format.
 */
 
 @layer base {
   :root {
-    /* Notion-like light theme */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --background: 220 20% 97%;
+    --foreground: 230 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 230 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 230 25% 12%;
 
-    --primary: 0 0% 9%;
+    --primary: 243 75% 59%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 230 25% 12%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 243 75% 96%;
+    --accent-foreground: 243 75% 50%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
 
-    --radius: 0.375rem;
+    --radius: 0.5rem;
 
-    /* Status colors */
-    --success: 142 76% 36%;
+    /* Status colors — soft backgrounds, vibrant text */
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 9%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    /* Chart colors */
-    --chart-1: 0 84% 60%;
-    --chart-2: 142 76% 36%;
+    /* Chart palette */
+    --chart-1: 0 72% 51%;
+    --chart-2: 160 84% 39%;
     --chart-3: 217 91% 60%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 0% 45%;
+    --chart-4: 32 95% 44%;
+    --chart-5: 220 10% 46%;
 
     /* Role colors */
     --role-admin: 270 60% 50%;
     --role-admin-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 25%;
-    --sidebar-primary: 0 0% 9%;
+    /* Sidebar — slightly tinted */
+    --sidebar-background: 240 20% 99%;
+    --sidebar-foreground: 220 10% 35%;
+    --sidebar-primary: 243 75% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 243 75% 96%;
+    --sidebar-accent-foreground: 243 75% 50%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 243 75% 59%;
+
+    /* Extended palette for gradients & accents */
+    --primary-glow: 260 70% 65%;
+    --gradient-start: 243 75% 59%;
+    --gradient-end: 280 72% 62%;
   }
 
   .dark {
-    --background: 0 0% 8%;
-    --foreground: 0 0% 95%;
+    --background: 230 20% 7%;
+    --foreground: 220 15% 93%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
+    --card: 230 18% 10%;
+    --card-foreground: 220 15% 93%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 230 18% 10%;
+    --popover-foreground: 220 15% 93%;
 
-    --primary: 0 0% 95%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 243 75% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 230 15% 15%;
+    --secondary-foreground: 220 15% 93%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 230 15% 15%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 243 40% 18%;
+    --accent-foreground: 243 75% 75%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 0% 80%;
+    --border: 230 15% 18%;
+    --input: 230 15% 18%;
+    --ring: 243 75% 65%;
 
-    --success: 142 76% 40%;
+    --success: 160 84% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 9%;
-    --info: 217 91% 60%;
+    --warning: 32 95% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 65%;
     --info-foreground: 0 0% 100%;
 
-    /* Chart colors */
     --chart-1: 0 62% 50%;
-    --chart-2: 142 76% 40%;
-    --chart-3: 217 91% 60%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 0% 60%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 217 91% 65%;
+    --chart-4: 32 95% 50%;
+    --chart-5: 220 10% 55%;
 
-    /* Role colors */
-    --role-admin: 270 60% 60%;
+    --role-admin: 270 60% 65%;
     --role-admin-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 230 18% 9%;
+    --sidebar-foreground: 220 10% 75%;
+    --sidebar-primary: 243 75% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 243 40% 18%;
+    --sidebar-accent-foreground: 243 75% 75%;
+    --sidebar-border: 230 15% 16%;
+    --sidebar-ring: 243 75% 65%;
+
+    --primary-glow: 260 70% 70%;
+    --gradient-start: 243 75% 65%;
+    --gradient-end: 280 72% 68%;
   }
 }
 
@@ -134,6 +143,37 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+/* Utility classes for the design system */
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 4px 24px -4px hsl(var(--primary) / 0.2);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 1px 2px -1px hsl(var(--foreground) / 0.04);
+  }
+
+  .shadow-card-hover {
+    box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.08), 0 2px 6px -2px hsl(var(--foreground) / 0.04);
   }
 }
