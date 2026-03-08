@@ -61,22 +61,22 @@ export default function CalendarView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold font-display">Calendar</h1>
-          <p className="text-muted-foreground mt-1">View tasks and initiatives by due date</p>
+          <h1 className="text-xl sm:text-3xl font-bold font-display">Calendar</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">View tasks and initiatives by due date</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setCurrentMonth(new Date())}>
+          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
             Today
           </Button>
-          <h2 className="text-lg font-semibold font-display min-w-[160px] text-center">
-            {format(currentMonth, "MMMM yyyy")}
+          <h2 className="text-sm sm:text-lg font-semibold font-display min-w-[120px] sm:min-w-[160px] text-center">
+            {format(currentMonth, "MMM yyyy")}
           </h2>
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
