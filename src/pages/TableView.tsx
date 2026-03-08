@@ -102,14 +102,15 @@ export default function TableView() {
       t.due_date || "",
       ...definitions.map((d) => String(getValue(d.id, t.id) ?? "")),
     ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const escapeCSV = (val: string) => `"${val.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((r) => r.map((c) => escapeCSV(c)).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "tasks-export.csv";
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const colSpan = 5 + definitions.length;
