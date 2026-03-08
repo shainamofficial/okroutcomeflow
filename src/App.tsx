@@ -176,6 +176,26 @@ const App = () => (
               }
             />
             <Route
+              path="/app/table"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <TableView />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/automations"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Automations />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/settings/users"
               element={
                 <ManagerRoute>
