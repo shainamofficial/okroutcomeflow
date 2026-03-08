@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, ListTodo } from "lucide-react";
+import { Pencil, Trash2, ListTodo, MoreHorizontal } from "lucide-react";
 import { Task, useTasks } from "@/hooks/useTasks";
 import { TaskItem } from "./TaskItem";
 import { EditTaskDialog } from "./EditTaskDialog";
