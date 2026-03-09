@@ -1,92 +1,62 @@
 
 
-# Plan: Board View for Initiatives and Tasks
+## Make the Timeline UI More Sleek, Modern, and Cool
 
-## Overview
-Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
+### Current State
+The timeline works well functionally but uses basic styling -- flat colors, simple borders, no depth or visual polish. The bars are plain rectangles, the header is a basic muted row, and there's no visual hierarchy or modern design flourishes.
 
-## How It Works
+### Proposed Visual Enhancements
 
-### View Toggle
-A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
+#### 1. Gantt Bars -- Rounded, Gradient, Glassmorphism
+- Add `rounded-full` (pill-shaped) bars instead of sharp-cornered rectangles
+- Apply subtle gradient fills (e.g., `bg-gradient-to-r`) instead of flat solid colors
+- Add a subtle `shadow-sm` and `backdrop-blur` to bars for depth
+- Smooth the progress fill with a gradient overlay instead of a flat opacity block
+- Add a thin left-border accent color on bars for visual punch
 
-### Board Layout
-- **4 columns**: Not Started, In Progress, Completed, Blocked
-- Each column displays initiative cards belonging to that status
-- Cards show: title, owner, date range, linked KR count, task count
-- Clicking a card opens the existing InitiativeDetailDrawer
-- Edit/delete actions remain accessible via card buttons
+#### 2. Timeline Header -- Frosted Glass Effect
+- Apply `backdrop-blur-md bg-background/80` to the sticky header for a frosted glass look
+- Use a bottom `shadow-sm` instead of a hard border for the header row
+- Style the "today" column highlight with a softer gradient glow instead of flat `bg-primary/10`
 
-### Drag and Drop
-- Users can drag initiative cards between columns to change their status
-- Uses HTML5 drag-and-drop (no additional library needed)
-- Only users with edit permissions (admin, manager, or owner) can drag
-- Dropping a card triggers the existing `updateInitiative` mutation
+#### 3. Today Indicator -- Animated Glow Line
+- Change the today line from a plain `w-0.5 bg-primary` to a glowing line with `shadow-[0_0_8px_var(--primary)]`
+- Add a small pulsing dot at the top of the today line
+- Use `bg-gradient-to-b from-primary to-primary/0` for a fade-out effect at the bottom
 
-### Task Sub-Board (Expandable)
-- Each initiative card has a "Tasks" expand toggle
-- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
-- Tasks can also be dragged between status columns
+#### 4. Row Hover States -- Smooth Transitions
+- Replace the flat `hover:bg-muted/20` with a smooth left-border accent that slides in on hover
+- Add `transition-all duration-200` to rows for buttery smooth interactions
 
-### Navigation
-- Add a new route `/app/board` with a sidebar entry
-- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+#### 5. Sticky Column -- Refined Sidebar Look
+- Add a subtle right shadow (`shadow-[2px_0_8px_rgba(0,0,0,0.06)]`) to the sticky left column instead of a hard border, creating a floating sidebar effect
+- Slightly increase font weight hierarchy (initiative titles bolder, tasks lighter)
 
-I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+#### 6. Filters Bar -- Pill-Shaped, Elevated
+- Change the filter bar from `border rounded-lg bg-muted/30` to `rounded-xl shadow-card bg-card/80 backdrop-blur-sm border-0`
+- Make filter selects use pill-shaped triggers with subtle backgrounds
 
----
+#### 7. Chart Container -- Card Elevation
+- Upgrade the outer container from `border rounded-lg` to `rounded-xl shadow-card overflow-hidden border-0`
+- Add a very subtle top gradient bar (2px) in the primary color
 
-## Files to Create
+#### 8. Weekend Columns -- Subtle Striping
+- Use alternating very-light background stripes on weekend columns for visual rhythm (already partially done, enhance contrast slightly)
 
-| File | Purpose |
-|------|---------|
-| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
-| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
-| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
-| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
+#### 9. Color Picker -- Animated Entrance
+- Add `animate-scale-in` to the color picker popover for a polished feel
 
-## Files to Modify
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+| `src/components/timeline/TimelineBar.tsx` | Pill shape, gradient fills, shadow, refined progress overlay |
+| `src/components/timeline/TimelineChart.tsx` | Frosted header, glowing today line with pulse dot, card container, sticky column shadow |
+| `src/components/timeline/TimelineRow.tsx` | Smooth hover transitions, refined sticky column styling |
+| `src/components/timeline/TimelineFilters.tsx` | Pill-shaped elevated filter bar |
+| `src/components/timeline/TimelineMilestone.tsx` | Add subtle glow/shadow to diamond icon |
+| `src/components/timeline/TimelineColorPicker.tsx` | Animate popover entrance |
 
----
-
-## Technical Details
-
-### View Toggle Component
-Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
-
-### Drag-and-Drop Implementation
-Uses native HTML5 drag-and-drop API:
-- `draggable` attribute on cards
-- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
-- `onDragOver` on columns to allow drops and show visual hover state
-- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
-
-### Column Layout
-```text
-+----------------+----------------+----------------+----------------+
-|  Not Started   |  In Progress   |   Completed    |    Blocked     |
-+----------------+----------------+----------------+----------------+
-| [Card]         | [Card]         | [Card]         | [Card]         |
-| [Card]         |                |                |                |
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-```
-
-### Board Initiative Card Content
-- Title + status badge
-- Owner name
-- Date range (if set)
-- KR link count
-- Task count with completion ratio (e.g., "3/5 tasks done")
-- Edit/Delete buttons (permission-gated)
-
-### Filters
-The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
-
-### Responsive Behavior
-On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
+### No Backend Changes
+All changes are purely CSS/Tailwind styling updates.
 
