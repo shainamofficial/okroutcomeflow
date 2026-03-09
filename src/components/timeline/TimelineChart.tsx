@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useRef, useImperativeHandle, forwardRef } from "react";
 import {
   startOfWeek,
   endOfWeek,
@@ -9,6 +9,7 @@ import {
   eachWeekOfInterval,
   eachMonthOfInterval,
   eachQuarterOfInterval,
+  eachDayOfInterval,
   format,
   differenceInDays,
   addDays,
@@ -16,16 +17,22 @@ import {
   isWithinInterval,
   min,
   max,
+  getDay,
 } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TimelineInitiative } from "@/pages/Timeline";
-import { ZoomLevel } from "@/components/timeline/TimelineFilters";
+import { ZoomLevel, DensityMode } from "@/components/timeline/TimelineFilters";
 import { Task } from "@/hooks/useTasks";
 import { Initiative, useInitiatives } from "@/hooks/useInitiatives";
-import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/hooks/use-toast";
 import { TimelineRow } from "./TimelineRow";
+import { TimelineDependencyArrows } from "./TimelineDependencyArrows";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { TaskDependency } from "@/hooks/useTaskDependencies";
+
+export interface TimelineChartHandle {
+  scrollToToday: () => void;
+}
 
 interface TimelineChartProps {
   initiatives: TimelineInitiative[];
@@ -37,19 +44,27 @@ interface TimelineChartProps {
   ) => boolean;
   onInitiativeClick: (initiative: Initiative) => void;
   onTaskClick: (task: Task & { initiative: { id: string; organization_id: string } }) => void;
+  dependencies: TaskDependency[];
+  density: DensityMode;
 }
 
-export function TimelineChart({
-  initiatives,
-  zoomLevel,
-  canDragInitiative,
-  canDragTask,
-  onInitiativeClick,
-  onTaskClick,
-}: TimelineChartProps) {
+export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>(function TimelineChart(
+  {
+    initiatives,
+    zoomLevel,
+    canDragInitiative,
+    canDragTask,
+    onInitiativeClick,
+    onTaskClick,
+    dependencies,
+    density,
+  },
+  ref
+) {
   const { toast } = useToast();
   const { updateInitiative } = useInitiatives();
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Calculate date range based on all items
   const { startDate, endDate, columns, columnWidth } = useMemo(() => {
@@ -78,22 +93,25 @@ export function TimelineChart({
     let colWidth: number;
 
     switch (zoomLevel) {
+      case "day":
+        start = addDays(minDate, -7);
+        end = addDays(maxDate, 7);
+        cols = eachDayOfInterval({ start, end });
+        colWidth = 40;
+        break;
       case "week":
-        // Each column = 1 week
         start = startOfWeek(addDays(minDate, -14), { weekStartsOn: 1 });
         end = endOfWeek(addDays(maxDate, 14), { weekStartsOn: 1 });
         cols = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
         colWidth = 100;
         break;
       case "month":
-        // Each column = 1 month
         start = startOfMonth(addMonths(minDate, -1));
         end = endOfMonth(addMonths(maxDate, 1));
         cols = eachMonthOfInterval({ start, end });
         colWidth = 120;
         break;
       case "quarter":
-        // Each column = 1 quarter
         start = startOfQuarter(addMonths(minDate, -3));
         end = endOfQuarter(addMonths(maxDate, 3));
         cols = eachQuarterOfInterval({ start, end });
@@ -122,12 +140,23 @@ export function TimelineChart({
     return addDays(startDate, days);
   };
 
+  // Scroll to today
+  useImperativeHandle(ref, () => ({
+    scrollToToday: () => {
+      const todayPos = getPositionForDate(new Date());
+      const scrollContainer = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+      if (scrollContainer) {
+        const viewportWidth = scrollContainer.clientWidth;
+        scrollContainer.scrollLeft = todayPos + 256 - viewportWidth / 2;
+      }
+    },
+  }));
+
   const handleInitiativeDrag = async (
     initiativeId: string,
     newStartDate: string | null,
     newEndDate: string | null
   ) => {
-    // Validate dates
     if (newStartDate && newEndDate && new Date(newEndDate) < new Date(newStartDate)) {
       toast({
         title: "Invalid dates",
@@ -154,23 +183,33 @@ export function TimelineChart({
     newStartDate: string | null,
     newDueDate: string | null
   ) => {
-    // This will be handled by a child component that has access to the correct useTasks hook
+    // Handled by TimelineRow
   };
 
   const formatColumnHeader = (date: Date): string => {
     switch (zoomLevel) {
+      case "day": {
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        return `${dayNames[getDay(date)]} ${format(date, "d")}`;
+      }
       case "week":
-        return format(date, "MMM d"); // "Jan 6"
+        return format(date, "MMM d");
       case "month":
-        return format(date, "MMM yyyy"); // "Jan 2026"
+        return format(date, "MMM yyyy");
       case "quarter":
-        return `Q${Math.ceil((date.getMonth() + 1) / 3)} ${format(date, "yyyy")}`; // "Q1 2026"
+        return `Q${Math.ceil((date.getMonth() + 1) / 3)} ${format(date, "yyyy")}`;
     }
   };
 
   const isTodayInColumn = (columnDate: Date): boolean => {
     const today = new Date();
     switch (zoomLevel) {
+      case "day":
+        return (
+          columnDate.getFullYear() === today.getFullYear() &&
+          columnDate.getMonth() === today.getMonth() &&
+          columnDate.getDate() === today.getDate()
+        );
       case "week":
         return isWithinInterval(today, {
           start: startOfWeek(columnDate, { weekStartsOn: 1 }),
@@ -189,16 +228,21 @@ export function TimelineChart({
     }
   };
 
+  const isWeekend = (date: Date): boolean => {
+    const day = getDay(date);
+    return day === 0 || day === 6;
+  };
+
   const todayPosition = getPositionForDate(new Date());
   const isTodayVisible = isWithinInterval(new Date(), { start: startDate, end: endDate });
 
   return (
     <div className="border rounded-lg overflow-hidden bg-background">
-      <ScrollArea className="w-full">
+      <ScrollArea className="w-full" ref={scrollAreaRef}>
         <div className="min-w-max" ref={containerRef}>
           {/* Header row with dates */}
           <div className="flex border-b bg-muted/50 sticky top-0 z-10">
-            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted z-30">
+            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted z-30 text-sm">
               Item
             </div>
             <div className="flex relative">
@@ -208,7 +252,8 @@ export function TimelineChart({
                   style={{ width: columnWidth }}
                   className={cn(
                     "p-2 text-center text-xs font-medium border-r bg-muted/50",
-                    isTodayInColumn(col) && "bg-primary/10"
+                    isTodayInColumn(col) && "bg-primary/10",
+                    zoomLevel === "day" && isWeekend(col) && "bg-muted/80"
                   )}
                 >
                   {formatColumnHeader(col)}
@@ -227,6 +272,15 @@ export function TimelineChart({
               />
             )}
 
+            {/* Dependency arrows */}
+            <TimelineDependencyArrows
+              dependencies={dependencies}
+              initiatives={initiatives}
+              getPositionForDate={getPositionForDate}
+              dayWidth={dayWidth}
+              stickyColumnWidth={256}
+            />
+
             {initiatives.map((initiative) => (
               <TimelineRow
                 key={initiative.id}
@@ -243,6 +297,7 @@ export function TimelineChart({
                 onTaskClick={onTaskClick}
                 columns={columns}
                 columnWidth={columnWidth}
+                density={density}
               />
             ))}
           </div>
@@ -251,4 +306,4 @@ export function TimelineChart({
       </ScrollArea>
     </div>
   );
-}
+});

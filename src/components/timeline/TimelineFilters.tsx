@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, X, ChevronDown } from "lucide-react";
+import { Filter, X, ChevronDown, Calendar, Rows3, AlignJustify } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,8 +16,16 @@ import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
+import { Toggle } from "@/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-export type ZoomLevel = "week" | "month" | "quarter";
+export type ZoomLevel = "day" | "week" | "month" | "quarter";
+export type GroupBy = "none" | "status" | "owner" | "team";
+export type DensityMode = "compact" | "comfortable";
 
 export interface TimelineFiltersState {
   status: InitiativeStatus | "all";
@@ -32,9 +40,24 @@ interface TimelineFiltersProps {
   onFiltersChange: (filters: TimelineFiltersState) => void;
   zoomLevel: ZoomLevel;
   onZoomLevelChange: (level: ZoomLevel) => void;
+  groupBy: GroupBy;
+  onGroupByChange: (groupBy: GroupBy) => void;
+  density: DensityMode;
+  onDensityChange: (density: DensityMode) => void;
+  onScrollToToday: () => void;
 }
 
-export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLevelChange }: TimelineFiltersProps) {
+export function TimelineFilters({
+  filters,
+  onFiltersChange,
+  zoomLevel,
+  onZoomLevelChange,
+  groupBy,
+  onGroupByChange,
+  density,
+  onDensityChange,
+  onScrollToToday,
+}: TimelineFiltersProps) {
   const { users } = useOrgUsers();
   const { teams } = useTeams();
   const isMobile = useIsMobile();
@@ -69,6 +92,7 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
 
   const filterContent = (
     <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
+      {/* Zoom level */}
       <Select
         value={zoomLevel}
         onValueChange={(v) => onZoomLevelChange(v as ZoomLevel)}
@@ -77,12 +101,30 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
           <SelectValue placeholder="View" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="day">Day</SelectItem>
           <SelectItem value="week">Week</SelectItem>
           <SelectItem value="month">Month</SelectItem>
           <SelectItem value="quarter">Quarter</SelectItem>
         </SelectContent>
       </Select>
 
+      {/* Group by */}
+      <Select
+        value={groupBy}
+        onValueChange={(v) => onGroupByChange(v as GroupBy)}
+      >
+        <SelectTrigger className="w-full sm:w-[130px]">
+          <SelectValue placeholder="Group by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No Grouping</SelectItem>
+          <SelectItem value="status">By Status</SelectItem>
+          <SelectItem value="owner">By Owner</SelectItem>
+          <SelectItem value="team">By Team</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Status filter */}
       <Select
         value={filters.status}
         onValueChange={(v) => onFiltersChange({ ...filters, status: v as TimelineFiltersState["status"] })}
@@ -99,6 +141,7 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
         </SelectContent>
       </Select>
 
+      {/* Owner filter */}
       <Select
         value={filters.ownerId}
         onValueChange={(v) => onFiltersChange({ ...filters, ownerId: v })}
@@ -116,6 +159,7 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
         </SelectContent>
       </Select>
 
+      {/* Assignee user filter */}
       <Select
         value={filters.assigneeUserId}
         onValueChange={(v) => onFiltersChange({ ...filters, assigneeUserId: v })}
@@ -133,6 +177,7 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
         </SelectContent>
       </Select>
 
+      {/* Team filter */}
       <Select
         value={filters.assigneeTeamId}
         onValueChange={(v) => onFiltersChange({ ...filters, assigneeTeamId: v })}
@@ -170,27 +215,66 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
     </div>
   );
 
+  const toolbarActions = (
+    <div className="flex items-center gap-1">
+      {/* Scroll to today */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="sm" onClick={onScrollToToday} className="gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Today</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Scroll to today</TooltipContent>
+      </Tooltip>
+
+      {/* Density toggle */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Toggle
+            size="sm"
+            pressed={density === "compact"}
+            onPressedChange={(pressed) => onDensityChange(pressed ? "compact" : "comfortable")}
+            aria-label="Toggle density"
+          >
+            {density === "compact" ? (
+              <AlignJustify className="h-3.5 w-3.5" />
+            ) : (
+              <Rows3 className="h-3.5 w-3.5" />
+            )}
+          </Toggle>
+        </TooltipTrigger>
+        <TooltipContent>{density === "compact" ? "Comfortable view" : "Compact view"}</TooltipContent>
+      </Tooltip>
+    </div>
+  );
+
   if (isMobile) {
     return (
-      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <CollapsibleTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2 w-full justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              <span>Filters</span>
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="h-5 px-1.5 text-xs">{activeFilterCount}</Badge>
-              )}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          {toolbarActions}
+        </div>
+        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2 w-full justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">{activeFilterCount}</Badge>
+                )}
+              </div>
+              <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <div className="p-3 border rounded-lg bg-muted/30">
+              {filterContent}
             </div>
-            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-3">
-          <div className="p-3 border rounded-lg bg-muted/30">
-            {filterContent}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     );
   }
 
@@ -201,6 +285,7 @@ export function TimelineFilters({ filters, onFiltersChange, zoomLevel, onZoomLev
         <span className="text-sm font-medium">Filters</span>
       </div>
       {filterContent}
+      <div className="ml-auto">{toolbarActions}</div>
     </div>
   );
 }
