@@ -161,6 +161,8 @@ export function AppHeader() {
                 )}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <CreateOrganizationDialog />
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
