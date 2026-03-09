@@ -1,27 +1,36 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { isPast, isToday } from "date-fns";
 import { useInitiatives, Initiative } from "@/hooks/useInitiatives";
 import { useAllTasks, Task } from "@/hooks/useTasks";
 import { useAuth } from "@/contexts/AuthContext";
-import { TimelineFilters, TimelineFiltersState, ZoomLevel } from "@/components/timeline/TimelineFilters";
-import { TimelineChart } from "@/components/timeline/TimelineChart";
+import { useTaskDependencies } from "@/hooks/useTaskDependencies";
+import { TimelineFilters, TimelineFiltersState, ZoomLevel, GroupBy, DensityMode } from "@/components/timeline/TimelineFilters";
+import { TimelineChart, TimelineChartHandle } from "@/components/timeline/TimelineChart";
 import { TimelineNoDates } from "@/components/timeline/TimelineNoDates";
 import { InitiativeDetailDrawer } from "@/components/initiatives/InitiativeDetailDrawer";
 import { TaskDetailDrawer } from "@/components/tasks/TaskDetailDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange, ChevronDown, ChevronRight } from "lucide-react";
 
 export interface TimelineInitiative extends Initiative {
   tasks: (Task & { initiative: { id: string; organization_id: string } })[];
+}
+
+interface GroupedInitiatives {
+  label: string;
+  initiatives: TimelineInitiative[];
 }
 
 export default function Timeline() {
   const { initiatives, isLoading: initiativesLoading } = useInitiatives();
   const { tasks, isLoading: tasksLoading } = useAllTasks();
   const { roles, profile } = useAuth();
+  const { dependencies } = useTaskDependencies();
 
   const isAdmin = roles.includes("admin");
   const isManager = roles.includes("manager");
+
+  const chartRef = useRef<TimelineChartHandle>(null);
 
   const [filters, setFilters] = useState<TimelineFiltersState>({
     status: "all",
@@ -32,6 +41,20 @@ export default function Timeline() {
   });
 
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("month");
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
+  const [density, setDensity] = useState<DensityMode>("comfortable");
+
+  // Collapsed groups
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = useCallback((key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // Drawer state
   const [selectedInitiative, setSelectedInitiative] = useState<Initiative | null>(null);
@@ -48,6 +71,10 @@ export default function Timeline() {
     setSelectedTask(task);
     setTaskDrawerOpen(true);
   };
+
+  const handleScrollToToday = useCallback(() => {
+    chartRef.current?.scrollToToday();
+  }, []);
 
   // Group tasks by initiative
   const tasksByInitiative = useMemo(() => {
@@ -72,33 +99,19 @@ export default function Timeline() {
   // Apply filters
   const filteredInitiatives = useMemo(() => {
     return timelineInitiatives.filter((initiative) => {
-      // Filter by initiative status
-      if (filters.status !== "all" && initiative.status !== filters.status) {
-        return false;
-      }
+      if (filters.status !== "all" && initiative.status !== filters.status) return false;
+      if (filters.ownerId !== "all" && initiative.owner_id !== filters.ownerId) return false;
 
-      // Filter by owner
-      if (filters.ownerId !== "all" && initiative.owner_id !== filters.ownerId) {
-        return false;
-      }
-
-      // Filter by assignee user (checks tasks)
       if (filters.assigneeUserId !== "all") {
-        const hasMatchingTask = initiative.tasks.some(
-          (task) => task.assignee_user_id === filters.assigneeUserId
-        );
+        const hasMatchingTask = initiative.tasks.some((task) => task.assignee_user_id === filters.assigneeUserId);
         if (!hasMatchingTask) return false;
       }
 
-      // Filter by assignee team
       if (filters.assigneeTeamId !== "all") {
-        const hasMatchingTask = initiative.tasks.some(
-          (task) => task.assignee_team_id === filters.assigneeTeamId
-        );
+        const hasMatchingTask = initiative.tasks.some((task) => task.assignee_team_id === filters.assigneeTeamId);
         if (!hasMatchingTask) return false;
       }
 
-      // Filter by overdue
       if (filters.overdueOnly) {
         const hasOverdue =
           (initiative.end_date &&
@@ -119,12 +132,47 @@ export default function Timeline() {
     });
   }, [timelineInitiatives, filters]);
 
-  // Separate items with dates from those without
-  const { withDates, withoutDates } = useMemo(() => {
+  // Group initiatives
+  const groupedInitiatives = useMemo((): GroupedInitiatives[] => {
+    if (groupBy === "none") {
+      return [{ label: "", initiatives: filteredInitiatives }];
+    }
+
+    const groups: Record<string, TimelineInitiative[]> = {};
+
+    filteredInitiatives.forEach((initiative) => {
+      let key: string;
+      switch (groupBy) {
+        case "status":
+          key = initiative.status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          break;
+        case "owner":
+          key = initiative.owner?.name || initiative.owner?.email || "Unassigned";
+          break;
+        case "team": {
+          const teamNames = new Set<string>();
+          initiative.tasks.forEach((t) => {
+            if (t.assignee_team) teamNames.add(t.assignee_team.name);
+          });
+          key = teamNames.size > 0 ? Array.from(teamNames).join(", ") : "No Team";
+          break;
+        }
+        default:
+          key = "Other";
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(initiative);
+    });
+
+    return Object.entries(groups).map(([label, initiatives]) => ({ label, initiatives }));
+  }, [filteredInitiatives, groupBy]);
+
+  // Separate items with dates from those without (per group)
+  const processGroup = (items: TimelineInitiative[]) => {
     const withDates: TimelineInitiative[] = [];
     const withoutDates: TimelineInitiative[] = [];
 
-    filteredInitiatives.forEach((initiative) => {
+    items.forEach((initiative) => {
       const hasInitiativeDates = initiative.start_date || initiative.end_date;
       const hasTaskDates = initiative.tasks.some((t) => t.start_date || t.due_date);
 
@@ -136,7 +184,7 @@ export default function Timeline() {
     });
 
     return { withDates, withoutDates };
-  }, [filteredInitiatives]);
+  };
 
   // Determine if user can drag a specific item
   const canDragInitiative = (initiative: Initiative) => {
@@ -152,11 +200,12 @@ export default function Timeline() {
     if (isAdmin || isManager) return true;
     if (initiative.owner_id === profile?.id) return true;
     if (task.assignee_user_id === profile?.id) return true;
-    // Note: Team member check would require additional data
     return false;
   };
 
   const isLoading = initiativesLoading || tasksLoading;
+
+  const totalFiltered = filteredInitiatives.length;
 
   return (
     <div className="space-y-6">
@@ -172,6 +221,11 @@ export default function Timeline() {
         onFiltersChange={setFilters}
         zoomLevel={zoomLevel}
         onZoomLevelChange={setZoomLevel}
+        groupBy={groupBy}
+        onGroupByChange={setGroupBy}
+        density={density}
+        onDensityChange={setDensity}
+        onScrollToToday={handleScrollToToday}
       />
 
       {isLoading ? (
@@ -180,7 +234,7 @@ export default function Timeline() {
             <Skeleton key={i} className="h-24 w-full" />
           ))}
         </div>
-      ) : filteredInitiatives.length === 0 ? (
+      ) : totalFiltered === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <CalendarRange className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold">
@@ -193,25 +247,57 @@ export default function Timeline() {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {withDates.length > 0 && (
-            <TimelineChart
-              initiatives={withDates}
-              zoomLevel={zoomLevel}
-              canDragInitiative={canDragInitiative}
-              canDragTask={canDragTask}
-              onInitiativeClick={handleInitiativeClick}
-              onTaskClick={handleTaskClick}
-            />
-          )}
+        <div className="space-y-6">
+          {groupedInitiatives.map((group, groupIndex) => {
+            const { withDates, withoutDates } = processGroup(group.initiatives);
+            const isGroupCollapsed = collapsedGroups.has(group.label);
+            const showGroupHeader = groupBy !== "none" && group.label;
 
-          {withoutDates.length > 0 && (
-            <TimelineNoDates 
-              initiatives={withoutDates}
-              onInitiativeClick={handleInitiativeClick}
-              onTaskClick={handleTaskClick}
-            />
-          )}
+            return (
+              <div key={group.label || groupIndex} className="space-y-4">
+                {showGroupHeader && (
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {isGroupCollapsed ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    {group.label}
+                    <span className="text-xs font-normal">({group.initiatives.length})</span>
+                  </button>
+                )}
+
+                {!isGroupCollapsed && (
+                  <div className="space-y-4">
+                    {withDates.length > 0 && (
+                      <TimelineChart
+                        ref={groupIndex === 0 ? chartRef : undefined}
+                        initiatives={withDates}
+                        zoomLevel={zoomLevel}
+                        canDragInitiative={canDragInitiative}
+                        canDragTask={canDragTask}
+                        onInitiativeClick={handleInitiativeClick}
+                        onTaskClick={handleTaskClick}
+                        dependencies={dependencies}
+                        density={density}
+                      />
+                    )}
+
+                    {withoutDates.length > 0 && (
+                      <TimelineNoDates
+                        initiatives={withoutDates}
+                        onInitiativeClick={handleInitiativeClick}
+                        onTaskClick={handleTaskClick}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

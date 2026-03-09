@@ -31,6 +31,8 @@ interface TimelineBarProps {
   status?: CombinedStatus;
   customColor?: string | null;
   onColorChange?: (color: string | null) => void;
+  progress?: number; // 0-100
+  compact?: boolean;
 }
 
 const getInitials = (name: string) => {
@@ -49,7 +51,6 @@ const getStatusColor = (variant: "initiative" | "task", status?: CombinedStatus)
       : "bg-secondary hover:bg-secondary/90";
   }
 
-  // Initiative status colors
   if (variant === "initiative") {
     switch (status) {
       case "not_started":
@@ -65,7 +66,6 @@ const getStatusColor = (variant: "initiative" | "task", status?: CombinedStatus)
     }
   }
 
-  // Task status colors (lighter variants)
   switch (status) {
     case "todo":
       return "bg-muted hover:bg-muted/90";
@@ -129,6 +129,8 @@ export function TimelineBar({
   status,
   customColor,
   onColorChange,
+  progress,
+  compact = false,
 }: TimelineBarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<DragMode>(null);
@@ -191,14 +193,12 @@ export function TimelineBar({
       } else if (dragMode === "resize-start") {
         const newStart = new Date(initialStart.current);
         newStart.setDate(newStart.getDate() + deltaDays);
-        // Prevent start from going past end
         if (newStart <= initialEnd.current) {
           setTempStart(newStart);
         }
       } else if (dragMode === "resize-end") {
         const newEnd = new Date(initialEnd.current);
         newEnd.setDate(newEnd.getDate() + deltaDays);
-        // Prevent end from going before start
         if (newEnd >= initialStart.current) {
           setTempEnd(newEnd);
         }
@@ -209,13 +209,11 @@ export function TimelineBar({
       setIsDragging(false);
       setDragMode(null);
 
-      // If no significant movement, treat as click
       if (!hasMoved.current && onClick) {
         onClick();
         return;
       }
 
-      // Only trigger update if dates actually changed and dragging is allowed
       if (
         canDrag &&
         hasMoved.current &&
@@ -235,7 +233,6 @@ export function TimelineBar({
     };
   }, [isDragging, dragMode, tempStart, tempEnd, dayWidth, startDate, endDate, onDragEnd, onClick, canDrag]);
 
-  // Use custom color if set, otherwise fall back to status-based color
   const customColorClasses = getCustomColorClasses(customColor, variant);
   const barColor = customColorClasses 
     ? `${customColorClasses.bg} ${customColorClasses.hover}` 
@@ -244,13 +241,16 @@ export function TimelineBar({
     ? customColorClasses.text 
     : getTextColor(variant, status);
 
+  const barHeight = compact ? "h-4" : "h-6";
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div
           ref={barRef}
           className={cn(
-            "absolute h-6 rounded flex items-center group/bar cursor-pointer",
+            "absolute rounded flex items-center group/bar cursor-pointer overflow-hidden",
+            barHeight,
             barColor,
             canDrag && hasMoved.current && isDragging && "cursor-grabbing",
             isDragging && hasMoved.current && "opacity-80 shadow-lg"
@@ -263,28 +263,37 @@ export function TimelineBar({
           }}
           onMouseDown={(e) => handleMouseDown(e, "move")}
         >
+          {/* Progress fill */}
+          {progress !== undefined && progress > 0 && (
+            <div
+              className="absolute inset-0 bg-foreground/15 rounded-l"
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
+          )}
+
           {/* Left resize handle */}
           {canDrag && (
             <div
-              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-l flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity"
+              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-l flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
               onMouseDown={(e) => handleMouseDown(e, "resize-start")}
             >
-              <GripVertical className="h-3 w-3 text-primary-foreground" />
+              {!compact && <GripVertical className="h-3 w-3 text-primary-foreground" />}
             </div>
           )}
 
           {/* Label */}
           <span
             className={cn(
-              "px-2 text-xs font-medium truncate flex-1",
+              "px-2 text-xs font-medium truncate flex-1 relative z-[1]",
+              compact && "text-[10px] px-1",
               textColor
             )}
           >
-            {width > 60 ? label : ""}
+            {width > (compact ? 40 : 60) ? label : ""}
           </span>
 
           {/* Color picker */}
-          {onColorChange && (
+          {onColorChange && !compact && (
             <TimelineColorPicker
               currentColor={customColor ?? null}
               onColorChange={onColorChange}
@@ -293,10 +302,10 @@ export function TimelineBar({
           )}
 
           {/* Owner/Assignee initials */}
-          {ownerName && width > 100 && (
+          {ownerName && width > 100 && !compact && (
             <div
               className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0 bg-black/10",
+                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0 bg-black/10 relative z-[1]",
                 textColor.replace("text-", "text-") + "/80"
               )}
             >
@@ -307,10 +316,10 @@ export function TimelineBar({
           {/* Right resize handle */}
           {canDrag && (
             <div
-              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-r flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity"
+              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-r flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
               onMouseDown={(e) => handleMouseDown(e, "resize-end")}
             >
-              <GripVertical className="h-3 w-3 text-primary-foreground" />
+              {!compact && <GripVertical className="h-3 w-3 text-primary-foreground" />}
             </div>
           )}
         </div>
@@ -325,6 +334,11 @@ export function TimelineBar({
           {differenceInDays(isDragging ? tempEnd : endDate, isDragging ? tempStart : startDate) + 1}{" "}
           days
         </p>
+        {progress !== undefined && (
+          <p className="text-xs text-muted-foreground border-t border-border mt-1 pt-1">
+            Progress: {Math.round(progress)}%
+          </p>
+        )}
         {ownerName && (
           <p className="text-xs text-muted-foreground border-t border-border mt-1 pt-1">
             {variant === "initiative" ? "Owner" : "Assignee"}: {ownerName}
