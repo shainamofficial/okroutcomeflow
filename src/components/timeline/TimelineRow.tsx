@@ -506,13 +506,13 @@ export function TimelineRow({
 
       {/* Inline task creation row (initiative-level, parentId = null) */}
       {expanded && inlineCreateParentId === null && (
-        <div className="flex border-b bg-muted/10">
-          <div
-            className={cn(
-              "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
-              rowPadding,
-              isCompact ? "pl-8" : "pl-10"
-            )}
+         <div className="flex border-b border-border/40 bg-muted/5">
+           <div
+             className={cn(
+               "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
+               rowPadding,
+               isCompact ? "pl-8" : "pl-10"
+             )}
           >
             <div className={cn("w-4", isCompact && "w-3.5")} />
             <Input

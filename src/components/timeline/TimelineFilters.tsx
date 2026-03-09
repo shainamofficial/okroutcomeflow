@@ -269,7 +269,7 @@ export function TimelineFilters({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
-            <div className="p-3 border rounded-lg bg-muted/30">
+            <div className="p-3 rounded-xl shadow-card bg-card/80 backdrop-blur-sm">
               {filterContent}
             </div>
           </CollapsibleContent>
