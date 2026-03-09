@@ -1,41 +1,92 @@
 
 
-## Plan: Subtasks and Nested Subtasks in Timeline View
+# Plan: Board View for Initiatives and Tasks
 
-### Current State
-The timeline renders a flat list of tasks under each initiative. Tasks already have a `parent_task_id` column in the database, and `createTask` supports `parentTaskId`. However, the timeline shows all tasks at the same indentation level with no hierarchy.
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-### Changes
+## How It Works
 
-#### 1. `src/components/timeline/TimelineRow.tsx` -- Recursive task rendering with subtask creation
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-- Build a tree from `initiative.tasks` using `parent_task_id` (root tasks have `parent_task_id === null`)
-- Replace the flat task `.map()` (lines 239-310) with a recursive `renderTaskRow` function that:
-  - Renders the task row with indentation based on depth (`pl-10` for depth 0, `pl-14` for depth 1, `pl-18` for depth 2, etc.)
-  - Shows a collapse/expand chevron if the task has children
-  - Shows a "+" button on hover to create a subtask (calls `createTask` with `parentTaskId`)
-  - Recursively renders child tasks when expanded
-- Track expanded state per task ID (default expanded)
-- Track inline-create state per task ID (which task is currently showing the subtask creation input)
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
-#### 2. No other files need changes
-- `useTasks` already supports `parentTaskId` in `createTask`
-- The database `tasks` table already has `parent_task_id`
-- No schema changes needed
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
 
-### Key Implementation Detail
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
 
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+
+---
+
+## Technical Details
+
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
+
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
 ```text
-Initiative Row
-  ├── Task A (root, parent_task_id=null)     [+]
-  │   ├── Subtask A1 (parent=A)              [+]
-  │   │   └── Sub-subtask A1a (parent=A1)    [+]
-  │   └── Subtask A2 (parent=A)
-  └── Task B (root, parent_task_id=null)
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
 ```
 
-Each level adds ~16px (`pl-4`) of indentation. The "+" button appears on hover for any task the user can manage. Chevrons appear when a task has children.
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
 
-### Files to modify
-- `src/components/timeline/TimelineRow.tsx` -- recursive task tree rendering with inline subtask creation
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
+
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 
