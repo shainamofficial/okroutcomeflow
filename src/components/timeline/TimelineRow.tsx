@@ -389,10 +389,10 @@ export function TimelineRow({
   return (
     <div>
       {/* Initiative row */}
-      <div className="flex border-b hover:bg-muted/20 group/row">
+      <div className="flex border-b border-border/40 hover:bg-muted/10 transition-colors duration-150 group/row">
         <div
           className={cn(
-            "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
+            "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
             rowPadding
           )}
         >
