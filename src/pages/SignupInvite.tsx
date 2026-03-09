@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -30,6 +30,7 @@ export default function SignupInvite() {
   const [error, setError] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [success, setSuccess] = useState(false);
+  const [existingUser, setExistingUser] = useState(false);
 
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -70,14 +71,16 @@ export default function SignupInvite() {
         }
 
         // Check if user already exists
-        const { data: existingUser } = await supabase
+        const { data: existingUserData } = await supabase
           .from('users_profile')
           .select('id')
           .eq('email', inv.email)
           .maybeSingle();
 
-        if (existingUser) {
-          setError('A user already exists with this email address');
+        if (existingUserData) {
+          // Existing user — they need to log in to accept the invitation
+          setExistingUser(true);
+          setInvitation(inv);
           setLoading(false);
           return;
         }
@@ -93,6 +96,64 @@ export default function SignupInvite() {
 
     validateToken();
   }, [token]);
+
+  const handleAcceptAsExistingUser = async () => {
+    if (!invitation || !token) return;
+    setSubmitting(true);
+
+    try {
+      // Check if user is currently logged in
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Redirect to login with return URL
+        toast({
+          title: 'Please log in first',
+          description: 'Sign in to accept this invitation and join the organization.',
+        });
+        navigate(`/login?redirect=${encodeURIComponent(`/signup-invite?token=${token}`)}`);
+        return;
+      }
+
+      // Verify logged-in user email matches invitation
+      if (session.user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+        toast({
+          title: 'Email mismatch',
+          description: `Please log in with ${invitation.email} to accept this invitation.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Accept invitation as existing user
+      const { error: acceptError } = await supabase.rpc('accept_invitation', {
+        _user_id: session.user.id,
+        _invitation_token: token,
+        _name: '',
+      });
+
+      if (acceptError) throw acceptError;
+
+      setSuccess(true);
+      toast({
+        title: 'Invitation accepted!',
+        description: 'You can now switch to the new organization from the header.',
+      });
+
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+    } catch (err) {
+      console.error('Accept invitation error:', err);
+      toast({
+        title: 'Failed to accept invitation',
+        description: err instanceof Error ? err.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +180,6 @@ export default function SignupInvite() {
     setSubmitting(true);
 
     try {
-      // Sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitation.email,
         password,
@@ -140,11 +200,8 @@ export default function SignupInvite() {
         throw new Error('Failed to create user account');
       }
 
-      // Wait a moment for the trigger to create the profile
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Use the secure server-side function to accept the invitation
-      // This validates the invitation, updates profile/roles, and marks invitation as accepted
       const { error: acceptError } = await supabase.rpc('accept_invitation', {
         _user_id: authData.user.id,
         _invitation_token: token!,
@@ -162,7 +219,6 @@ export default function SignupInvite() {
         description: 'You can now sign in to your account.',
       });
 
-      // Redirect to login after a short delay
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -203,10 +259,45 @@ export default function SignupInvite() {
 
   if (success) {
     return (
-      <AuthLayout title="Account Created!" subtitle="Redirecting to login...">
+      <AuthLayout title={existingUser ? 'Invitation Accepted!' : 'Account Created!'} subtitle={existingUser ? 'Redirecting to dashboard...' : 'Redirecting to login...'}>
         <div className="flex flex-col items-center justify-center py-4 text-center">
           <CheckCircle className="h-12 w-12 text-primary mb-4" />
           <p className="text-muted-foreground">Please wait...</p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  // Existing user flow: show accept invitation screen
+  if (existingUser) {
+    return (
+      <AuthLayout
+        title="Join Organization"
+        subtitle={`You've been invited to join as a ${invitation?.role}`}
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/50 p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div className="text-sm text-muted-foreground">
+              <p>An account already exists for <span className="font-medium text-foreground">{invitation?.email}</span>.</p>
+              <p className="mt-1">Log in to accept this invitation and join the new organization. You can switch between organizations from the header.</p>
+            </div>
+          </div>
+          <Button onClick={handleAcceptAsExistingUser} className="w-full" disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Accepting...
+              </>
+            ) : (
+              'Accept Invitation'
+            )}
+          </Button>
+          <div className="text-center text-sm text-muted-foreground">
+            <Link to="/login" className="text-primary hover:underline">
+              Go to Login
+            </Link>
+          </div>
         </div>
       </AuthLayout>
     );
