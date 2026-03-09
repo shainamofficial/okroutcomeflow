@@ -1352,6 +1352,7 @@ export type Database = {
       }
       count_org_admins: { Args: { _org_id: string }; Returns: number }
       count_platform_admins: { Args: never; Returns: number }
+      create_new_organization: { Args: { _name: string }; Returns: string }
       domain_exists_for_other_org: {
         Args: { _domain: string; _org_id: string }
         Returns: boolean
