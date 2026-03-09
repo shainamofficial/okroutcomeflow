@@ -27,7 +27,7 @@ export function CreateOrganizationDialog() {
     if (!name.trim()) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('create_new_organization', {
+      const { data, error } = await supabase.rpc('create_new_organization' as any, {
         _name: name.trim(),
       });
 

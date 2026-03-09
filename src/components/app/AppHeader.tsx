@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { CreateOrganizationDialog } from '@/components/app/CreateOrganizationDialog';
 
 interface Organization {
   id: string;
