@@ -351,10 +351,10 @@ export function TimelineRow({
 
         {/* Inline subtask creation row */}
         {inlineCreateParentId === task.id && (
-          <div className="flex border-b bg-muted/10">
+          <div className="flex border-b border-border/40 bg-muted/5">
             <div
               className={cn(
-                "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
+                "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
                 rowPadding
               )}
               style={{ paddingLeft: `${(paddingLeft + depthIncrement) * 4}px` }}
