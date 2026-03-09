@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { CreateOrganizationDialog } from '@/components/app/CreateOrganizationDialog';
 
 interface Organization {
   id: string;
@@ -160,27 +161,37 @@ export function AppHeader() {
                 )}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <CreateOrganizationDialog />
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <div className="flex items-center gap-2">
-          {organization?.logo_url ? (
-            <img
-              src={organization.logo_url}
-              alt={organization.name}
-              className="h-7 w-7 rounded-md object-cover"
-            />
-          ) : (
-            <div className="h-7 w-7 rounded-md gradient-primary flex items-center justify-center">
-              <span className="text-[10px] font-bold text-primary-foreground">
-                {organization?.name ? getInitials(organization.name) : 'O'}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 h-auto py-1 px-2">
+              {organization?.logo_url ? (
+                <img
+                  src={organization.logo_url}
+                  alt={organization.name}
+                  className="h-7 w-7 rounded-md object-cover"
+                />
+              ) : (
+                <div className="h-7 w-7 rounded-md gradient-primary flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-primary-foreground">
+                    {organization?.name ? getInitials(organization.name) : 'O'}
+                  </span>
+                </div>
+              )}
+              <span className="font-semibold text-sm text-foreground hidden sm:inline">
+                {organization?.name || 'Organization'}
               </span>
-            </div>
-          )}
-          <span className="font-semibold text-sm text-foreground hidden sm:inline">
-            {organization?.name || 'Organization'}
-          </span>
-        </div>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <CreateOrganizationDialog />
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <div className="flex-1 flex justify-center">

@@ -1,47 +1,92 @@
 
 
-## Create New Organization for Existing Users
+# Plan: Board View for Initiatives and Tasks
 
-### Problem
-Users with generic emails (gmail, etc.) get one auto-created organization on signup. There is no way for any user to create additional organizations afterward. The only way to join another org is via invitation.
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-### Solution
-Add a "Create Organization" flow accessible from the org switcher in the header, plus a backend RPC to handle the creation securely.
+## How It Works
 
-### Database Changes
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-**New RPC: `create_new_organization`** (SECURITY DEFINER)
-- Creates a new `organizations` row
-- Creates an `organization_memberships` row for the calling user (with `is_active = false` so they stay in their current org)
-- Assigns the `admin` role to the user for the new org in `user_roles`
-- Returns the new org ID
-- No domain is claimed (generic email users can't claim domains anyway)
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
-```sql
-CREATE OR REPLACE FUNCTION public.create_new_organization(_name text)
-RETURNS uuid ...
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
+
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
+
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+
+---
+
+## Technical Details
+
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
+
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
 ```
 
-### UI Changes
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
 
-**`src/components/app/AppHeader.tsx`** -- Add a "Create Organization" option at the bottom of the org switcher dropdown. Clicking it opens a small dialog asking for the org name, then calls the RPC, refreshes memberships, and optionally switches to the new org.
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
 
-**New component: `src/components/app/CreateOrganizationDialog.tsx`**
-- Simple dialog with a name input and Create button
-- Calls the `create_new_organization` RPC
-- On success, invalidates auth context memberships and offers to switch to the new org
-
-### Files to Modify
-| File | Change |
-|------|--------|
-| Database migration | New `create_new_organization` RPC |
-| `src/components/app/AppHeader.tsx` | Add "Create Organization" item in switcher dropdown |
-| `src/components/app/CreateOrganizationDialog.tsx` | New dialog component |
-| `src/contexts/AuthContext.tsx` | Expose `refreshMemberships` or invalidate after creation |
-
-### Security
-- The RPC uses `SECURITY DEFINER` and validates `auth.uid()` is not null
-- Any authenticated user can create an organization (they become its admin)
-- No domain is auto-claimed for generic email users
-- The new org starts as invite-only (no domains configured)
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 
