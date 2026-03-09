@@ -1,83 +1,92 @@
 
 
-## Multi-Organization Membership
+# Plan: Board View for Initiatives and Tasks
 
-### The Problem
-Currently, each user has a single `organization_id` in `users_profile`. The entire app -- RLS policies, hooks, queries -- assumes one user = one org. Generic email users (gmail, etc.) auto-create a new org on signup with no way to join additional ones.
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-### Architecture Changes Required
+## How It Works
 
-#### 1. New Table: `organization_memberships`
-A many-to-many join between users and organizations, with an `is_active` flag to track which org the user is currently working in.
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-```sql
-CREATE TABLE public.organization_memberships (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  is_active boolean NOT NULL DEFAULT false,
-  joined_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(user_id, organization_id)
-);
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
+
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
+
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
+
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+
+---
+
+## Technical Details
+
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
+
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
 ```
 
-#### 2. Per-Organization Roles
-Currently `user_roles` has `(user_id, role)`. A user might be admin in Org A but contributor in Org B. Add `organization_id` to `user_roles`:
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
 
-```sql
-ALTER TABLE user_roles ADD COLUMN organization_id uuid REFERENCES organizations(id);
-```
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
 
-Update the unique constraint from `(user_id, role)` to `(user_id, role, organization_id)`.
-
-#### 3. Update `get_user_org_id()` Function
-Change it to return the org where `is_active = true` from `organization_memberships` instead of reading `users_profile.organization_id`.
-
-#### 4. Update `has_role()` Function
-Scope role checks to the active organization.
-
-#### 5. Update `handle_new_user()` Trigger
-On signup, create a membership row (with `is_active = true`) in addition to the profile. Keep `users_profile.organization_id` as a denormalized "active org" for backward compatibility during migration.
-
-#### 6. Migration of Existing Data
-Insert rows into `organization_memberships` for every existing `users_profile` row, setting `is_active = true`. Backfill `organization_id` on `user_roles` from the user's current org.
-
-#### 7. New RPC: `switch_organization`
-A `SECURITY DEFINER` function that:
-- Validates the user has a membership in the target org
-- Sets `is_active = false` on current membership
-- Sets `is_active = true` on the target membership
-- Updates `users_profile.organization_id` (denormalized)
-
-#### 8. New Feature: Join Organization via Invitation
-Update invitation flow so that if a user already exists, accepting an invitation creates a new `organization_memberships` row rather than failing. The `accept_invitation` RPC needs to handle existing users.
-
-#### 9. Organization Switcher UI
-- Add a dropdown in `AppHeader` (next to the org logo/name) showing all orgs the user belongs to
-- Clicking an org calls `switch_organization` RPC
-- On switch, refresh profile/roles and invalidate all React Query caches
-
-### Files to Modify
-
-| Area | Files |
-|------|-------|
-| Database | New migration: `organization_memberships` table, update `user_roles`, update `get_user_org_id()`, `has_role()`, `handle_new_user()`, new `switch_organization` RPC |
-| Auth Context | `src/contexts/AuthContext.tsx` -- fetch memberships, expose `switchOrganization` |
-| Header UI | `src/components/app/AppHeader.tsx` -- org switcher dropdown |
-| Invitation Flow | `src/hooks/useInvitations.ts`, `accept_invitation` RPC -- handle existing users joining new orgs |
-| Signup Invite | `src/pages/SignupInvite.tsx` -- allow existing users to accept invites (redirect to login instead of signup if account exists) |
-
-### No Changes Needed
-- All hooks that use `profile.organization_id` continue to work because the denormalized field on `users_profile` stays in sync via the `switch_organization` RPC.
-- All RLS policies that call `get_user_org_id()` continue to work because the function returns the active org from `organization_memberships`.
-
-### Execution Order
-1. Create `organization_memberships` table with RLS
-2. Backfill existing data
-3. Add `organization_id` to `user_roles` and backfill
-4. Update DB functions (`get_user_org_id`, `has_role`, `handle_new_user`)
-5. Create `switch_organization` RPC
-6. Update `accept_invitation` RPC for existing users
-7. Add org switcher to `AppHeader`
-8. Update `AuthContext` with `switchOrganization` method
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 type UserStatus = 'pending' | 'active' | 'inactive';
 type AppRole = 'admin' | 'manager' | 'contributor' | 'viewer';
@@ -19,16 +20,25 @@ interface UserRole {
   role: AppRole;
 }
 
+interface OrgMembership {
+  id: string;
+  organization_id: string;
+  is_active: boolean;
+  joined_at: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: UserProfile | null;
   roles: AppRole[];
+  memberships: OrgMembership[];
   loading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  switchOrganization: (targetOrgId: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [memberships, setMemberships] = useState<OrgMembership[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -70,6 +81,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (rolesData) {
         setRoles(rolesData.map((r: UserRole) => r.role));
       }
+
+      // Fetch organization memberships
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('organization_memberships')
+        .select('id, organization_id, is_active, joined_at')
+        .eq('user_id', userId);
+
+      if (membershipError) {
+        console.error('Error fetching memberships:', membershipError);
+        return;
+      }
+
+      if (membershipData) {
+        setMemberships(membershipData as OrgMembership[]);
+      }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
     }
@@ -82,27 +108,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid potential race conditions with the trigger
           setTimeout(() => {
             fetchProfile(session.user.id);
           }, 100);
         } else {
           setProfile(null);
           setRoles([]);
+          setMemberships([]);
         }
 
         setLoading(false);
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -152,6 +176,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    setMemberships([]);
+  };
+
+  const switchOrganization = async (targetOrgId: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    try {
+      const { error } = await supabase.rpc('switch_organization', {
+        _user_id: user.id,
+        _target_org_id: targetOrgId,
+      });
+
+      if (error) return { error: new Error(error.message) };
+
+      // Refresh profile, roles, and memberships
+      await fetchProfile(user.id);
+
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Failed to switch organization') };
+    }
   };
 
   return (
@@ -161,11 +206,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         profile,
         roles,
+        memberships,
         loading,
         signUp,
         signIn,
         signOut,
         refreshProfile,
+        switchOrganization,
       }}
     >
       {children}
