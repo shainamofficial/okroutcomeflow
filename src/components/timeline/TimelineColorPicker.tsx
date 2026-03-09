@@ -53,7 +53,7 @@ export function TimelineColorPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto p-2" 
+        className="w-auto p-2 animate-scale-in" 
         align="start"
         onClick={(e) => e.stopPropagation()}
       >

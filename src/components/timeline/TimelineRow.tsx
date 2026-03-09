@@ -219,10 +219,10 @@ export function TimelineRow({
 
     return (
       <div key={task.id}>
-        <div className="flex border-b hover:bg-muted/20 group/task">
+        <div className="flex border-b border-border/40 hover:bg-muted/10 transition-colors duration-150 group/task">
           <div
             className={cn(
-              "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
+              "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
               rowPadding
             )}
             style={{ paddingLeft: `${paddingLeft * 4}px` }} // tailwind units * 4 = px
@@ -351,10 +351,10 @@ export function TimelineRow({
 
         {/* Inline subtask creation row */}
         {inlineCreateParentId === task.id && (
-          <div className="flex border-b bg-muted/10">
+          <div className="flex border-b border-border/40 bg-muted/5">
             <div
               className={cn(
-                "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
+                "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
                 rowPadding
               )}
               style={{ paddingLeft: `${(paddingLeft + depthIncrement) * 4}px` }}
@@ -389,10 +389,10 @@ export function TimelineRow({
   return (
     <div>
       {/* Initiative row */}
-      <div className="flex border-b hover:bg-muted/20 group/row">
+      <div className="flex border-b border-border/40 hover:bg-muted/10 transition-colors duration-150 group/row">
         <div
           className={cn(
-            "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
+            "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
             rowPadding
           )}
         >
@@ -415,7 +415,7 @@ export function TimelineRow({
             onClick={onInitiativeClick}
           >
             <div className="flex items-center gap-1.5">
-              <span className={cn("font-medium truncate", isCompact ? "text-xs" : "text-sm")}>
+              <span className={cn("font-semibold truncate", isCompact ? "text-xs" : "text-sm")}>
                 {initiative.title}
               </span>
               <InitiativeStatusBadge status={initiative.status} />
@@ -506,13 +506,13 @@ export function TimelineRow({
 
       {/* Inline task creation row (initiative-level, parentId = null) */}
       {expanded && inlineCreateParentId === null && (
-        <div className="flex border-b bg-muted/10">
-          <div
-            className={cn(
-              "w-64 min-w-64 border-r sticky left-0 bg-background z-30 flex items-center gap-1",
-              rowPadding,
-              isCompact ? "pl-8" : "pl-10"
-            )}
+         <div className="flex border-b border-border/40 bg-muted/5">
+           <div
+             className={cn(
+               "w-64 min-w-64 sticky left-0 bg-background z-30 flex items-center gap-1 shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
+               rowPadding,
+               isCompact ? "pl-8" : "pl-10"
+             )}
           >
             <div className={cn("w-4", isCompact && "w-3.5")} />
             <Input

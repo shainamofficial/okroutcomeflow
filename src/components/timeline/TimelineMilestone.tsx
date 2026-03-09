@@ -137,7 +137,12 @@ export function TimelineMilestone({
           onMouseDown={handleMouseDown}
         >
           <Diamond
-            className={cn("h-5 w-5 fill-current", iconColor, isDragging && "opacity-80")}
+            className={cn(
+              "h-5 w-5 fill-current drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)] transition-transform duration-200",
+              iconColor,
+              isDragging && "opacity-80",
+              !isDragging && "hover:scale-110"
+            )}
           />
           
           {/* Color picker button */}
