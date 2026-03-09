@@ -241,7 +241,7 @@ export function TimelineBar({
     ? customColorClasses.text 
     : getTextColor(variant, status);
 
-  const barHeight = compact ? "h-4" : "h-6";
+  const barHeight = compact ? "h-5" : "h-7";
 
   return (
     <Tooltip>
@@ -249,11 +249,12 @@ export function TimelineBar({
         <div
           ref={barRef}
           className={cn(
-            "absolute rounded flex items-center group/bar cursor-pointer overflow-hidden",
+            "absolute rounded-full flex items-center group/bar cursor-pointer overflow-hidden shadow-sm backdrop-blur-sm transition-all duration-200",
             barHeight,
             barColor,
             canDrag && hasMoved.current && isDragging && "cursor-grabbing",
-            isDragging && hasMoved.current && "opacity-80 shadow-lg"
+            isDragging && hasMoved.current && "opacity-80 shadow-lg scale-[1.02]",
+            !isDragging && "hover:shadow-md hover:scale-[1.01]"
           )}
           style={{
             left,
@@ -263,18 +264,21 @@ export function TimelineBar({
           }}
           onMouseDown={(e) => handleMouseDown(e, "move")}
         >
-          {/* Progress fill */}
+          {/* Progress fill — gradient overlay */}
           {progress !== undefined && progress > 0 && (
             <div
-              className="absolute inset-0 bg-foreground/15 rounded-l"
+              className="absolute inset-0 bg-gradient-to-r from-foreground/20 to-foreground/10 rounded-l-full"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           )}
 
+          {/* Left accent border */}
+          <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-foreground/20" />
+
           {/* Left resize handle */}
           {canDrag && (
             <div
-              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-l flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
+              className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-black/20 rounded-l-full flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
               onMouseDown={(e) => handleMouseDown(e, "resize-start")}
             >
               {!compact && <GripVertical className="h-3 w-3 text-primary-foreground" />}
@@ -284,8 +288,8 @@ export function TimelineBar({
           {/* Label */}
           <span
             className={cn(
-              "px-2 text-xs font-medium truncate flex-1 relative z-[1]",
-              compact && "text-[10px] px-1",
+              "px-3 text-xs font-medium truncate flex-1 relative z-[1]",
+              compact && "text-[10px] px-1.5",
               textColor
             )}
           >
@@ -305,8 +309,8 @@ export function TimelineBar({
           {ownerName && width > 100 && !compact && (
             <div
               className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-medium mr-2 flex-shrink-0 bg-black/10 relative z-[1]",
-                textColor.replace("text-", "text-") + "/80"
+                "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-semibold mr-2 flex-shrink-0 bg-white/20 backdrop-blur-sm relative z-[1]",
+                textColor
               )}
             >
               {getInitials(ownerName)}
@@ -316,7 +320,7 @@ export function TimelineBar({
           {/* Right resize handle */}
           {canDrag && (
             <div
-              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-black/20 rounded-r flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
+              className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-black/20 rounded-r-full flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
               onMouseDown={(e) => handleMouseDown(e, "resize-end")}
             >
               {!compact && <GripVertical className="h-3 w-3 text-primary-foreground" />}

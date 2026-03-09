@@ -415,7 +415,7 @@ export function TimelineRow({
             onClick={onInitiativeClick}
           >
             <div className="flex items-center gap-1.5">
-              <span className={cn("font-medium truncate", isCompact ? "text-xs" : "text-sm")}>
+              <span className={cn("font-semibold truncate", isCompact ? "text-xs" : "text-sm")}>
                 {initiative.title}
               </span>
               <InitiativeStatusBadge status={initiative.status} />

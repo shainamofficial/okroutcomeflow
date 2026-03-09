@@ -279,10 +279,10 @@ export function TimelineFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4 border rounded-lg bg-muted/30">
+    <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl shadow-card bg-card/80 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Filters</span>
+        <span className="text-sm font-semibold">Filters</span>
       </div>
       {filterContent}
       <div className="ml-auto">{toolbarActions}</div>

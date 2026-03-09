@@ -237,12 +237,14 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
   const isTodayVisible = isWithinInterval(new Date(), { start: startDate, end: endDate });
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-background">
+    <div className="rounded-xl shadow-card overflow-hidden bg-background relative">
+      {/* Top accent gradient bar */}
+      <div className="h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
       <ScrollArea className="w-full" ref={scrollAreaRef}>
         <div className="min-w-max" ref={containerRef}>
-          {/* Header row with dates */}
-          <div className="flex border-b bg-muted/50 sticky top-0 z-10">
-            <div className="w-64 min-w-64 p-3 font-medium border-r sticky left-0 bg-muted z-30 text-sm">
+          {/* Header row with dates — frosted glass */}
+          <div className="flex shadow-sm sticky top-0 z-10 backdrop-blur-md bg-background/80">
+            <div className="w-64 min-w-64 p-3 font-semibold sticky left-0 bg-background/90 backdrop-blur-md z-30 text-sm shadow-[2px_0_8px_rgba(0,0,0,0.06)]">
               Item
             </div>
             <div className="flex relative">
@@ -251,9 +253,9 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
                   key={index}
                   style={{ width: columnWidth }}
                   className={cn(
-                    "p-2 text-center text-xs font-medium border-r bg-muted/50",
-                    isTodayInColumn(col) && "bg-primary/10",
-                    zoomLevel === "day" && isWeekend(col) && "bg-muted/80"
+                    "p-2 text-center text-xs font-medium border-r border-border/30 bg-transparent",
+                    isTodayInColumn(col) && "bg-primary/8 shadow-[inset_0_-2px_0_0_hsl(var(--primary)/0.3)]",
+                    zoomLevel === "day" && isWeekend(col) && "bg-muted/40"
                   )}
                 >
                   {formatColumnHeader(col)}
@@ -264,12 +266,18 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
 
           {/* Timeline rows */}
           <div className="relative">
-            {/* Today indicator line */}
+            {/* Today indicator — glowing line with pulse dot */}
             {isTodayVisible && (
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-primary z-10 pointer-events-none"
-                style={{ left: 256 + todayPosition }}
-              />
+              <>
+                <div
+                  className="absolute top-0 w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)] z-20 pointer-events-none animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"
+                  style={{ left: 256 + todayPosition - 5, top: -6 }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary/60 to-transparent z-10 pointer-events-none shadow-[0_0_8px_hsl(var(--primary)/0.4)]"
+                  style={{ left: 256 + todayPosition }}
+                />
+              </>
             )}
 
             {/* Dependency arrows */}
