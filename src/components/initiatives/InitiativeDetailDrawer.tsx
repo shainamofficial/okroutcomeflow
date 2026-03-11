@@ -192,6 +192,13 @@ export function InitiativeDetailDrawer({
           />
         </div>
       </SheetContent>
+
+      <ShareInitiativeDialog
+        initiativeId={initiative.id}
+        initiativeTitle={initiative.title}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
     </Sheet>
   );
 }

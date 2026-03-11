@@ -256,6 +256,9 @@ const App = () => (
                 }
               />
 
+              {/* Public shared initiative */}
+              <Route path="/share/initiative/:token" element={<SharedInitiative />} />
+
               {/* Public landing page */}
               <Route path="/" element={<LandingPage />} />
 
