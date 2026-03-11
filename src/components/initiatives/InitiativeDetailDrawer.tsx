@@ -42,6 +42,8 @@ export function InitiativeDetailDrawer({
   const isOwner = initiative.owner_id === profile?.id;
   const canPostNonComment = canManage || isOwner;
   const canPin = canManage || isOwner;
+  const canShare = canManage || isOwner;
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Sort linked KRs by nesting level and group by objective
   const sortedLinks = useMemo(() => {
