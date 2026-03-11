@@ -38,6 +38,7 @@ export function TimelineColorPicker({
             disabled && "pointer-events-none"
           )}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           disabled={disabled}
         >
           {currentColor && currentColor in TIMELINE_COLORS ? (
