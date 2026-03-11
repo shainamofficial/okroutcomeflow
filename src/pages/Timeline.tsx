@@ -78,6 +78,10 @@ export default function Timeline() {
     chartRef.current?.scrollToToday();
   }, []);
 
+  const handleAutofit = useCallback(() => {
+    chartRef.current?.autofit();
+  }, []);
+
   // Group tasks by initiative
   const tasksByInitiative = useMemo(() => {
     const map: Record<string, (Task & { initiative: { id: string; organization_id: string } })[]> = {};
