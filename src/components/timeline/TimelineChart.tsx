@@ -33,6 +33,7 @@ import { TaskDependency } from "@/hooks/useTaskDependencies";
 
 export interface TimelineChartHandle {
   scrollToToday: () => void;
+  autofit: () => void;
 }
 
 interface TimelineChartProps {
