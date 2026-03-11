@@ -282,7 +282,7 @@ export default function Timeline() {
                       <ChevronDown className="h-4 w-4" />
                     )}
                     {group.label}
-                    <span className="text-xs font-normal">({group.initiatives.length})</span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-xs">{group.initiatives.length}</Badge>
                   </button>
                 )}
 
