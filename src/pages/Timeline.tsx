@@ -10,6 +10,7 @@ import { TimelineNoDates } from "@/components/timeline/TimelineNoDates";
 import { InitiativeDetailDrawer } from "@/components/initiatives/InitiativeDetailDrawer";
 import { TaskDetailDrawer } from "@/components/tasks/TaskDetailDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { CalendarRange, ChevronDown, ChevronRight } from "lucide-react";
 
 export interface TimelineInitiative extends Initiative {
@@ -43,6 +44,7 @@ export default function Timeline() {
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("month");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [density, setDensity] = useState<DensityMode>("comfortable");
+  const [meMode, setMeMode] = useState(false);
 
   // Collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -76,6 +78,10 @@ export default function Timeline() {
     chartRef.current?.scrollToToday();
   }, []);
 
+  const handleAutofit = useCallback(() => {
+    chartRef.current?.autofit();
+  }, []);
+
   // Group tasks by initiative
   const tasksByInitiative = useMemo(() => {
     const map: Record<string, (Task & { initiative: { id: string; organization_id: string } })[]> = {};
@@ -96,7 +102,7 @@ export default function Timeline() {
     }));
   }, [initiatives, tasksByInitiative]);
 
-  // Apply filters
+  // Apply filters (including Me Mode)
   const filteredInitiatives = useMemo(() => {
     return timelineInitiatives.filter((initiative) => {
       if (filters.status !== "all" && initiative.status !== filters.status) return false;
@@ -128,9 +134,16 @@ export default function Timeline() {
         if (!hasOverdue) return false;
       }
 
+      // Me Mode: show initiatives owned by me OR with tasks assigned to me
+      if (meMode && profile?.id) {
+        const isMyInitiative = initiative.owner_id === profile.id;
+        const hasMyTask = initiative.tasks.some((t) => t.assignee_user_id === profile.id);
+        if (!isMyInitiative && !hasMyTask) return false;
+      }
+
       return true;
     });
-  }, [timelineInitiatives, filters]);
+  }, [timelineInitiatives, filters, meMode, profile?.id]);
 
   // Group initiatives
   const groupedInitiatives = useMemo((): GroupedInitiatives[] => {
@@ -226,6 +239,9 @@ export default function Timeline() {
         density={density}
         onDensityChange={setDensity}
         onScrollToToday={handleScrollToToday}
+        onAutofit={handleAutofit}
+        meMode={meMode}
+        onMeModeChange={setMeMode}
       />
 
       {isLoading ? (
@@ -266,7 +282,7 @@ export default function Timeline() {
                       <ChevronDown className="h-4 w-4" />
                     )}
                     {group.label}
-                    <span className="text-xs font-normal">({group.initiatives.length})</span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-xs">{group.initiatives.length}</Badge>
                   </button>
                 )}
 
@@ -277,6 +293,7 @@ export default function Timeline() {
                         ref={groupIndex === 0 ? chartRef : undefined}
                         initiatives={withDates}
                         zoomLevel={zoomLevel}
+                        onZoomLevelChange={setZoomLevel}
                         canDragInitiative={canDragInitiative}
                         canDragTask={canDragTask}
                         onInitiativeClick={handleInitiativeClick}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, X, ChevronDown, Calendar, Rows3, AlignJustify } from "lucide-react";
+import { Filter, X, ChevronDown, Calendar, Rows3, AlignJustify, Maximize2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -45,6 +45,9 @@ interface TimelineFiltersProps {
   density: DensityMode;
   onDensityChange: (density: DensityMode) => void;
   onScrollToToday: () => void;
+  onAutofit: () => void;
+  meMode: boolean;
+  onMeModeChange: (enabled: boolean) => void;
 }
 
 export function TimelineFilters({
@@ -57,6 +60,9 @@ export function TimelineFilters({
   density,
   onDensityChange,
   onScrollToToday,
+  onAutofit,
+  meMode,
+  onMeModeChange,
 }: TimelineFiltersProps) {
   const { users } = useOrgUsers();
   const { teams } = useTeams();
@@ -226,6 +232,32 @@ export function TimelineFilters({
           </Button>
         </TooltipTrigger>
         <TooltipContent>Scroll to today</TooltipContent>
+      </Tooltip>
+
+      {/* Autofit */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="sm" onClick={onAutofit} className="gap-1.5">
+            <Maximize2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Fit</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Zoom to fit all items</TooltipContent>
+      </Tooltip>
+
+      {/* Me Mode */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Toggle
+            size="sm"
+            pressed={meMode}
+            onPressedChange={onMeModeChange}
+            aria-label="Toggle me mode"
+          >
+            <User className="h-3.5 w-3.5" />
+          </Toggle>
+        </TooltipTrigger>
+        <TooltipContent>{meMode ? "Show all items" : "Show only my items"}</TooltipContent>
       </Tooltip>
 
       {/* Density toggle */}

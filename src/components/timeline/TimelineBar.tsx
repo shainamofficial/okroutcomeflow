@@ -285,6 +285,18 @@ export function TimelineBar({
             </div>
           )}
 
+          {/* Hover date labels on edges */}
+          <div className="absolute -left-1 top-full mt-1 opacity-0 group-hover/bar:opacity-100 transition-opacity z-20 pointer-events-none">
+            <span className="text-[10px] bg-popover text-popover-foreground px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap border border-border">
+              {format(isDragging ? tempStart : startDate, "MMM d")}
+            </span>
+          </div>
+          <div className="absolute -right-1 top-full mt-1 opacity-0 group-hover/bar:opacity-100 transition-opacity z-20 pointer-events-none">
+            <span className="text-[10px] bg-popover text-popover-foreground px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap border border-border">
+              {format(isDragging ? tempEnd : endDate, "MMM d")}
+            </span>
+          </div>
+
           {/* Label */}
           <span
             className={cn(
@@ -295,6 +307,13 @@ export function TimelineBar({
           >
             {width > (compact ? 40 : 60) ? label : ""}
           </span>
+
+          {/* Progress % label on initiative bars */}
+          {variant === "initiative" && progress !== undefined && width > 80 && !compact && (
+            <span className={cn("text-[10px] font-semibold mr-1 relative z-[1] opacity-80", textColor)}>
+              {Math.round(progress)}%
+            </span>
+          )}
 
           {/* Color picker */}
           {onColorChange && !compact && (
