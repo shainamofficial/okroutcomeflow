@@ -135,6 +135,16 @@ const App = () => (
               }
             />
             <Route
+              path="/app/initiatives/:id"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <InitiativeDetail />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/reviews"
               element={
                 <ProtectedRoute>

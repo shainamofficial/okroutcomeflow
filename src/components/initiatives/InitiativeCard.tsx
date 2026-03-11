@@ -125,7 +125,6 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
         <EditInitiativeDialog initiative={initiative} open={showEdit} onOpenChange={setShowEdit} />
       )}
       <DeleteInitiativeDialog initiative={initiative} open={showDelete} onOpenChange={setShowDelete} />
-      <InitiativeDetailDrawer initiative={initiative} open={showDetail} onOpenChange={setShowDetail} />
     </>
   );
 }
