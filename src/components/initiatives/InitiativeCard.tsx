@@ -20,7 +20,7 @@ interface InitiativeCardProps {
 export function InitiativeCard({ initiative }: InitiativeCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
+  const navigate = useNavigate();
   const { profile, roles } = useAuth();
   const { links } = useInitiativeKRLinks(initiative.id);
   const { tasks } = useTasks(initiative.id);
