@@ -266,7 +266,7 @@ export default function SharedInitiative() {
           </CardContent>
         </Card>
 
-        {/* Tasks Timeline */}
+        {/* Tasks Gantt Timeline */}
         <Card className="shadow-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -278,47 +278,21 @@ export default function SharedInitiative() {
             {totalTasks === 0 ? (
               <p className="text-sm text-muted-foreground">No tasks yet.</p>
             ) : (
-              <div className="space-y-1">
-                {parentTasks.map((task) => {
-                  const subtasks = tasks.filter((t) => t.parent_task_id === task.id);
-                  const taskStatus = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.todo;
-                  return (
-                    <div key={task.id}>
-                      <div className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/30 transition-colors">
-                        <Badge variant="outline" className={`${taskStatus.color} text-xs shrink-0`}>
-                          {taskStatus.label}
-                        </Badge>
-                        <span className="text-sm font-medium flex-1 truncate">{task.title}</span>
-                        {task.assignee && (
-                          <span className="text-xs text-muted-foreground shrink-0">{task.assignee.name}</span>
-                        )}
-                        {task.due_date && (
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {format(new Date(task.due_date), "MMM d")}
-                          </span>
-                        )}
-                      </div>
-                      {subtasks.map((sub) => {
-                        const subStatus = TASK_STATUS_CONFIG[sub.status] || TASK_STATUS_CONFIG.todo;
-                        return (
-                          <div
-                            key={sub.id}
-                            className="flex items-center gap-3 py-1.5 px-2 ml-6 rounded-md hover:bg-muted/20 transition-colors"
-                          >
-                            <Badge variant="outline" className={`${subStatus.color} text-xs shrink-0`}>
-                              {subStatus.label}
-                            </Badge>
-                            <span className="text-sm flex-1 truncate text-muted-foreground">{sub.title}</span>
-                            {sub.assignee && (
-                              <span className="text-xs text-muted-foreground shrink-0">{sub.assignee.name}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
+              <InitiativeGantt
+                tasks={tasks.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  start_date: t.start_date,
+                  due_date: t.due_date,
+                  parent_task_id: t.parent_task_id,
+                  color: t.color,
+                  assignee: t.assignee,
+                  assignee_team: t.assignee_team,
+                }))}
+                initiativeStartDate={initiative.start_date}
+                initiativeEndDate={initiative.end_date}
+              />
             )}
           </CardContent>
         </Card>
