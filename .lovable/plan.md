@@ -1,92 +1,32 @@
 
 
-# Plan: Board View for Initiatives and Tasks
+## Fix Timeline Update Delay + Enhance Initiative Page Gantt
 
-## Overview
-Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
+### Issue 1: Timeline Update Delay
 
-## How It Works
+**Root cause**: When a task is dragged on the timeline, `TimelineRow` calls `updateTask.mutate()` from `useTasks(initiativeId)`. That mutation invalidates `queryKey: ["tasks"]`, but the Timeline page fetches tasks via `useAllTasks()` which uses `queryKey: ["all_tasks", orgId]`. The `["all_tasks"]` cache is never invalidated, so the timeline doesn't reflect changes until a background refetch.
 
-### View Toggle
-A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
+**Fix**: In `useTasks.ts`, update all three mutations (`createTask`, `updateTask`, `deleteTask`) to also invalidate `["all_tasks"]`. Additionally, add optimistic updates to the `updateTask` mutation so the bar snaps to its new position immediately instead of waiting for the server round-trip.
 
-### Board Layout
-- **4 columns**: Not Started, In Progress, Completed, Blocked
-- Each column displays initiative cards belonging to that status
-- Cards show: title, owner, date range, linked KR count, task count
-- Clicking a card opens the existing InitiativeDetailDrawer
-- Edit/delete actions remain accessible via card buttons
+| File | Change |
+|------|--------|
+| `src/hooks/useTasks.ts` | Add `queryClient.invalidateQueries({ queryKey: ["all_tasks"] })` to all mutation `onSuccess` callbacks. Add optimistic update for `updateTask`. |
 
-### Drag and Drop
-- Users can drag initiative cards between columns to change their status
-- Uses HTML5 drag-and-drop (no additional library needed)
-- Only users with edit permissions (admin, manager, or owner) can drag
-- Dropping a card triggers the existing `updateInitiative` mutation
+### Issue 2: Initiative Page Gantt Missing Subtask Nesting UI
 
-### Task Sub-Board (Expandable)
-- Each initiative card has a "Tasks" expand toggle
-- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
-- Tasks can also be dragged between status columns
+**Root cause**: `InitiativeGantt` renders the task tree recursively (subtasks are nested), but each row only shows a plain text title — no expand/collapse chevrons, no status badges, no assignee info. This makes it look flat compared to the main timeline view.
 
-### Navigation
-- Add a new route `/app/board` with a sidebar entry
-- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
+**Fix**: Enhance `InitiativeGantt`'s `renderTaskRow` to match the timeline's `TimelineRow` style:
+- Add expand/collapse chevrons for tasks with children
+- Show `TaskStatusBadge` next to task title
+- Show assignee name/team name
+- Track expanded state per task (default expanded)
+- Add indentation guides similar to timeline
 
-I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
+| File | Change |
+|------|--------|
+| `src/components/initiatives/InitiativeGantt.tsx` | Add expand/collapse state, chevron icons, `TaskStatusBadge`, assignee display in the label column. Import necessary components. |
 
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
-| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
-| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
-| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
-
----
-
-## Technical Details
-
-### View Toggle Component
-Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
-
-### Drag-and-Drop Implementation
-Uses native HTML5 drag-and-drop API:
-- `draggable` attribute on cards
-- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
-- `onDragOver` on columns to allow drops and show visual hover state
-- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
-
-### Column Layout
-```text
-+----------------+----------------+----------------+----------------+
-|  Not Started   |  In Progress   |   Completed    |    Blocked     |
-+----------------+----------------+----------------+----------------+
-| [Card]         | [Card]         | [Card]         | [Card]         |
-| [Card]         |                |                |                |
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-```
-
-### Board Initiative Card Content
-- Title + status badge
-- Owner name
-- Date range (if set)
-- KR link count
-- Task count with completion ratio (e.g., "3/5 tasks done")
-- Edit/Delete buttons (permission-gated)
-
-### Filters
-The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
-
-### Responsive Behavior
-On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
+### Summary
+Two targeted fixes — one cache invalidation bug in `useTasks.ts`, one UI enhancement in `InitiativeGantt.tsx`. No backend changes needed.
 
