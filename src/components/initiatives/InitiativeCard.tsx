@@ -33,7 +33,7 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
     <>
       <Card
         className="cursor-pointer hover:shadow-card-hover border-border/60 transition-all duration-200 group"
-        onClick={() => setShowDetail(true)}
+        onClick={() => navigate(`/app/initiatives/${initiative.id}`)}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
