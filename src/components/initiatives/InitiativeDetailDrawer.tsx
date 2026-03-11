@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -8,8 +8,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Calendar, Target, Link } from "lucide-react";
+import { User, Calendar, Target, Link, Share2 } from "lucide-react";
+import { ShareInitiativeDialog } from "./ShareInitiativeDialog";
 import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { TaskList } from "@/components/tasks/TaskList";
@@ -40,6 +42,8 @@ export function InitiativeDetailDrawer({
   const isOwner = initiative.owner_id === profile?.id;
   const canPostNonComment = canManage || isOwner;
   const canPin = canManage || isOwner;
+  const canShare = canManage || isOwner;
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Sort linked KRs by nesting level and group by objective
   const sortedLinks = useMemo(() => {
@@ -62,6 +66,12 @@ export function InitiativeDetailDrawer({
           <SheetTitle className="flex items-center gap-2 flex-wrap">
             {initiative.title}
             <InitiativeStatusBadge status={initiative.status} />
+            {canShare && (
+              <Button size="sm" variant="outline" className="ml-auto" onClick={() => setShareOpen(true)}>
+                <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                Share
+              </Button>
+            )}
           </SheetTitle>
           {initiative.description && (
             <SheetDescription>{initiative.description}</SheetDescription>
@@ -182,6 +192,13 @@ export function InitiativeDetailDrawer({
           />
         </div>
       </SheetContent>
+
+      <ShareInitiativeDialog
+        initiativeId={initiative.id}
+        initiativeTitle={initiative.title}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
     </Sheet>
   );
 }

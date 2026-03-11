@@ -37,6 +37,7 @@ import ActivityLog from "./pages/ActivityLog";
 import TableView from "./pages/TableView";
 import Automations from "./pages/Automations";
 import NotificationSettings from "./pages/NotificationSettings";
+import SharedInitiative from "./pages/SharedInitiative";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -254,6 +255,9 @@ const App = () => (
                   </PlatformAdminRoute>
                 }
               />
+
+              {/* Public shared initiative */}
+              <Route path="/share/initiative/:token" element={<SharedInitiative />} />
 
               {/* Public landing page */}
               <Route path="/" element={<LandingPage />} />
