@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, X, ChevronDown, Calendar, Rows3, AlignJustify } from "lucide-react";
+import { Filter, X, ChevronDown, Calendar, Rows3, AlignJustify, Maximize2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
