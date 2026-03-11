@@ -92,6 +92,7 @@ export function useTasks(initiativeId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all_tasks"] });
       toast({ title: "Task created successfully" });
     },
     onError: (error) => {
@@ -132,16 +133,44 @@ export function useTasks(initiativeId?: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast({ title: "Task updated successfully" });
+    onMutate: async (params) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      await queryClient.cancelQueries({ queryKey: ["all_tasks"] });
+
+      const previousAllTasks = queryClient.getQueryData(["all_tasks", profile?.organization_id]);
+      const previousTasks = queryClient.getQueryData(["tasks", initiativeId]);
+
+      const applyUpdate = (tasks: any[] | undefined) =>
+        tasks?.map((t: any) => {
+          if (t.id !== params.id) return t;
+          const updated = { ...t };
+          if (params.title !== undefined) updated.title = params.title;
+          if (params.status !== undefined) updated.status = params.status;
+          if (params.startDate !== undefined) updated.start_date = params.startDate || null;
+          if (params.dueDate !== undefined) updated.due_date = params.dueDate || null;
+          if (params.color !== undefined) updated.color = params.color;
+          if (params.assigneeUserId !== undefined) updated.assignee_user_id = params.assigneeUserId || null;
+          if (params.assigneeTeamId !== undefined) updated.assignee_team_id = params.assigneeTeamId || null;
+          return updated;
+        });
+
+      queryClient.setQueryData(["tasks", initiativeId], (old: any) => applyUpdate(old));
+      queryClient.setQueryData(["all_tasks", profile?.organization_id], (old: any) => applyUpdate(old));
+
+      return { previousTasks, previousAllTasks };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      if (context?.previousTasks) queryClient.setQueryData(["tasks", initiativeId], context.previousTasks);
+      if (context?.previousAllTasks) queryClient.setQueryData(["all_tasks", profile?.organization_id], context.previousAllTasks);
       toast({
         title: "Failed to update task",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all_tasks"] });
     },
   });
 
@@ -152,6 +181,7 @@ export function useTasks(initiativeId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all_tasks"] });
       toast({ title: "Task deleted successfully" });
     },
     onError: (error) => {

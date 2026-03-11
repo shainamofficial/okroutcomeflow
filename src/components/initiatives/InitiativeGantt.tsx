@@ -22,7 +22,8 @@ import {
 import { cn } from "@/lib/utils";
 import { TimelineBar } from "@/components/timeline/TimelineBar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
+import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
+import type { TaskStatus } from "@/hooks/useTasks";
 import {
   Select,
   SelectContent,
@@ -30,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronRight, ChevronDown, User, Users } from "lucide-react";
 
 type ZoomLevel = "day" | "week" | "month" | "quarter";
 
@@ -78,6 +79,18 @@ export function InitiativeGantt({
   initiativeEndDate,
 }: InitiativeGanttProps) {
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("week");
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(() => {
+    return new Set(tasks.filter((t) => tasks.some((c) => c.parent_task_id === t.id)).map((t) => t.id));
+  });
+
+  const toggleExpand = (taskId: string) => {
+    setExpandedTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
 
   const { startDate, endDate, columns, columnWidth } = useMemo(() => {
     const allDates: Date[] = [];
@@ -185,20 +198,53 @@ export function InitiativeGantt({
     );
   }
 
+  const LABEL_WIDTH = 280;
+
   const renderTaskRow = (node: TaskTreeNode, depth: number): React.ReactNode => {
     const task = node.task;
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedTasks.has(task.id);
     const hasBar = task.start_date && task.due_date;
-    const paddingLeft = 10 + depth * 4;
+    const assigneeName = task.assignee?.name || task.assignee_team?.name;
 
     return (
       <div key={task.id}>
         <div className="flex border-b border-border/40 hover:bg-muted/10 transition-colors duration-150">
+          {/* Label column */}
           <div
-            className="w-52 min-w-52 sticky left-0 bg-background z-30 flex items-center gap-1 p-1.5 shadow-[2px_0_8px_rgba(0,0,0,0.04)]"
-            style={{ paddingLeft: `${paddingLeft * 4}px` }}
+            className="sticky left-0 bg-background z-30 flex items-center gap-1.5 py-1 px-2 shadow-[2px_0_8px_rgba(0,0,0,0.04)]"
+            style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH, paddingLeft: `${8 + depth * 20}px` }}
           >
-            <span className="text-xs truncate">{task.title}</span>
+            {/* Expand/collapse */}
+            {hasChildren ? (
+              <button
+                onClick={() => toggleExpand(task.id)}
+                className="p-0.5 rounded hover:bg-muted/60 text-muted-foreground shrink-0"
+              >
+                {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+            ) : (
+              <span className="w-4.5 shrink-0" />
+            )}
+
+            {/* Title */}
+            <span className="text-xs font-medium truncate flex-1">{task.title}</span>
+
+            {/* Status badge */}
+            <div className="shrink-0 scale-75 origin-right">
+              <TaskStatusBadge status={task.status as TaskStatus} />
+            </div>
+
+            {/* Assignee */}
+            {assigneeName && (
+              <span className="text-[10px] text-muted-foreground truncate max-w-[60px] shrink-0 flex items-center gap-0.5">
+                {task.assignee ? <User className="h-2.5 w-2.5" /> : <Users className="h-2.5 w-2.5" />}
+                {assigneeName.split(" ")[0]}
+              </span>
+            )}
           </div>
+
+          {/* Timeline area */}
           <div
             className="flex-1 relative flex items-center h-8"
             style={{ minWidth: columns.length * columnWidth }}
@@ -219,7 +265,7 @@ export function InitiativeGantt({
                 onDragEnd={() => {}}
                 variant="task"
                 label={task.title}
-                ownerName={task.assignee?.name || task.assignee_team?.name}
+                ownerName={assigneeName}
                 status={task.status as any}
                 customColor={task.color}
                 compact
@@ -227,7 +273,7 @@ export function InitiativeGantt({
             )}
           </div>
         </div>
-        {node.children.map((child) => renderTaskRow(child, depth + 1))}
+        {hasChildren && isExpanded && node.children.map((child) => renderTaskRow(child, depth + 1))}
       </div>
     );
   };
@@ -257,7 +303,7 @@ export function InitiativeGantt({
             <div className="shadow-sm sticky top-0 z-10 backdrop-blur-md bg-background/80">
               {(zoomLevel === "day" || zoomLevel === "week") && (
                 <div className="flex">
-                  <div className="w-52 min-w-52 sticky left-0 bg-background/90 backdrop-blur-md z-30" />
+                  <div className="sticky left-0 bg-background/90 backdrop-blur-md z-30" style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH }} />
                   <div className="flex relative">
                     {(() => {
                       const superHeaders: { label: string; span: number }[] = [];
@@ -288,7 +334,10 @@ export function InitiativeGantt({
                 </div>
               )}
               <div className="flex">
-                <div className="w-52 min-w-52 p-2 font-semibold sticky left-0 bg-background/90 backdrop-blur-md z-30 text-xs">
+                <div
+                  className="p-2 font-semibold sticky left-0 bg-background/90 backdrop-blur-md z-30 text-xs"
+                  style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH }}
+                >
                   Task
                 </div>
                 <div className="flex relative">
@@ -314,7 +363,7 @@ export function InitiativeGantt({
               {isTodayVisible && (
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-primary/60 z-10 pointer-events-none"
-                  style={{ left: 208 + todayPosition }}
+                  style={{ left: LABEL_WIDTH + todayPosition }}
                 />
               )}
               {taskTree.map((node) => renderTaskRow(node, 0))}
