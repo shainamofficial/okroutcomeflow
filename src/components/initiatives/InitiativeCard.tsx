@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { EditInitiativeDialog } from "./EditInitiativeDialog";
 import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
-import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
 import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
 import { InitiativeProgressBar } from "./InitiativeProgressBar";
