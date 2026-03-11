@@ -55,6 +55,7 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
   {
     initiatives,
     zoomLevel,
+    onZoomLevelChange,
     canDragInitiative,
     canDragTask,
     onInitiativeClick,
