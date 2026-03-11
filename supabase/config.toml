@@ -1,1 +1,4 @@
 project_id = "vyqjowymylevulbneops"
+
+[functions.get-shared-initiative]
+verify_jwt = false
