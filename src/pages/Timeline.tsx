@@ -98,7 +98,7 @@ export default function Timeline() {
     }));
   }, [initiatives, tasksByInitiative]);
 
-  // Apply filters
+  // Apply filters (including Me Mode)
   const filteredInitiatives = useMemo(() => {
     return timelineInitiatives.filter((initiative) => {
       if (filters.status !== "all" && initiative.status !== filters.status) return false;
@@ -130,9 +130,16 @@ export default function Timeline() {
         if (!hasOverdue) return false;
       }
 
+      // Me Mode: show initiatives owned by me OR with tasks assigned to me
+      if (meMode && profile?.id) {
+        const isMyInitiative = initiative.owner_id === profile.id;
+        const hasMyTask = initiative.tasks.some((t) => t.assignee_user_id === profile.id);
+        if (!isMyInitiative && !hasMyTask) return false;
+      }
+
       return true;
     });
-  }, [timelineInitiatives, filters]);
+  }, [timelineInitiatives, filters, meMode, profile?.id]);
 
   // Group initiatives
   const groupedInitiatives = useMemo((): GroupedInitiatives[] => {
