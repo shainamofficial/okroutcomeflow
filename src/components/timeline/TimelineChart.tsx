@@ -142,7 +142,7 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
     return addDays(startDate, days);
   };
 
-  // Scroll to today
+  // Scroll to today + autofit
   useImperativeHandle(ref, () => ({
     scrollToToday: () => {
       const todayPos = getPositionForDate(new Date());
@@ -151,6 +151,18 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
         const viewportWidth = scrollContainer.clientWidth;
         scrollContainer.scrollLeft = todayPos + 256 - viewportWidth / 2;
       }
+    },
+    autofit: () => {
+      // Return the total date span so parent can pick best zoom
+      const scrollContainer = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+      if (!scrollContainer) return;
+      const viewportWidth = scrollContainer.clientWidth - 256;
+      const spanDays = totalDays;
+      // Pick zoom: if span fits in viewport at day level, use day, etc.
+      if (spanDays * 40 <= viewportWidth) onZoomLevelChange("day");
+      else if (spanDays * (100 / 7) <= viewportWidth) onZoomLevelChange("week");
+      else if (spanDays * (120 / 30) <= viewportWidth) onZoomLevelChange("month");
+      else onZoomLevelChange("quarter");
     },
   }));
 
