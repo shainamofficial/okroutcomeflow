@@ -293,6 +293,7 @@ export default function Timeline() {
                         ref={groupIndex === 0 ? chartRef : undefined}
                         initiatives={withDates}
                         zoomLevel={zoomLevel}
+                        onZoomLevelChange={setZoomLevel}
                         canDragInitiative={canDragInitiative}
                         canDragTask={canDragTask}
                         onInitiativeClick={handleInitiativeClick}

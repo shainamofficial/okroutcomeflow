@@ -258,25 +258,63 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
       <div className="h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
       <ScrollArea className="w-full" ref={scrollAreaRef}>
         <div className="min-w-max" ref={containerRef}>
-          {/* Header row with dates — frosted glass */}
-          <div className="flex shadow-sm sticky top-0 z-10 backdrop-blur-md bg-background/80">
-            <div className="w-64 min-w-64 p-3 font-semibold sticky left-0 bg-background/90 backdrop-blur-md z-30 text-sm shadow-[2px_0_8px_rgba(0,0,0,0.06)]">
-              Item
-            </div>
-            <div className="flex relative">
-              {columns.map((col, index) => (
-                <div
-                  key={index}
-                  style={{ width: columnWidth }}
-                  className={cn(
-                    "p-2 text-center text-xs font-medium border-r border-border/30 bg-transparent",
-                    isTodayInColumn(col) && "bg-primary/8 shadow-[inset_0_-2px_0_0_hsl(var(--primary)/0.3)]",
-                    zoomLevel === "day" && isWeekend(col) && "bg-muted/40"
-                  )}
-                >
-                  {formatColumnHeader(col)}
+          {/* Two-tier header — frosted glass */}
+          <div className="shadow-sm sticky top-0 z-10 backdrop-blur-md bg-background/80">
+            {/* Super-header row (month/week grouping) — only for day/week zoom */}
+            {(zoomLevel === "day" || zoomLevel === "week") && (
+              <div className="flex">
+                <div className="w-64 min-w-64 sticky left-0 bg-background/90 backdrop-blur-md z-30 shadow-[2px_0_8px_rgba(0,0,0,0.06)]" />
+                <div className="flex relative">
+                  {(() => {
+                    const superHeaders: { label: string; span: number }[] = [];
+                    let currentLabel = "";
+                    let currentSpan = 0;
+                    columns.forEach((col) => {
+                      const label = zoomLevel === "day"
+                        ? format(col, "MMMM yyyy")
+                        : format(col, "MMMM yyyy");
+                      if (label === currentLabel) {
+                        currentSpan++;
+                      } else {
+                        if (currentLabel) superHeaders.push({ label: currentLabel, span: currentSpan });
+                        currentLabel = label;
+                        currentSpan = 1;
+                      }
+                    });
+                    if (currentLabel) superHeaders.push({ label: currentLabel, span: currentSpan });
+                    return superHeaders.map((sh, i) => (
+                      <div
+                        key={i}
+                        style={{ width: sh.span * columnWidth }}
+                        className="px-2 py-1 text-xs font-semibold text-muted-foreground border-r border-border/30 truncate"
+                      >
+                        {sh.label}
+                      </div>
+                    ));
+                  })()}
                 </div>
-              ))}
+              </div>
+            )}
+            {/* Main column header row */}
+            <div className="flex">
+              <div className="w-64 min-w-64 p-3 font-semibold sticky left-0 bg-background/90 backdrop-blur-md z-30 text-sm shadow-[2px_0_8px_rgba(0,0,0,0.06)]">
+                Item
+              </div>
+              <div className="flex relative">
+                {columns.map((col, index) => (
+                  <div
+                    key={index}
+                    style={{ width: columnWidth }}
+                    className={cn(
+                      "p-2 text-center text-xs font-medium border-r border-border/30 bg-transparent",
+                      isTodayInColumn(col) && "bg-primary/8 shadow-[inset_0_-2px_0_0_hsl(var(--primary)/0.3)]",
+                      zoomLevel === "day" && isWeekend(col) && "bg-muted/40"
+                    )}
+                  >
+                    {formatColumnHeader(col)}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
