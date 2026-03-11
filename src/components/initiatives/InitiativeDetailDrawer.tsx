@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -8,8 +8,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Calendar, Target, Link } from "lucide-react";
+import { User, Calendar, Target, Link, Share2 } from "lucide-react";
+import { ShareInitiativeDialog } from "./ShareInitiativeDialog";
 import { Initiative, useInitiativeKRLinks } from "@/hooks/useInitiatives";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { TaskList } from "@/components/tasks/TaskList";
