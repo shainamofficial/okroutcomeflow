@@ -262,6 +262,77 @@ export type Database = {
           },
         ]
       }
+      initiative_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          initiative_id: string
+          is_active: boolean
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          initiative_id: string
+          is_active?: boolean
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          initiative_id?: string
+          is_active?: boolean
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "initiative_share_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiative_share_links_initiative_id_fkey"
+            columns: ["initiative_id"]
+            isOneToOne: false
+            referencedRelation: "initiatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      initiative_share_viewers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          share_link_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          share_link_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          share_link_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "initiative_share_viewers_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "initiative_share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       initiatives: {
         Row: {
           color: string | null
