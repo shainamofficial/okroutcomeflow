@@ -209,7 +209,6 @@ export default function SharedInitiative() {
 
   const { initiative, tasks, krLinks, updates } = data;
   const status = STATUS_CONFIG[initiative.status] || STATUS_CONFIG.not_started;
-  const parentTasks = tasks.filter((t) => !t.parent_task_id);
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
   const taskProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
