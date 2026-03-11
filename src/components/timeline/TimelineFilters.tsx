@@ -45,6 +45,9 @@ interface TimelineFiltersProps {
   density: DensityMode;
   onDensityChange: (density: DensityMode) => void;
   onScrollToToday: () => void;
+  onAutofit: () => void;
+  meMode: boolean;
+  onMeModeChange: (enabled: boolean) => void;
 }
 
 export function TimelineFilters({
