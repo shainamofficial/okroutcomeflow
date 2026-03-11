@@ -10,6 +10,7 @@ import { TimelineNoDates } from "@/components/timeline/TimelineNoDates";
 import { InitiativeDetailDrawer } from "@/components/initiatives/InitiativeDetailDrawer";
 import { TaskDetailDrawer } from "@/components/tasks/TaskDetailDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { CalendarRange, ChevronDown, ChevronRight } from "lucide-react";
 
 export interface TimelineInitiative extends Initiative {
