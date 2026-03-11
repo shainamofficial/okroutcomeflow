@@ -173,6 +173,7 @@ export function TimelineMilestone({
                 className="w-auto p-2" 
                 align="start"
                 onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="grid grid-cols-5 gap-1">
                   {/* Default option */}
