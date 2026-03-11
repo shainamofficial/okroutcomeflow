@@ -1,60 +1,92 @@
 
 
-## Initiative Detail Page with Gantt Timeline
+# Plan: Board View for Initiatives and Tasks
 
-### Problem
-Currently, initiative owners can only see the shared summary page after sharing it externally. There's no way to preview or use it as an internal initiative page. The shared page also lacks a proper Gantt/timeline view of tasks.
+## Overview
+Add a Kanban-style Board view as an alternative to the existing list view on the Initiatives page. Users can toggle between "List" and "Board" views. The board organizes initiatives into columns by status, and each initiative card can be expanded to see its tasks, also organized by task status.
 
-### Solution
-Create a dedicated **Initiative Page** at `/app/initiatives/:id` that serves as the full detail view for an initiative. This page will be accessible to all authenticated org members and will include a read-only Gantt timeline of tasks. The external shared page (`/share/initiative/:token`) will also be upgraded to include the same Gantt view with limited interactivity (zoom/group controls only).
+## How It Works
 
-### What the Initiative Page Shows
+### View Toggle
+A segmented control (List | Board) will be added to the Initiatives page header, next to the existing "Create Initiative" button. The current list view remains the default; clicking "Board" switches to the Kanban layout.
 
-1. **Header** -- Title, status badge, owner, date range, description
-2. **Task Progress** -- Completion bar (done/total)
-3. **Mini Gantt Timeline** -- Read-only timeline of tasks/subtasks using existing `TimelineChart` rendering logic but simplified (no drag, no dependency arrows, no color picker). Viewer controls: zoom level (day/week/month/quarter) and group-by toggle
-4. **Linked Key Results** -- KR cards with metric progress bars
-5. **Updates & Comments** -- Activity feed (read-only on shared page, interactive on internal page)
-6. **File Attachments** -- (internal page only)
+### Board Layout
+- **4 columns**: Not Started, In Progress, Completed, Blocked
+- Each column displays initiative cards belonging to that status
+- Cards show: title, owner, date range, linked KR count, task count
+- Clicking a card opens the existing InitiativeDetailDrawer
+- Edit/delete actions remain accessible via card buttons
 
-### Implementation
+### Drag and Drop
+- Users can drag initiative cards between columns to change their status
+- Uses HTML5 drag-and-drop (no additional library needed)
+- Only users with edit permissions (admin, manager, or owner) can drag
+- Dropping a card triggers the existing `updateInitiative` mutation
 
-#### 1. New Page: `src/pages/InitiativeDetail.tsx`
-- Protected route at `/app/initiatives/:id`
-- Fetches initiative via `useInitiatives()`, tasks via `useTasks(initiativeId)`, KR links via `useInitiativeKRLinks(initiativeId)`
-- Renders header, progress, embedded mini Gantt, KRs, activity feed, file attachments
-- Includes Share button for owners/managers
-- Full interactivity (edit initiative, manage tasks via drawers)
+### Task Sub-Board (Expandable)
+- Each initiative card has a "Tasks" expand toggle
+- When expanded, tasks appear as a mini horizontal Kanban (Todo, In Progress, Blocked, Done)
+- Tasks can also be dragged between status columns
 
-#### 2. New Component: `src/components/initiatives/InitiativeGantt.tsx`
-- A self-contained mini Gantt component that takes tasks array and renders a simplified timeline
-- Accepts `readOnly` prop (disables drag/resize/color picker)
-- Includes its own zoom level and group-by controls (the only interactive elements for shared viewers)
-- Reuses existing `TimelineChart` internals (bar rendering, date math, today line) but without dependency arrows or inline create
-- Used by both `InitiativeDetail.tsx` (internal) and `SharedInitiative.tsx` (external)
+### Navigation
+- Add a new route `/app/board` with a sidebar entry
+- Or: keep it as a view toggle on the existing `/app/initiatives` page (preferred -- no new route needed)
 
-#### 3. Update `src/pages/SharedInitiative.tsx`
-- Replace the current flat task list with the new `InitiativeGantt` component in read-only mode
-- Pass the tasks data from the edge function response into the Gantt
-- Viewer can change zoom level and grouping -- no other controls
+I'll go with the **view toggle approach** on the existing Initiatives page to keep navigation simple.
 
-#### 4. Route Changes in `src/App.tsx`
-- Add protected route: `/app/initiatives/:id` → `InitiativeDetail`
+---
 
-#### 5. Navigation Integration
-- Update `InitiativeCard.tsx` to navigate to `/app/initiatives/:id` on click instead of opening the drawer
-- Keep the drawer available as an option (e.g., from timeline clicks)
+## Files to Create
 
-### Files Summary
+| File | Purpose |
+|------|---------|
+| `src/components/initiatives/BoardView.tsx` | Main board layout with 4 status columns |
+| `src/components/initiatives/BoardColumn.tsx` | Single status column with drop zone |
+| `src/components/initiatives/BoardInitiativeCard.tsx` | Draggable initiative card for the board |
+| `src/components/initiatives/BoardTaskRow.tsx` | Mini task status columns within an expanded initiative |
 
-| File | Change |
-|------|--------|
-| `src/pages/InitiativeDetail.tsx` | New: full initiative detail page |
-| `src/components/initiatives/InitiativeGantt.tsx` | New: reusable mini Gantt for single initiative |
-| `src/pages/SharedInitiative.tsx` | Replace task list with `InitiativeGantt` (read-only) |
-| `src/App.tsx` | Add `/app/initiatives/:id` route |
-| `src/components/initiatives/InitiativeCard.tsx` | Navigate to detail page on click |
+## Files to Modify
 
-### No Backend Changes
-All data already exists. The internal page uses existing hooks; the shared page already receives tasks from the edge function.
+| File | Changes |
+|------|---------|
+| `src/pages/Initiatives.tsx` | Add view toggle state (list/board), render BoardView when board is selected, pass filtered initiatives |
+
+---
+
+## Technical Details
+
+### View Toggle Component
+Uses the existing Tabs component from the UI library to switch between "List" and "Board" views. State is local (not persisted to URL or database).
+
+### Drag-and-Drop Implementation
+Uses native HTML5 drag-and-drop API:
+- `draggable` attribute on cards
+- `onDragStart` sets the initiative/task ID and type in `dataTransfer`
+- `onDragOver` on columns to allow drops and show visual hover state
+- `onDrop` reads the ID and calls `updateInitiative.mutate({ id, status: columnStatus })`
+
+### Column Layout
+```text
++----------------+----------------+----------------+----------------+
+|  Not Started   |  In Progress   |   Completed    |    Blocked     |
++----------------+----------------+----------------+----------------+
+| [Card]         | [Card]         | [Card]         | [Card]         |
+| [Card]         |                |                |                |
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+```
+
+### Board Initiative Card Content
+- Title + status badge
+- Owner name
+- Date range (if set)
+- KR link count
+- Task count with completion ratio (e.g., "3/5 tasks done")
+- Edit/Delete buttons (permission-gated)
+
+### Filters
+The existing `InitiativeFilters` component will work for both views. Filters apply to the board the same way they apply to the list -- initiatives not matching filters are hidden from the board columns.
+
+### Responsive Behavior
+On mobile, columns stack vertically or become horizontally scrollable to maintain usability.
 

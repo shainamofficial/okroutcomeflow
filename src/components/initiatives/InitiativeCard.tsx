@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { InitiativeStatusBadge } from "./InitiativeStatusBadge";
 import { EditInitiativeDialog } from "./EditInitiativeDialog";
 import { DeleteInitiativeDialog } from "./DeleteInitiativeDialog";
-import { InitiativeDetailDrawer } from "./InitiativeDetailDrawer";
 import { format } from "date-fns";
 import { useTasks } from "@/hooks/useTasks";
 import { InitiativeProgressBar } from "./InitiativeProgressBar";
@@ -20,7 +20,7 @@ interface InitiativeCardProps {
 export function InitiativeCard({ initiative }: InitiativeCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [showDetail, setShowDetail] = useState(false);
+  const navigate = useNavigate();
   const { profile, roles } = useAuth();
   const { links } = useInitiativeKRLinks(initiative.id);
   const { tasks } = useTasks(initiative.id);
@@ -33,7 +33,7 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
     <>
       <Card
         className="cursor-pointer hover:shadow-card-hover border-border/60 transition-all duration-200 group"
-        onClick={() => setShowDetail(true)}
+        onClick={() => navigate(`/app/initiatives/${initiative.id}`)}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
@@ -125,7 +125,6 @@ export function InitiativeCard({ initiative }: InitiativeCardProps) {
         <EditInitiativeDialog initiative={initiative} open={showEdit} onOpenChange={setShowEdit} />
       )}
       <DeleteInitiativeDialog initiative={initiative} open={showDelete} onOpenChange={setShowDelete} />
-      <InitiativeDetailDrawer initiative={initiative} open={showDetail} onOpenChange={setShowDetail} />
     </>
   );
 }

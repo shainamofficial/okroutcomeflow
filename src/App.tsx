@@ -38,6 +38,7 @@ import TableView from "./pages/TableView";
 import Automations from "./pages/Automations";
 import NotificationSettings from "./pages/NotificationSettings";
 import SharedInitiative from "./pages/SharedInitiative";
+import InitiativeDetail from "./pages/InitiativeDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -129,6 +130,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Initiatives />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/initiatives/:id"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <InitiativeDetail />
                   </AppLayout>
                 </ProtectedRoute>
               }
