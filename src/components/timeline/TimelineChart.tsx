@@ -39,6 +39,7 @@ export interface TimelineChartHandle {
 interface TimelineChartProps {
   initiatives: TimelineInitiative[];
   zoomLevel: ZoomLevel;
+  onZoomLevelChange: (level: ZoomLevel) => void;
   canDragInitiative: (initiative: Initiative) => boolean;
   canDragTask: (
     task: Task & { initiative: { id: string; organization_id: string } },
