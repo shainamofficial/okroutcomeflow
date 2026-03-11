@@ -239,6 +239,9 @@ export default function Timeline() {
         density={density}
         onDensityChange={setDensity}
         onScrollToToday={handleScrollToToday}
+        onAutofit={handleAutofit}
+        meMode={meMode}
+        onMeModeChange={setMeMode}
       />
 
       {isLoading ? (
