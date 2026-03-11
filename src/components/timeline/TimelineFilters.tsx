@@ -60,6 +60,9 @@ export function TimelineFilters({
   density,
   onDensityChange,
   onScrollToToday,
+  onAutofit,
+  meMode,
+  onMeModeChange,
 }: TimelineFiltersProps) {
   const { users } = useOrgUsers();
   const { teams } = useTeams();
