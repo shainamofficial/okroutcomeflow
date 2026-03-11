@@ -66,6 +66,12 @@ export function InitiativeDetailDrawer({
           <SheetTitle className="flex items-center gap-2 flex-wrap">
             {initiative.title}
             <InitiativeStatusBadge status={initiative.status} />
+            {canShare && (
+              <Button size="sm" variant="outline" className="ml-auto" onClick={() => setShareOpen(true)}>
+                <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                Share
+              </Button>
+            )}
           </SheetTitle>
           {initiative.description && (
             <SheetDescription>{initiative.description}</SheetDescription>
