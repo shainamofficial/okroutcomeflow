@@ -44,6 +44,7 @@ export default function Timeline() {
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("month");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [density, setDensity] = useState<DensityMode>("comfortable");
+  const [meMode, setMeMode] = useState(false);
 
   // Collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
