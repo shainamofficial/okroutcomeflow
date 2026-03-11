@@ -154,6 +154,7 @@ export function TimelineMilestone({
                   size="icon"
                   className="absolute -top-3 -right-3 h-5 w-5 opacity-0 group-hover/milestone:opacity-100 transition-opacity bg-background border shadow-sm"
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                   disabled={!canDrag}
                 >
                   {customColor && customColor in TIMELINE_COLORS ? (
