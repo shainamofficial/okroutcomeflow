@@ -1,57 +1,69 @@
 
 
-## Configurable Triggers & Actions for Automations
+## Human-readable Automation Descriptions + Better Empty State
 
-Rewrite the create-automation dialog in `src/pages/Automations.tsx` so each rule captures the specific status / recipient / message it needs. Today both `trigger_config` and `action_config` are saved as `{}`, making rules ambiguous at execution time.
+Make automation cards self-explanatory by rendering a full sentence (with the configured status / recipient values) instead of the current generic "trigger label → action label" pair. Also expand the empty state with a concrete example.
 
 ### File: `src/pages/Automations.tsx`
 
 **Imports**
-- Add `Textarea` from `@/components/ui/textarea`.
-- Add `DialogDescription` to the existing `@/components/ui/dialog` import.
-- Add `InfoTooltip` from `@/components/ui/InfoTooltip`.
+- Drop `ArrowRight` from the `lucide-react` import (no longer used).
 
-**Extend the constants (keep existing shape, add schema metadata)**
+**New helper (module scope, above `export default`)**
 
-Add a `config` field describing required keys + their option lists:
+```ts
+const titleCase = (s: string) =>
+  s.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-- `TRIGGERS`
-  - `task_status_change` → `config: { to_status: { label: "When status changes to", options: ["todo","in_progress","blocked","done"], required: true } }`
-  - `all_tasks_done` → `config: {}`
-  - `initiative_status_change` → `config: { to_status: { label: "When status changes to", options: ["not_started","in_progress","completed","blocked"], required: true } }`
-  - `due_date_passed` → `config: { object_type: { label: "Applies to", options: ["task","initiative"], required: true } }`
+function describeAutomation(auto: { trigger_type: string; trigger_config: any; action_type: string; action_config: any; }): string {
+  const tc = auto.trigger_config || {};
+  const ac = auto.action_config || {};
 
-- `ACTIONS`
-  - `change_initiative_status` → `config: { to_status: { label: "Change initiative status to", options: ["not_started","in_progress","completed","blocked"], required: true } }`
-  - `change_task_status` → `config: { to_status: { label: "Change task status to", options: ["todo","in_progress","blocked","done"], required: true } }`
-  - `send_notification` → `config: { recipient: { label: "Notify", options: ["initiative_owner","task_assignee","all_admins"], required: true }, message: { label: "Message", type: "textarea", required: false } }`
-  - `create_update` → `config: { content: { label: "Update content", type: "textarea", required: true } }`
+  let triggerClause: string;
+  switch (auto.trigger_type) {
+    case "task_status_change":
+      triggerClause = `When a task becomes ${titleCase(tc.to_status ?? "")}`; break;
+    case "initiative_status_change":
+      triggerClause = `When an initiative becomes ${titleCase(tc.to_status ?? "")}`; break;
+    case "all_tasks_done":
+      triggerClause = "When all tasks in an initiative are done"; break;
+    case "due_date_passed":
+      triggerClause = tc.object_type === "initiative"
+        ? "When an initiative's due date passes"
+        : "When a task's due date passes";
+      break;
+    default:
+      triggerClause = TRIGGERS.find(t => t.value === auto.trigger_type)?.label ?? auto.trigger_type;
+  }
 
-**State**
-- `triggerConfig: Record<string, any>` (default `{}`)
-- `actionConfig: Record<string, any>` (default `{}`)
-- Wrap `setTrigger` / `setAction` so changing either resets the corresponding config to `{}`.
-- Also reset both configs (and name) inside `onSuccess`, alongside the existing resets.
+  let actionClause: string;
+  switch (auto.action_type) {
+    case "change_initiative_status":
+      actionClause = `change its initiative to ${titleCase(ac.to_status ?? "")}`; break;
+    case "change_task_status":
+      actionClause = `set the task to ${titleCase(ac.to_status ?? "")}`; break;
+    case "send_notification":
+      actionClause = `notify the ${(ac.recipient ?? "").replace(/_/g, " ")}`; break;
+    case "create_update":
+      actionClause = "post an update"; break;
+    default:
+      actionClause = ACTIONS.find(a => a.value === auto.action_type)?.label ?? auto.action_type;
+  }
 
-**Helpers**
-- `isConfigComplete()` — looks up the selected trigger/action definitions and returns `false` if any field marked `required: true` is missing or empty in the corresponding config state. Returns `true` when nothing is selected yet (gate is the existing `!trigger || !action` check).
-- A small inline `renderConfigFields(schema, value, onChange)` function renders each field — `Select` for option lists, `Textarea` when `type: "textarea"`. Only invoked when the schema has at least one key.
+  return `${triggerClause}, ${actionClause}.`;
+}
+```
 
-**Dialog body changes**
-- Add `<DialogDescription>` under `DialogTitle`: *"Build a when-then rule. OKRoutcomeFlow will run it automatically whenever the trigger event happens."*
-- Next to the **When (Trigger)** label add `<InfoTooltip>`: *"The event that starts this automation."*
-- Next to the **Then (Action)** label add `<InfoTooltip>`: *"What OKRoutcomeFlow does when the trigger fires."*
-- Below the trigger `Select`, when a trigger is chosen and its schema is non-empty, render a block:
-  ```
-  <div className="rounded-md border bg-muted/30 p-3 space-y-3">
-    <div className="text-xs font-medium text-muted-foreground">Trigger details</div>
-    {renderConfigFields(...)}
-  </div>
-  ```
-- Identical block below the action select titled **"Action details"**.
-- Disable the Create button when `!name || !trigger || !action || !isConfigComplete() || createAutomation.isPending`.
-- Pass `trigger_config: triggerConfig` and `action_config: actionConfig` into `createAutomation.mutate(...)`.
+**Card render change** (inside `automations.map`):
+- Remove the `triggerLabel` / `actionLabel` consts and the `<div>` containing them + `<ArrowRight />`.
+- Replace with: `<p className="text-xs text-muted-foreground mt-0.5">{describeAutomation(auto)}</p>`.
+- Keep the name + Disabled badge row, the Switch, and the delete button untouched.
+
+**Empty state**
+- Replace the current single `<p>` with a two-line explanation:
+  > "Automations run when-then rules in the background. For example: when a task becomes Done, automatically mark its initiative as Completed."
+- Below the paragraph, render the existing **New Automation** dialog trigger button when `canManage` (re-using the same `Dialog` open state already in scope, e.g. an additional `<Button onClick={() => setOpen(true)}>` with the `Plus` icon and `mt-4` spacing). The header's dialog instance handles the actual dialog mount; the empty-state button just opens it.
 
 ### Out of scope
-No changes to `useAutomations.ts`, the automations list rendering, or any other file. Status option labels stay as raw enum strings (matches existing badges elsewhere); no label-prettifying map is introduced.
+No changes to constants, hooks, or any other file. Loading skeleton and dialog body stay as-is.
 
