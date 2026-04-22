@@ -1,37 +1,30 @@
-` tags as specified in my instructions.
 
-<lov-plan>
 
-## Replace Boilerplate README and Add `.env.example`
+## Fix Edit Button Affordance + Promote Native Titles to Tooltips
 
-The current `README.md` is unchanged Lovable boilerplate (still contains `REPLACE_WITH_PROJECT_ID`). Replace it with a real project README and add a `.env.example` at the repo root so contributors know which Supabase keys to fill in.
+In `src/components/okrs/KeyResultItem.tsx`, replace the misleading "click → destructive toast" pattern on the Edit button with a visibly disabled button + explanatory tooltip, and upgrade the other three native `title` attributes on the row's icon buttons to proper Radix tooltips.
 
-### Files
+### File: `src/components/okrs/KeyResultItem.tsx`
 
-**Edited:** `README.md` — full rewrite with these sections in order:
+- Add `Tooltip`, `TooltipContent`, `TooltipTrigger` to existing imports from `@/components/ui/tooltip`.
+- Remove the `useToast` import and the `const { toast } = useToast();` line — no longer used in this file.
+- Remove the `handleEditClick` function entirely.
+- Remove every `title="..."` attribute from the four icon buttons in the action row.
 
-1. Title: **OKRoutcomeFlow**
-2. One-paragraph positioning: lightweight OKR tool that connects strategy to the day-to-day work that moves it; for small-to-mid product/ops teams that have outgrown spreadsheets but don't want to learn Jira.
-3. **What it does** — bulleted explanation of Objectives, Key Results, Initiatives, Tasks; plus a one-line summary of roles, reviews, timeline/calendar/workload/table/board views, automations, custom fields, file attachments, mentions, activity log, and notifications.
-4. **Tech stack** — Vite + React + TypeScript; Tailwind + shadcn/ui + Radix; TanStack Query; Supabase (Postgres + Auth + RLS); react-router-dom; Vitest; note that it was scaffolded with Lovable.
-5. **Local setup** — bash block: `git clone`, `cd`, `npm install`, `cp .env.example .env` (with note to fill in Supabase values), `npm run dev`, and `http://localhost:5173`.
-6. **Environment variables** — markdown table documenting `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. Followed by a blockquote warning: the anon key is safe to expose only if every Postgres table has RLS enabled and scoped policies; audit RLS before going to production.
-7. **Supabase setup** — references the `supabase/` folder; shows `supabase link --project-ref <ref>` and `supabase db push`.
-8. **Scripts** — markdown table for `dev`, `build`, `preview`, `lint`, `test`.
-9. **Roles** — markdown table: Contributor, Manager, Admin, Platform admin, each with a brief "Can do" description.
-10. **Deploy** — Vite SPA backed by Supabase; deploy `dist/` to any static host (Vercel, Netlify, Cloudflare Pages, S3 + CloudFront), or use Lovable's Share → Publish.
-11. **Contributing** and **License: MIT** lines at the bottom.
+For each of the four icon buttons in the hover-action group, replace the bare `<Button …>` with a `<Tooltip delayDuration={300}>` wrapping `<TooltipTrigger asChild>` + the button + `<TooltipContent>`:
 
-**New:** `.env.example` at repo root — three keys set to empty strings, preceded by a one-line comment pointing to Supabase Dashboard → Settings → API:
+1. **View metrics** (`BarChart3`) — unchanged behaviour, tooltip text `"View metrics"`.
+2. **Add sub Key Result** (`Plus`, gated by `canManage`) — tooltip text `"Add sub Key Result"`.
+3. **Edit** (`Pencil`) — split by `canEdit`:
+   - `canEdit === true`: `onClick={() => setShowEditKR(true)}`, tooltip text `"Edit"`.
+   - `canEdit === false`: button gets `disabled={true}`. Because disabled buttons don't fire pointer events, `TooltipTrigger asChild` wraps a `<span tabIndex={0}>` that wraps the disabled `<Button>`. Tooltip text: `"You can only edit Key Results that you own."`
+4. **Delete** (`Trash2`, gated by `canManage`) — tooltip text `"Delete"`.
 
-```
-# Supabase — all client-safe (publishable) values only.
-# Get these from: Supabase Dashboard → Settings → API
-VITE_SUPABASE_PROJECT_ID=""
-VITE_SUPABASE_URL=""
-VITE_SUPABASE_PUBLISHABLE_KEY=""
-```
+All four tooltips use `delayDuration={300}`. No `side` override needed (default is fine for a horizontal action row).
+
+### Unchanged
+Child KR recursion, dialog state, `KRDetailPanel`, permission constants (`canManage`, `canEdit`, `isOwner`), progress bar, badges, and the row's outer layout all stay exactly as they are. `TooltipProvider` is already mounted app-wide so no provider is added here.
 
 ### Out of scope
-No other files. No code, dependency, or schema changes.
+No other files. No changes to hooks, types, or styling tokens.
 
