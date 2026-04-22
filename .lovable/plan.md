@@ -1,23 +1,23 @@
 
 
-## Wrap KR Status Badge in Explanatory Tooltip
+## Add Hover Tooltips to Sidebar Nav Items
 
-Add a hover tooltip to `KRStatusBadge` that explains what each status means. No other files change.
+Each item in `AppSidebar` will show a right-side tooltip with a short description of what that section does. Navigation logic, role gating, and styling stay identical.
 
-### File: `src/components/okrs/KRStatusBadge.tsx`
+### File: `src/components/app/AppSidebar.tsx`
 
-- Import `Tooltip`, `TooltipContent`, `TooltipTrigger` from `@/components/ui/tooltip`.
-- Extend `statusConfig` entries from `{ label, variant }` → `{ label, variant, explanation }` with this copy:
-  - **no_config** — "This KR has no metric configured yet. Click it and set up a metric (name, unit, start, target, dates) to start tracking progress."
-  - **no_data** — "Metric is configured but no values have been logged yet. Add a metric value to see progress and status."
-  - **on_track** — "Today's value is at or above the expected line for this date. At this pace, the KR will hit its target by the end date."
-  - **at_risk** — "Behind the expected pace, but recoverable. Action is needed soon or this KR will slip into Off Track."
-  - **off_track** — "Significantly behind the expected pace. Without intervention or a target change, this KR will not hit its goal."
-- Wrap the `Badge` in `<Tooltip delayDuration={150}>` with `<TooltipTrigger asChild>`.
-- Merge `"cursor-help"` into the Badge `className` via `cn`.
-- `TooltipContent` uses `className="max-w-xs text-xs leading-relaxed"`. Inside: a `<p className="font-medium">{label}</p>` and below it a `<p className="text-muted-foreground">{explanation}</p>`.
-- `KRStatus` type and variant mappings are unchanged.
+- Import `Tooltip`, `TooltipContent`, `TooltipTrigger` from `@/components/ui/tooltip`. Also import the `LucideIcon` type from `lucide-react` to type the `icon` field.
+- Define `type NavItem = { title: string; url: string; icon: LucideIcon; description: string }` and annotate `navItems`, `managerItems`, `adminItems`, and `platformItems` as `NavItem[]`.
+- Add a `description` field to every entry, using the provided copy verbatim:
+  - Dashboard, My Items, OKRs, Initiatives, Table, Timeline, Calendar, Workload, Reviews, Activity Log, Automations, Notifications
+  - User Management, Teams
+  - Organization Settings
+  - Platform
+- In `renderMenu`, wrap the existing `NavLink` (still inside `<SidebarMenuButton asChild>`) with:
+  - `<Tooltip delayDuration={300}>`
+  - `<TooltipTrigger asChild>` around the unchanged `NavLink` (same classes, icon, label)
+  - `<TooltipContent side="right" className="max-w-xs text-xs leading-relaxed">` containing `<p className="font-medium">{item.title}</p>` and `<p className="text-muted-foreground">{item.description}</p>`
 
 ### Out of scope
-No other files touched. Component API (`status`, `className` props) unchanged.
+No other files touched. Existing classes, role gating, group structure, and active-state styling remain identical. `TooltipProvider` is already mounted app-wide.
 
