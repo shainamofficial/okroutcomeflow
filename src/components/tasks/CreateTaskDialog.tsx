@@ -31,6 +31,7 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTasks, TaskStatus } from "@/hooks/useTasks";
 import { AssigneeSelector, AssigneeType } from "./AssigneeSelector";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface CreateTaskDialogProps {
   initiativeId: string;
