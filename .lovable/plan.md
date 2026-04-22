@@ -1,30 +1,57 @@
 
 
-## Fix Edit Button Affordance + Promote Native Titles to Tooltips
+## Configurable Triggers & Actions for Automations
 
-In `src/components/okrs/KeyResultItem.tsx`, replace the misleading "click → destructive toast" pattern on the Edit button with a visibly disabled button + explanatory tooltip, and upgrade the other three native `title` attributes on the row's icon buttons to proper Radix tooltips.
+Rewrite the create-automation dialog in `src/pages/Automations.tsx` so each rule captures the specific status / recipient / message it needs. Today both `trigger_config` and `action_config` are saved as `{}`, making rules ambiguous at execution time.
 
-### File: `src/components/okrs/KeyResultItem.tsx`
+### File: `src/pages/Automations.tsx`
 
-- Add `Tooltip`, `TooltipContent`, `TooltipTrigger` to existing imports from `@/components/ui/tooltip`.
-- Remove the `useToast` import and the `const { toast } = useToast();` line — no longer used in this file.
-- Remove the `handleEditClick` function entirely.
-- Remove every `title="..."` attribute from the four icon buttons in the action row.
+**Imports**
+- Add `Textarea` from `@/components/ui/textarea`.
+- Add `DialogDescription` to the existing `@/components/ui/dialog` import.
+- Add `InfoTooltip` from `@/components/ui/InfoTooltip`.
 
-For each of the four icon buttons in the hover-action group, replace the bare `<Button …>` with a `<Tooltip delayDuration={300}>` wrapping `<TooltipTrigger asChild>` + the button + `<TooltipContent>`:
+**Extend the constants (keep existing shape, add schema metadata)**
 
-1. **View metrics** (`BarChart3`) — unchanged behaviour, tooltip text `"View metrics"`.
-2. **Add sub Key Result** (`Plus`, gated by `canManage`) — tooltip text `"Add sub Key Result"`.
-3. **Edit** (`Pencil`) — split by `canEdit`:
-   - `canEdit === true`: `onClick={() => setShowEditKR(true)}`, tooltip text `"Edit"`.
-   - `canEdit === false`: button gets `disabled={true}`. Because disabled buttons don't fire pointer events, `TooltipTrigger asChild` wraps a `<span tabIndex={0}>` that wraps the disabled `<Button>`. Tooltip text: `"You can only edit Key Results that you own."`
-4. **Delete** (`Trash2`, gated by `canManage`) — tooltip text `"Delete"`.
+Add a `config` field describing required keys + their option lists:
 
-All four tooltips use `delayDuration={300}`. No `side` override needed (default is fine for a horizontal action row).
+- `TRIGGERS`
+  - `task_status_change` → `config: { to_status: { label: "When status changes to", options: ["todo","in_progress","blocked","done"], required: true } }`
+  - `all_tasks_done` → `config: {}`
+  - `initiative_status_change` → `config: { to_status: { label: "When status changes to", options: ["not_started","in_progress","completed","blocked"], required: true } }`
+  - `due_date_passed` → `config: { object_type: { label: "Applies to", options: ["task","initiative"], required: true } }`
 
-### Unchanged
-Child KR recursion, dialog state, `KRDetailPanel`, permission constants (`canManage`, `canEdit`, `isOwner`), progress bar, badges, and the row's outer layout all stay exactly as they are. `TooltipProvider` is already mounted app-wide so no provider is added here.
+- `ACTIONS`
+  - `change_initiative_status` → `config: { to_status: { label: "Change initiative status to", options: ["not_started","in_progress","completed","blocked"], required: true } }`
+  - `change_task_status` → `config: { to_status: { label: "Change task status to", options: ["todo","in_progress","blocked","done"], required: true } }`
+  - `send_notification` → `config: { recipient: { label: "Notify", options: ["initiative_owner","task_assignee","all_admins"], required: true }, message: { label: "Message", type: "textarea", required: false } }`
+  - `create_update` → `config: { content: { label: "Update content", type: "textarea", required: true } }`
+
+**State**
+- `triggerConfig: Record<string, any>` (default `{}`)
+- `actionConfig: Record<string, any>` (default `{}`)
+- Wrap `setTrigger` / `setAction` so changing either resets the corresponding config to `{}`.
+- Also reset both configs (and name) inside `onSuccess`, alongside the existing resets.
+
+**Helpers**
+- `isConfigComplete()` — looks up the selected trigger/action definitions and returns `false` if any field marked `required: true` is missing or empty in the corresponding config state. Returns `true` when nothing is selected yet (gate is the existing `!trigger || !action` check).
+- A small inline `renderConfigFields(schema, value, onChange)` function renders each field — `Select` for option lists, `Textarea` when `type: "textarea"`. Only invoked when the schema has at least one key.
+
+**Dialog body changes**
+- Add `<DialogDescription>` under `DialogTitle`: *"Build a when-then rule. OKRoutcomeFlow will run it automatically whenever the trigger event happens."*
+- Next to the **When (Trigger)** label add `<InfoTooltip>`: *"The event that starts this automation."*
+- Next to the **Then (Action)** label add `<InfoTooltip>`: *"What OKRoutcomeFlow does when the trigger fires."*
+- Below the trigger `Select`, when a trigger is chosen and its schema is non-empty, render a block:
+  ```
+  <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+    <div className="text-xs font-medium text-muted-foreground">Trigger details</div>
+    {renderConfigFields(...)}
+  </div>
+  ```
+- Identical block below the action select titled **"Action details"**.
+- Disable the Create button when `!name || !trigger || !action || !isConfigComplete() || createAutomation.isPending`.
+- Pass `trigger_config: triggerConfig` and `action_config: actionConfig` into `createAutomation.mutate(...)`.
 
 ### Out of scope
-No other files. No changes to hooks, types, or styling tokens.
+No changes to `useAutomations.ts`, the automations list rendering, or any other file. Status option labels stay as raw enum strings (matches existing badges elsewhere); no label-prettifying map is introduced.
 
