@@ -107,18 +107,28 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="flex items-center">
+                Title *
+                <InfoTooltip>
+                  A concrete, actionable work item. Start with a verb. Example: 'Draft referral email copy.'
+                </InfoTooltip>
+              </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
+                placeholder="e.g., Draft referral email copy"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="flex items-center">
+                Description
+                <InfoTooltip>
+                  Optional details, context, or acceptance criteria.
+                </InfoTooltip>
+              </Label>
               <Textarea
                 id="description"
                 value={description}
