@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { Zap, Plus, Trash2, ArrowRight } from "lucide-react";
+import { Zap, Plus, Trash2 } from "lucide-react";
 
 type ConfigField = {
   label: string;
@@ -122,6 +122,62 @@ const ACTIONS: { value: string; label: string; config: ConfigSchema }[] = [
     },
   },
 ];
+
+const titleCase = (s: string) =>
+  s.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+function describeAutomation(auto: {
+  trigger_type: string;
+  trigger_config: any;
+  action_type: string;
+  action_config: any;
+}): string {
+  const tc = auto.trigger_config || {};
+  const ac = auto.action_config || {};
+
+  let triggerClause: string;
+  switch (auto.trigger_type) {
+    case "task_status_change":
+      triggerClause = `When a task becomes ${titleCase(tc.to_status ?? "")}`;
+      break;
+    case "initiative_status_change":
+      triggerClause = `When an initiative becomes ${titleCase(tc.to_status ?? "")}`;
+      break;
+    case "all_tasks_done":
+      triggerClause = "When all tasks in an initiative are done";
+      break;
+    case "due_date_passed":
+      triggerClause =
+        tc.object_type === "initiative"
+          ? "When an initiative's due date passes"
+          : "When a task's due date passes";
+      break;
+    default:
+      triggerClause =
+        TRIGGERS.find((t) => t.value === auto.trigger_type)?.label ?? auto.trigger_type;
+  }
+
+  let actionClause: string;
+  switch (auto.action_type) {
+    case "change_initiative_status":
+      actionClause = `change its initiative to ${titleCase(ac.to_status ?? "")}`;
+      break;
+    case "change_task_status":
+      actionClause = `set the task to ${titleCase(ac.to_status ?? "")}`;
+      break;
+    case "send_notification":
+      actionClause = `notify the ${(ac.recipient ?? "").replace(/_/g, " ")}`;
+      break;
+    case "create_update":
+      actionClause = "post an update";
+      break;
+    default:
+      actionClause =
+        ACTIONS.find((a) => a.value === auto.action_type)?.label ?? auto.action_type;
+  }
+
+  return `${triggerClause}, ${actionClause}.`;
+}
 
 export default function Automations() {
   const { automations, isLoading, createAutomation, toggleAutomation, deleteAutomation } = useAutomations();
@@ -310,17 +366,20 @@ export default function Automations() {
             <Zap className="h-8 w-8 text-accent-foreground" />
           </div>
           <h2 className="text-xl font-bold font-display">No automations yet</h2>
-          <p className="text-muted-foreground mt-1 max-w-sm">
-            Create rules to automate repetitive tasks and status changes.
+          <p className="text-muted-foreground mt-1 max-w-md">
+            Automations run when-then rules in the background. For example: when a task becomes Done,
+            automatically mark its initiative as Completed.
           </p>
+          {canManage && (
+            <Button className="mt-4 gap-1.5" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Automation
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-3">
-          {automations.map((auto) => {
-            const triggerLabel = TRIGGERS.find((t) => t.value === auto.trigger_type)?.label || auto.trigger_type;
-            const actionLabel = ACTIONS.find((a) => a.value === auto.action_type)?.label || auto.action_type;
-
-            return (
+          {automations.map((auto) => (
               <Card key={auto.id} className="border-border/60">
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center shrink-0">
@@ -331,11 +390,7 @@ export default function Automations() {
                       <span className="font-medium text-sm">{auto.name}</span>
                       {!auto.enabled && <Badge variant="secondary" className="text-[10px]">Disabled</Badge>}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                      <span>{triggerLabel}</span>
-                      <ArrowRight className="h-3 w-3" />
-                      <span>{actionLabel}</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{describeAutomation(auto)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {canManage && (
@@ -357,8 +412,7 @@ export default function Automations() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })}
+          ))}
         </div>
       )}
     </div>
