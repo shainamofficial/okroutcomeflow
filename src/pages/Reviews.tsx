@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAllReviewSessions, ReviewSession } from "@/hooks/useReviews";
 import { ReviewStatusBadge } from "@/components/reviews/ReviewStatusBadge";
 import { ReviewSessionDrawer } from "@/components/reviews/ReviewSessionDrawer";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 export default function Reviews() {
   const { sessions, isLoading } = useAllReviewSessions();
@@ -61,9 +62,16 @@ export default function Reviews() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl sm:text-3xl font-bold">Reviews</h1>
+        <h1 className="text-xl sm:text-3xl font-bold inline-flex items-center">
+          Reviews
+          <InfoTooltip iconSize={16} className="ml-2">
+            A <strong>Cadence</strong> is a recurring rule — e.g., "every Monday at 10am". Each
+            time the rule fires, it creates a <strong>Session</strong> (one specific review
+            instance). Owners submit updates; managers review them together.
+          </InfoTooltip>
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base hidden sm:block">
-          Manage scheduled Key Result review sessions
+          Schedule recurring check-ins where KR owners report progress.
         </p>
       </div>
 
@@ -139,8 +147,10 @@ export default function Reviews() {
           <div className="space-y-3">
             <h2 className="font-semibold">Upcoming ({upcomingSessions.length})</h2>
             {upcomingSessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
-                No upcoming reviews. Configure review cadence on your Key Results to schedule reviews.
+              <p className="text-sm text-muted-foreground py-4 max-w-2xl">
+                No review cadences yet. Reviews turn OKRs from a quarterly planning exercise into
+                a weekly discipline. Start with a weekly cadence for your KR owners — it's the #1
+                driver of OKR adoption.
               </p>
             ) : (
               <div className="space-y-2">

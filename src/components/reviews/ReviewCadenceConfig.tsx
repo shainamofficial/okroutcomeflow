@@ -23,6 +23,7 @@ import {
   ReviewFrequency,
   calculateNextReviewDate,
 } from "@/hooks/useReviews";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 const DAYS_OF_WEEK = [
   { value: "0", label: "Sunday" },
@@ -98,7 +99,14 @@ export function ReviewCadenceConfig({ keyResultId, canManage }: ReviewCadenceCon
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4" />
-            <CardTitle className="text-base">Review Cadence</CardTitle>
+            <CardTitle className="text-base inline-flex items-center">
+              Review Cadence
+              <InfoTooltip>
+                A <strong>Cadence</strong> is a recurring rule. Each time it fires, it creates a{" "}
+                <strong>Session</strong> — one specific review instance with its own notes and
+                status.
+              </InfoTooltip>
+            </CardTitle>
           </div>
           {cadence && canManage && (
             <Button
@@ -122,7 +130,13 @@ export function ReviewCadenceConfig({ keyResultId, canManage }: ReviewCadenceCon
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Frequency</Label>
+              <Label className="inline-flex items-center">
+                Frequency
+                <InfoTooltip>
+                  How often the cadence fires. Weekly is best for tactical KRs; biweekly or
+                  monthly works for slower-moving strategic ones.
+                </InfoTooltip>
+              </Label>
               <Select 
                 value={frequency} 
                 onValueChange={handleFrequencyChange}
