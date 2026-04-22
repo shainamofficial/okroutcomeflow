@@ -1,25 +1,30 @@
 
 
-## First-Run Concept Walkthrough on Dashboard
+## Educational Empty State for OKRs Page
 
-A 4-step, dismissible onboarding dialog that teaches the Objective → Key Result → Initiative → Task model. Auto-opens once on first Dashboard visit, never again.
+Replace the bare empty state on the OKRs page with one that teaches what OKRs are, shows a worked example, and lists guidance tips. The loading state, page header, and the populated branch (mapping over objectives) remain unchanged.
 
-### Files
+### File: `src/pages/OKRs.tsx`
 
-**New:** `src/components/app/ConceptWalkthrough.tsx`
-- Imports: `Dialog`, `DialogContent`, `DialogDescription`, `DialogFooter`, `DialogHeader`, `DialogTitle` from `@/components/ui/dialog`; `Button`; `Target, Flag, Lightbulb, CheckSquare, ArrowRight, Sparkles` (+ `LucideIcon` type) from `lucide-react`; `cn` from `@/lib/utils`.
-- Persistence: localStorage key `"okr_concept_walkthrough_seen_v1"`. On mount, if missing → open. Skip / Get started / close → write `"1"` and close. Wrapped in try/catch.
-- State: `open: boolean`, `step: number` (0–3).
-- Steps (verbatim copy): Objectives (Flag, purple tile), Key Results (Target, blue), Initiatives (Lightbulb, amber), Tasks (CheckSquare, emerald) — each `{ icon, iconBg, title, subtitle, body, example }`.
-- Header: small `Sparkles` + "Welcome to OKRoutcomeFlow" pre-title (text-xs muted). `DialogTitle` "How this app works". `DialogDescription` "A 30-second tour of the four concepts that connect strategy to daily work."
-- Body: horizontal `flex gap-4`. Left: `h-10 w-10 rounded-lg` tile using `iconBg`, icon `h-5 w-5`. Right: title + subtitle inline (`text-xs text-muted-foreground`), body (`text-sm text-muted-foreground`), example card (`rounded-md border bg-muted/30 p-3 text-sm`) with "Example: " muted prefix and example in `font-medium`.
-- Progress dots: 4 buttons, `h-1.5 rounded-full`. Active = `w-6 bg-primary`, inactive = `w-1.5 bg-muted-foreground/30`. Clicking jumps to that step.
-- Footer (`sm:justify-between`): left = "Skip" (ghost) → dismiss. Right = "Back" (outline, only when `step > 0`), then "Next" (with `ArrowRight`) or "Get started" on the last step.
-
-**Edited:** `src/pages/Dashboard.tsx`
-- Add `import { ConceptWalkthrough } from "@/components/app/ConceptWalkthrough";` alongside existing component imports.
-- Render `<ConceptWalkthrough />` as the first child of the existing outer `<div className="space-y-8">`, above the welcome heading. Nothing else changes.
+- Add `Flag` and `CheckCircle2` to the existing `lucide-react` import. Import `ReactNode` from React.
+- Add two local components above the page component:
+  - **`Tip({ children })`** — flex row with a primary-colored `CheckCircle2` (`h-4 w-4 mt-0.5 shrink-0`) and muted `text-sm` body text.
+  - **`EmptyState({ canManage })`** — a `mx-auto max-w-2xl rounded-2xl border bg-card p-8 sm:p-10` card containing:
+    - **Centered header** — the existing `h-14 w-14 rounded-2xl bg-accent` `Target` tile, "No objectives yet" heading, and a muted paragraph: *"OKRs connect company strategy to daily work. Set a few ambitious **Objectives** for the cycle, then define 3–5 measurable **Key Results** under each."* (Objectives / Key Results wrapped in `<strong className="text-foreground">`).
+    - **Example card** (`rounded-lg border bg-muted/30 p-4`):
+      - Header: small `Flag` + "EXAMPLE" (`text-xs font-semibold uppercase tracking-wide text-muted-foreground`).
+      - Parent objective row: `Flag` icon + "Become the preferred marketplace for US jewelers" (`text-sm font-medium`).
+      - `border-l-2 border-muted pl-4` container with three KR rows — each a small `Target` icon + muted text; numbers wrapped in `<span className="text-foreground font-medium">`:
+        - "Grow monthly active buyers from **200** to **500**"
+        - "Reduce checkout drop-off from **38%** to **20%**"
+        - "Reach NPS of **50** from **32**"
+    - **Three `Tip` rows**:
+      - "Objectives are qualitative and inspirational — not tasks."
+      - "Key Results start with a verb and end with a number. Each has one owner."
+      - "Projects you run to move KRs live under **Initiatives**." (Initiatives bold)
+    - **Centered footer**: if `canManage` → `<CreateObjectiveDialog />`; else → centered muted line "Ask an admin or manager to create the first objective."
+- Replace only the `objectives.length === 0` branch in the page with `<EmptyState canManage={canManage} />`. The header section, loading branch, and `objectives.map(...)` rendering stay exactly as they are.
 
 ### Out of scope
-No other files. No backend, no analytics. Persistence is localStorage only (per-browser).
+No other files. No data, hook, or routing changes.
 
