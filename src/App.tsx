@@ -40,6 +40,7 @@ import NotificationSettings from "./pages/NotificationSettings";
 import SharedInitiative from "./pages/SharedInitiative";
 import InitiativeDetail from "./pages/InitiativeDetail";
 import NotFound from "./pages/NotFound";
+import Help from "./pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -210,6 +211,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Automations />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/help"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Help />
                   </AppLayout>
                 </ProtectedRoute>
               }
