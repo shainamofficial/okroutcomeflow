@@ -139,7 +139,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Assignee</Label>
+              <Label className="flex items-center">
+                Assignee
+                <InfoTooltip>
+                  One person responsible for completing this task. Different from the initiative owner.
+                </InfoTooltip>
+              </Label>
               <AssigneeSelector
                 assigneeType={assigneeType}
                 assigneeId={assigneeId}
@@ -148,7 +153,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="flex items-center">
+                Status
+                <InfoTooltip>
+                  Todo (not started), In Progress (being worked on), Blocked (stuck), Done (completed).
+                </InfoTooltip>
+              </Label>
               <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -164,7 +174,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label className="flex items-center">
+                  Start Date
+                  <InfoTooltip>
+                    When work on this task is expected to begin.
+                  </InfoTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
