@@ -19,6 +19,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { KRMetricConfig, MetricDirection, useKRMetricConfig } from "@/hooks/useKRMetrics";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface MetricConfigFormProps {
   keyResultId: string;
@@ -80,19 +81,33 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+        Configuring a metric lets the app calculate progress automatically. Progress moves linearly from <strong>Start Value</strong> to <strong>Target Value</strong> between the start and end dates, and status is based on how close today's value is to that line.
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="metric-name">Metric Name</Label>
+          <Label htmlFor="metric-name" className="flex items-center">
+            Metric Name
+            <InfoTooltip>
+              The thing you're measuring. Examples: MRR, Active Buyers, NPS, Checkout Conversion.
+            </InfoTooltip>
+          </Label>
           <Input
             id="metric-name"
             value={metricName}
             onChange={(e) => setMetricName(e.target.value)}
-            placeholder="e.g., Revenue"
+            placeholder="e.g., Monthly Active Buyers"
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="unit">Unit</Label>
+          <Label htmlFor="unit" className="flex items-center">
+            Unit
+            <InfoTooltip>
+              How the metric is counted. Examples: USD, %, users, NPS, hours, ms.
+            </InfoTooltip>
+          </Label>
           <Input
             id="unit"
             value={unit}
@@ -104,7 +119,16 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="direction">Direction</Label>
+        <Label htmlFor="direction" className="flex items-center">
+          Direction
+          <InfoTooltip>
+            <ul className="list-disc pl-4 space-y-1">
+              <li><strong>Increase</strong> — higher is better (revenue, signups, NPS)</li>
+              <li><strong>Decrease</strong> — lower is better (churn, latency, defects)</li>
+              <li><strong>Maintain</strong> — stay within a band (uptime ≥ 99.9%)</li>
+            </ul>
+          </InfoTooltip>
+        </Label>
         <Select value={direction} onValueChange={(v) => setDirection(v as MetricDirection)}>
           <SelectTrigger>
             <SelectValue />
@@ -119,7 +143,12 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="start-value">Start Value</Label>
+          <Label htmlFor="start-value" className="flex items-center">
+            Start Value
+            <InfoTooltip>
+              Where you are today — the baseline. This represents 0% progress. Example: current MAU = 200.
+            </InfoTooltip>
+          </Label>
           <Input
             id="start-value"
             type="number"
@@ -130,7 +159,12 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="target-value">Target Value</Label>
+          <Label htmlFor="target-value" className="flex items-center">
+            Target Value
+            <InfoTooltip>
+              Where you want to be by the end date. This represents 100% progress. Example: target MAU = 500.
+            </InfoTooltip>
+          </Label>
           <Input
             id="target-value"
             type="number"
@@ -144,7 +178,12 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Start Date</Label>
+          <Label className="flex items-center">
+            Start Date
+            <InfoTooltip>
+              When tracking begins. Progress is expected to move linearly from Start Value on this date to Target Value on the End Date.
+            </InfoTooltip>
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -170,7 +209,12 @@ export function MetricConfigForm({ keyResultId, config, onClose }: MetricConfigF
           </Popover>
         </div>
         <div className="space-y-2">
-          <Label>End Date</Label>
+          <Label className="flex items-center">
+            End Date
+            <InfoTooltip>
+              The deadline. "On Track" means today's value is at or above the expected line for today's date. Usually end of quarter.
+            </InfoTooltip>
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
