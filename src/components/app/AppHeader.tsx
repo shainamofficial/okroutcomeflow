@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { LogOut, ChevronDown, Check, Building2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LogOut, ChevronDown, Check, Building2, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
