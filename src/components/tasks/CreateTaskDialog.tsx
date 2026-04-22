@@ -31,6 +31,7 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTasks, TaskStatus } from "@/hooks/useTasks";
 import { AssigneeSelector, AssigneeType } from "./AssigneeSelector";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface CreateTaskDialogProps {
   initiativeId: string;
@@ -106,18 +107,28 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="flex items-center">
+                Title *
+                <InfoTooltip>
+                  A concrete, actionable work item. Start with a verb. Example: 'Draft referral email copy.'
+                </InfoTooltip>
+              </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
+                placeholder="e.g., Draft referral email copy"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="flex items-center">
+                Description
+                <InfoTooltip>
+                  Optional details, context, or acceptance criteria.
+                </InfoTooltip>
+              </Label>
               <Textarea
                 id="description"
                 value={description}
@@ -128,7 +139,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Assignee</Label>
+              <Label className="flex items-center">
+                Assignee
+                <InfoTooltip>
+                  One person responsible for completing this task. Different from the initiative owner.
+                </InfoTooltip>
+              </Label>
               <AssigneeSelector
                 assigneeType={assigneeType}
                 assigneeId={assigneeId}
@@ -137,7 +153,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="flex items-center">
+                Status
+                <InfoTooltip>
+                  Todo (not started), In Progress (being worked on), Blocked (stuck), Done (completed).
+                </InfoTooltip>
+              </Label>
               <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -153,7 +174,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label className="flex items-center">
+                  Start Date
+                  <InfoTooltip>
+                    When work on this task is expected to begin.
+                  </InfoTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -180,7 +206,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Due Date</Label>
+                <Label className="flex items-center">
+                  Due Date
+                  <InfoTooltip>
+                    When this task must be complete. Appears in Calendar and drives 'overdue' flags.
+                  </InfoTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
