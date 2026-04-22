@@ -12,6 +12,7 @@ import { OverdueTasks } from "@/components/dashboard/OverdueTasks";
 import { RecentUpdates } from "@/components/dashboard/RecentUpdates";
 import { InitiativeStatusChart } from "@/components/dashboard/InitiativeStatusChart";
 import { TaskCompletionWidget } from "@/components/dashboard/TaskCompletionWidget";
+import { ConceptWalkthrough } from "@/components/app/ConceptWalkthrough";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInitiatives } from "@/hooks/useInitiatives";
 import { useAllTasks } from "@/hooks/useTasks";
@@ -46,6 +47,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      <ConceptWalkthrough />
       <div>
         <h1 className="text-xl sm:text-3xl font-bold font-display">
           Welcome back, {firstName}
