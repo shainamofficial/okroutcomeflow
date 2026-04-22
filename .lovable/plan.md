@@ -1,47 +1,23 @@
 
 
-## Add Educational InfoTooltips to OKR Forms
+## Wrap KR Status Badge in Explanatory Tooltip
 
-Add contextual help (info icons) to the three OKR creation/configuration forms using the existing `InfoTooltip` component. No form logic, state, or submission handlers change.
+Add a hover tooltip to `KRStatusBadge` that explains what each status means. No other files change.
 
-### Files
+### File: `src/components/okrs/KRStatusBadge.tsx`
 
-**1. `src/components/okrs/CreateObjectiveDialog.tsx`**
-- Import `DialogDescription` and `InfoTooltip`.
-- Add `DialogDescription` under the title: *"A qualitative, inspirational statement of what you want to achieve this cycle. You'll add measurable Key Results under it in the next step."*
-- Title `Label` → `className="flex items-center"` + `InfoTooltip` with rich JSX: explains good Objectives are qualitative, ambitious, time-bound, meaningful; lists examples ("Become the preferred marketplace for US jewelers", "Delight customers with a world-class checkout").
-- Title `Input` placeholder → `"e.g., Become the preferred marketplace for US jewelers"`.
-- Description `Label` → `className="flex items-center"` + `InfoTooltip` about adding "why" context.
-- Description `Textarea` placeholder → `"Why this objective matters and who it's for"`.
-
-**2. `src/components/okrs/CreateKeyResultDialog.tsx`**
-- Imports: `DialogDescription`, `Alert`, `AlertDescription`, `GitBranch`, `InfoTooltip`.
-- Add `const isSubKR = Boolean(parentKrId)`; reuse for title text.
-- `DialogDescription` text branches on `isSubKR` (sub-KR vs. parent KR copy as specified).
-- When `isSubKR`, render an `Alert` with `GitBranch` icon above the form; `AlertDescription` (text-xs) with bold `<strong>Sub-KR:</strong>` lead-in.
-- Title `Label` → flex items-center + `InfoTooltip` with verb→number rule, good examples (MAB 200→500, checkout drop-off 38%→20%) and bad examples ("Launch new checkout" = initiative, "Improve buyer growth" = not measurable).
-- Title `Input` placeholder → `"e.g., Grow monthly active buyers from 200 to 500"`.
-- Description `Label` → flex items-center + `InfoTooltip` about optional context, definitions, caveats.
-- Description `Textarea` placeholder → `"How is this measured? Any caveats?"`.
-- Owner `Label` → flex items-center + `InfoTooltip` about single accountable point of contact.
-
-**3. `src/components/okrs/MetricConfigForm.tsx`**
-- Import `InfoTooltip`.
-- Above the first grid, add a helper banner:
-  ```tsx
-  <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-    Configuring a metric lets the app calculate progress automatically. Progress moves linearly from <strong>Start Value</strong> to <strong>Target Value</strong> between the start and end dates, and status is based on how close today's value is to that line.
-  </div>
-  ```
-- Add `className="flex items-center"` + `InfoTooltip` to each label:
-  - **Metric Name** — "the thing you're measuring", examples MRR, Active Buyers, NPS, Checkout Conversion. Placeholder → `"e.g., Monthly Active Buyers"`.
-  - **Unit** — "how the metric is counted", examples USD, %, users, NPS, hours, ms.
-  - **Direction** — bulleted list: Increase (higher better), Decrease (lower better), Maintain (band).
-  - **Start Value** — baseline = 0% progress; example MAU = 200.
-  - **Target Value** — end-date target = 100% progress; example MAU = 500.
-  - **Start Date** — when tracking begins; linear expectation between dates.
-  - **End Date** — deadline; "On Track" definition; usually end of quarter.
+- Import `Tooltip`, `TooltipContent`, `TooltipTrigger` from `@/components/ui/tooltip`.
+- Extend `statusConfig` entries from `{ label, variant }` → `{ label, variant, explanation }` with this copy:
+  - **no_config** — "This KR has no metric configured yet. Click it and set up a metric (name, unit, start, target, dates) to start tracking progress."
+  - **no_data** — "Metric is configured but no values have been logged yet. Add a metric value to see progress and status."
+  - **on_track** — "Today's value is at or above the expected line for this date. At this pace, the KR will hit its target by the end date."
+  - **at_risk** — "Behind the expected pace, but recoverable. Action is needed soon or this KR will slip into Off Track."
+  - **off_track** — "Significantly behind the expected pace. Without intervention or a target change, this KR will not hit its goal."
+- Wrap the `Badge` in `<Tooltip delayDuration={150}>` with `<TooltipTrigger asChild>`.
+- Merge `"cursor-help"` into the Badge `className` via `cn`.
+- `TooltipContent` uses `className="max-w-xs text-xs leading-relaxed"`. Inside: a `<p className="font-medium">{label}</p>` and below it a `<p className="text-muted-foreground">{explanation}</p>`.
+- `KRStatus` type and variant mappings are unchanged.
 
 ### Out of scope
-No other files modified. No barrel/index files updated. No changes to validation, submission, or state.
+No other files touched. Component API (`status`, `className` props) unchanged.
 
