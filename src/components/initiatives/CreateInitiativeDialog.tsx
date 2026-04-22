@@ -24,6 +24,7 @@ import { useInitiatives, InitiativeStatus } from "@/hooks/useInitiatives";
 import { useOrgUsers } from "@/hooks/useOrgUsers";
 import { useAllKeyResults, useObjectives } from "@/hooks/useOKRs";
 import { KRMultiSelect } from "./KRMultiSelect";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 export function CreateInitiativeDialog() {
   const [open, setOpen] = useState(false);
@@ -89,18 +90,29 @@ export function CreateInitiativeDialog() {
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="flex items-center">
+                Title *
+                <InfoTooltip>
+                  What you're going to do. An Initiative is a project or workstream that moves
+                  one or more Key Results. Example: "Launch referral program for existing buyers."
+                </InfoTooltip>
+              </Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter initiative title"
+                placeholder="e.g., Launch referral program for existing buyers"
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="flex items-center">
+                Description
+                <InfoTooltip>
+                  Optional scope, hypothesis, or context. Useful for teammates joining later.
+                </InfoTooltip>
+              </Label>
               <Textarea
                 id="description"
                 value={description}
@@ -129,7 +141,13 @@ export function CreateInitiativeDialog() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="flex items-center">
+                  Status
+                  <InfoTooltip>
+                    Not Started (planned, not begun), In Progress (actively being worked on),
+                    Completed (done and shipped), Blocked (can't proceed until something else resolves).
+                  </InfoTooltip>
+                </Label>
                 <Select
                   value={status}
                   onValueChange={(v) => setStatus(v as InitiativeStatus)}
@@ -140,8 +158,6 @@ export function CreateInitiativeDialog() {
                   <SelectContent>
                     <SelectItem value="not_started">Not Started</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="blocked">Blocked</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -149,7 +165,12 @@ export function CreateInitiativeDialog() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate" className="flex items-center">
+                  Start Date
+                  <InfoTooltip>
+                    When work begins. Used in Timeline and Workload views.
+                  </InfoTooltip>
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -159,7 +180,12 @@ export function CreateInitiativeDialog() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate" className="flex items-center">
+                  End Date
+                  <InfoTooltip>
+                    Target completion. Appears in Calendar and overdue lists.
+                  </InfoTooltip>
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -170,13 +196,31 @@ export function CreateInitiativeDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Linked Key Results</Label>
+              <Label className="flex items-center">
+                Linked Key Results
+                <InfoTooltip contentClassName="max-w-sm">
+                  <p className="font-medium mb-1">Which KRs this Initiative moves.</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>One Initiative can move multiple KRs.</li>
+                    <li>When you link a KR, this Initiative shows up on that KR's detail view.</li>
+                    <li>Use weights (0–1) when one Initiative contributes more to one KR than another.</li>
+                    <li>Weights default to equal if you don't set them.</li>
+                  </ul>
+                  <p className="mt-2 italic">
+                    Example: A pricing page redesign might be weight 0.7 toward "Increase conversion"
+                    and 0.3 toward "Reduce bounce rate".
+                  </p>
+                </InfoTooltip>
+              </Label>
               <KRMultiSelect
                 keyResults={keyResults}
                 objectives={objectives}
                 selectedKRs={linkedKRs}
                 onChange={setLinkedKRs}
               />
+              <p className="text-xs text-muted-foreground">
+                Each link has an optional weight. Leave weights blank to distribute impact evenly across linked KRs.
+              </p>
             </div>
           </div>
 
