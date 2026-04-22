@@ -14,9 +14,6 @@ import { InitiativeStatusChart } from "@/components/dashboard/InitiativeStatusCh
 import { TaskCompletionWidget } from "@/components/dashboard/TaskCompletionWidget";
 import { ConceptWalkthrough } from "@/components/app/ConceptWalkthrough";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInitiatives } from "@/hooks/useInitiatives";
-import { useAllTasks } from "@/hooks/useTasks";
-import { useMemo } from "react";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -24,26 +21,8 @@ export default function Dashboard() {
   const { data: overdueTasks = [], isLoading: tasksLoading } = useOverdueTasks();
   const { data: recentUpdates = [], isLoading: updatesLoading } = useRecentUpdates();
   const { profile } = useAuth();
-  const { initiatives } = useInitiatives();
-  const { tasks } = useAllTasks();
 
   const firstName = profile?.name?.split(" ")[0] || "there";
-
-  const initiativeDistribution = useMemo(() => {
-    const dist = { not_started: 0, in_progress: 0, completed: 0, blocked: 0 };
-    initiatives.forEach((i) => { dist[i.status]++; });
-    return dist;
-  }, [initiatives]);
-
-  const taskStats = useMemo(() => {
-    let done = 0, inProgress = 0, blocked = 0;
-    tasks.forEach((t) => {
-      if (t.status === "done") done++;
-      else if (t.status === "in_progress") inProgress++;
-      else if (t.status === "blocked") blocked++;
-    });
-    return { total: tasks.length, done, inProgress, blocked };
-  }, [tasks]);
 
   return (
     <div className="space-y-8">
@@ -93,8 +72,19 @@ export default function Dashboard() {
             }
           }
         />
-        <InitiativeStatusChart distribution={initiativeDistribution} />
-        <TaskCompletionWidget {...taskStats} />
+        <InitiativeStatusChart
+          distribution={
+            stats?.initiativeDistribution || {
+              not_started: 0,
+              in_progress: 0,
+              completed: 0,
+              blocked: 0,
+            }
+          }
+        />
+        <TaskCompletionWidget
+          {...(stats?.taskStats || { total: 0, done: 0, inProgress: 0, blocked: 0 })}
+        />
       </div>
 
       {/* Charts Row 2 */}
