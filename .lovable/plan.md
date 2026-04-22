@@ -1,61 +1,59 @@
 
 
-## Move Dashboard Counts Server-Side
+## Add Real Tests for `calculateProgress` and Route Guards
 
-Stop fetching full `initiatives` and `tasks` row sets just to count them. Compute all distributions via Supabase `count: "exact", head: true` queries inside `useDashboardStats`, and read the results from the existing `stats` object on the Dashboard page.
+Replace the placeholder `example.test.ts` with two focused test suites covering the highest-leverage logic in the app: KR progress math and the auth route guards.
 
-### File: `src/hooks/useDashboardStats.ts`
+### File 1: `src/hooks/useKRMetrics.test.ts` (new)
 
-Extend the `DashboardStats` interface:
+Test the pure `calculateProgress` export. No mocks needed — it doesn't touch Supabase.
 
+Time-window setup (re-used per test):
 ```ts
-export interface DashboardStats {
-  objectivesCount: number;
-  keyResultsCount: number;
-  initiativesCount: number;
-  tasksCount: number;
-  krStatusDistribution: { onTrack: number; atRisk: number; behind: number; noData: number };
-  initiativeDistribution: { not_started: number; in_progress: number; completed: number; blocked: number };
-  taskStats: { total: number; done: number; inProgress: number; blocked: number };
-}
+const today = new Date();
+const start_date = new Date(today.getTime() - 100 * 86400_000).toISOString().slice(0, 10);
+const end_date   = new Date(today.getTime() + 100 * 86400_000).toISOString().slice(0, 10);
+// expectedProgress at "today" ≈ 0.5
 ```
 
-Inside `useDashboardStats().queryFn`:
-- Add seven additional count-only queries to the existing `Promise.all` (alongside the current `objectives`/`keyResults`/`initiatives`/`tasks`/`metricConfigs`/`metricValues` calls):
-  - 4 initiative status counts (`not_started`, `in_progress`, `completed`, `blocked`), each:  
-    `supabase.from("initiatives").select("*", { count: "exact", head: true }).eq("organization_id", orgId).eq("status", <status>)`
-  - 3 task status counts (`done`, `in_progress`, `blocked`), each scoped via the inner-join pattern already used for the existing `tasks` count:  
-    `supabase.from("tasks").select("id, initiative:initiatives!inner(organization_id)", { count: "exact", head: true }).eq("initiative.organization_id", orgId).eq("status", <status>)`
-- Fallback empty-org branch returns the new fields with all zeros.
-- Build the two new objects from the `count` values:
-  - `initiativeDistribution = { not_started, in_progress, completed, blocked }`
-  - `taskStats = { total: tasksCount, done, inProgress, blocked }` (reuses the existing `tasks.count` for `total`)
-- Return them in the final object.
+Cases (matching the thresholds in source: `on_track` when `progress >= expected`, `at_risk` when within 0.1 below, else `off_track`):
 
-No changes to `useUpcomingReviews`, `useOverdueTasks`, `useRecentUpdates`, or any of the existing logic. The query key stays the same, so caching behavior is preserved.
+1. **null config** → `status === "no_config"`, `currentValue === null`.
+2. **empty values** → `status === "no_data"`.
+3. **Increase direction** (start 0, target 100):
+   - currentValue 50 → `progressPercent ≈ 0.5`, `on_track`.
+   - currentValue 10 → `off_track` (0.1 vs 0.5 expected, gap > 0.1).
+   - currentValue 45 → `at_risk` (0.45 vs 0.5, within 0.1). *(Spec says 35; that's 0.35 vs 0.5 = gap 0.15 → off_track. Will use 45 to actually exercise at_risk and note this in a comment so the user sees the threshold reasoning.)*
+   - currentValue 150 → clamped to `1`. currentValue -10 → clamped to `0`.
+4. **Decrease direction** (start 100, target 50, current 75) → `progressPercent ≈ 0.5`, `on_track`.
+5. **Maintain direction** (start 99, target 99.9, current 99.9) → `progressPercent` close to `1`.
+6. **Divide-by-zero guard** (start 50, target 50, current 50, increase) → finite number, no `Infinity`/`NaN`.
 
-### File: `src/pages/Dashboard.tsx`
+If any case actually fails against the current implementation (e.g. the threshold math doesn't match), the failure will be reported as a source bug per instructions — no source edits.
 
-- Remove imports: `useInitiatives`, `useAllTasks`, `useMemo`.
-- Remove `const { initiatives } = useInitiatives();` and `const { tasks } = useAllTasks();`.
-- Remove both `useMemo` blocks (`initiativeDistribution`, `taskStats`).
-- Replace the props passed to the charts with values from `stats`, keeping the existing fallback shapes for the loading state:
+### File 2: `src/components/auth/routeGuards.test.tsx` (new)
 
-```tsx
-<InitiativeStatusChart
-  distribution={
-    stats?.initiativeDistribution || { not_started: 0, in_progress: 0, completed: 0, blocked: 0 }
-  }
-/>
-<TaskCompletionWidget
-  {...(stats?.taskStats || { total: 0, done: 0, inProgress: 0, blocked: 0 })}
-/>
+Render each guard inside `MemoryRouter` with a sentinel child (`<div>PROTECTED</div>`) and an unrelated route to confirm redirects. Mock `@/contexts/AuthContext` with `vi.mock` and per-test `vi.mocked(useAuth).mockReturnValue(...)`.
+
+Auth fixture shape (matches what the guards read):
+```ts
+{ user, profile: { status: 'active' }, roles, loading: false, signOut: vi.fn() }
 ```
 
-All other JSX (header, stat cards, KR chart, secondary widgets) stays untouched.
+Cases:
+- **ProtectedRoute** unauthenticated (`user: null, profile: null`) → "PROTECTED" not in DOM.
+- **ProtectedRoute** authenticated active → "PROTECTED" in DOM.
+- **AdminRoute** with `roles: ['contributor']` → not rendered. Also mock `@/hooks/use-toast` to silence the toast side-effect.
+- **AdminRoute** with `roles: ['admin']` → rendered.
+- **ManagerRoute** with `roles: ['contributor']` → not rendered.
+- **ManagerRoute** with `roles: ['manager']` → rendered. With `roles: ['admin']` → rendered.
 
-### Result
-- Dashboard payload drops from O(initiatives + tasks) rows to ~7 lightweight HEAD count requests batched in a single `Promise.all`.
-- Visible output and loading skeleton placeholders are identical.
-- No other files, hooks, or components are modified.
+Assertions use `screen.queryByText("PROTECTED")` — `null` for blocked, defined for allowed.
+
+### File 3: `src/test/example.test.ts`
+
+Delete.
+
+### Out of scope
+No changes to `useKRMetrics.ts`, the route guard components, `AuthContext`, or any other source. Test config (`vitest.config.ts`, `src/test/setup.ts`) is already in place.
 
