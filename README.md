@@ -79,6 +79,8 @@ OKRoutcomeFlow is a Vite single-page app backed by Supabase. To deploy, run `npm
 
 Make sure your hosting target's environment exposes the three `VITE_SUPABASE_*` variables at build time.
 
+Remember to set `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY` in your hosting provider's environment variables. Without these, the production build will fail to connect to Supabase.
+
 ## Contributing
 
 Issues and pull requests are welcome. Please run `npm run lint` and `npm run test` before opening a PR, and keep changes scoped to a single concern where possible.
