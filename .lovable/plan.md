@@ -1,69 +1,40 @@
 
 
-## Human-readable Automation Descriptions + Better Empty State
+## Add Inline Help to Create Initiative Dialog
 
-Make automation cards self-explanatory by rendering a full sentence (with the configured status / recipient values) instead of the current generic "trigger label → action label" pair. Also expand the empty state with a concrete example.
+Make `src/components/initiatives/CreateInitiativeDialog.tsx` self-explanatory by attaching `InfoTooltip` to every field label, rewriting the Title placeholder with a concrete example, and clarifying how Linked Key Results + weights work. Also tighten the create-time status options to prevent bad data.
 
-### File: `src/pages/Automations.tsx`
+### File: `src/components/initiatives/CreateInitiativeDialog.tsx`
 
 **Imports**
-- Drop `ArrowRight` from the `lucide-react` import (no longer used).
+- Add: `import { InfoTooltip } from "@/components/ui/InfoTooltip";`
 
-**New helper (module scope, above `export default`)**
+**Label updates** (each Label gains `className="flex items-center"` so the tooltip's icon sits inline):
 
-```ts
-const titleCase = (s: string) =>
-  s.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+- **Title** — tooltip: *"What you're going to do. An Initiative is a project or workstream that moves one or more Key Results. Example: 'Launch referral program for existing buyers.'"* Placeholder changed to `"e.g., Launch referral program for existing buyers"`.
+- **Description** — tooltip: *"Optional scope, hypothesis, or context. Useful for teammates joining later."*
+- **Status** — tooltip: *"Not Started (planned, not begun), In Progress (actively being worked on), Completed (done and shipped), Blocked (can't proceed until something else resolves)."*
+- **Start Date** — tooltip: *"When work begins. Used in Timeline and Workload views."*
+- **End Date** — tooltip: *"Target completion. Appears in Calendar and overdue lists."*
+- **Linked Key Results** — rich tooltip content (multi-paragraph inside a single `<InfoTooltip>` body):
+  - Lead: *"Which KRs this Initiative moves."*
+  - Bulleted explanation: one Initiative can move multiple KRs; linking surfaces it on that KR's detail; weights (0–1) express uneven contribution; missing weights distribute evenly.
+  - Example: *"A pricing page redesign might be weight 0.7 toward 'Increase conversion' and 0.3 toward 'Reduce bounce rate'."*
 
-function describeAutomation(auto: { trigger_type: string; trigger_config: any; action_type: string; action_config: any; }): string {
-  const tc = auto.trigger_config || {};
-  const ac = auto.action_config || {};
-
-  let triggerClause: string;
-  switch (auto.trigger_type) {
-    case "task_status_change":
-      triggerClause = `When a task becomes ${titleCase(tc.to_status ?? "")}`; break;
-    case "initiative_status_change":
-      triggerClause = `When an initiative becomes ${titleCase(tc.to_status ?? "")}`; break;
-    case "all_tasks_done":
-      triggerClause = "When all tasks in an initiative are done"; break;
-    case "due_date_passed":
-      triggerClause = tc.object_type === "initiative"
-        ? "When an initiative's due date passes"
-        : "When a task's due date passes";
-      break;
-    default:
-      triggerClause = TRIGGERS.find(t => t.value === auto.trigger_type)?.label ?? auto.trigger_type;
-  }
-
-  let actionClause: string;
-  switch (auto.action_type) {
-    case "change_initiative_status":
-      actionClause = `change its initiative to ${titleCase(ac.to_status ?? "")}`; break;
-    case "change_task_status":
-      actionClause = `set the task to ${titleCase(ac.to_status ?? "")}`; break;
-    case "send_notification":
-      actionClause = `notify the ${(ac.recipient ?? "").replace(/_/g, " ")}`; break;
-    case "create_update":
-      actionClause = "post an update"; break;
-    default:
-      actionClause = ACTIONS.find(a => a.value === auto.action_type)?.label ?? auto.action_type;
-  }
-
-  return `${triggerClause}, ${actionClause}.`;
-}
+**Helper line below the KR picker**
+Add directly under `<KRMultiSelect …/>` inside the same `grid gap-2`:
+```tsx
+<p className="text-xs text-muted-foreground">
+  Each link has an optional weight. Leave weights blank to distribute impact evenly across linked KRs.
+</p>
 ```
 
-**Card render change** (inside `automations.map`):
-- Remove the `triggerLabel` / `actionLabel` consts and the `<div>` containing them + `<ArrowRight />`.
-- Replace with: `<p className="text-xs text-muted-foreground mt-0.5">{describeAutomation(auto)}</p>`.
-- Keep the name + Disabled badge row, the Switch, and the delete button untouched.
+**Status SelectContent (CREATE only)**
+Remove the `Completed` and `Blocked` `<SelectItem>`s. Keep `Not Started` and `In Progress`. The `EditInitiativeDialog` is untouched so the full lifecycle remains available after creation. No flag needed — this matches typical create-flow hygiene.
 
-**Empty state**
-- Replace the current single `<p>` with a two-line explanation:
-  > "Automations run when-then rules in the background. For example: when a task becomes Done, automatically mark its initiative as Completed."
-- Below the paragraph, render the existing **New Automation** dialog trigger button when `canManage` (re-using the same `Dialog` open state already in scope, e.g. an additional `<Button onClick={() => setOpen(true)}>` with the `Plus` icon and `mt-4` spacing). The header's dialog instance handles the actual dialog mount; the empty-state button just opens it.
+### Unchanged
+`useState` shape, `handleSubmit`, `resetForm`, `KRMultiSelect`, dialog frame / footer, and all other files.
 
 ### Out of scope
-No changes to constants, hooks, or any other file. Loading skeleton and dialog body stay as-is.
+No edits to `KRMultiSelect`, `useInitiatives`, or any other component. No styling-token changes.
 
