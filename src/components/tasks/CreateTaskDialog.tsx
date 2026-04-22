@@ -206,7 +206,12 @@ export function CreateTaskDialog({ initiativeId }: CreateTaskDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Due Date</Label>
+                <Label className="flex items-center">
+                  Due Date
+                  <InfoTooltip>
+                    When this task must be complete. Appears in Calendar and drives 'overdue' flags.
+                  </InfoTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
