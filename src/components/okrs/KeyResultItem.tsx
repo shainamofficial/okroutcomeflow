@@ -11,7 +11,7 @@ import { DeleteKeyResultDialog } from "./DeleteKeyResultDialog";
 import { KRDetailPanel } from "./KRDetailPanel";
 import { KRStatusBadge } from "./KRStatusBadge";
 import { KRLinkedInitiatives } from "./KRLinkedInitiatives";
-import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -26,7 +26,6 @@ export function KeyResultItem({ keyResult, allKeyResults, level }: KeyResultItem
   const [showDeleteKR, setShowDeleteKR] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const { profile, roles } = useAuth();
-  const { toast } = useToast();
 
   const { config } = useKRMetricConfig(keyResult.id);
   const { values } = useKRMetricValues(config?.id);
@@ -38,18 +37,6 @@ export function KeyResultItem({ keyResult, allKeyResults, level }: KeyResultItem
   const canManage = roles.includes("admin") || roles.includes("manager");
   const isOwner = keyResult.owner_id === profile?.id;
   const canEdit = canManage || (roles.includes("contributor") && isOwner);
-
-  const handleEditClick = () => {
-    if (!canEdit) {
-      toast({
-        title: "No access",
-        description: "You can only edit Key Results that you own.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setShowEditKR(true);
-  };
 
   return (
     <div className="border-l-2 border-muted ml-4 pl-4">
@@ -101,45 +88,79 @@ export function KeyResultItem({ keyResult, allKeyResults, level }: KeyResultItem
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setShowDetailPanel(true)}
-            title="View metrics"
-          >
-            <BarChart3 className="h-4 w-4" />
-          </Button>
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowDetailPanel(true)}
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>View metrics</TooltipContent>
+          </Tooltip>
           {canManage && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setShowAddKR(true)}
-              title="Add sub Key Result"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowAddKR(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add sub Key Result</TooltipContent>
+            </Tooltip>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleEditClick}
-            title={canEdit ? "Edit" : "No access"}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          {canEdit ? (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowEditKR(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>You can only edit Key Results that you own.</TooltipContent>
+            </Tooltip>
+          )}
           {canManage && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive hover:text-destructive"
-              onClick={() => setShowDeleteKR(true)}
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
+                  onClick={() => setShowDeleteKR(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
