@@ -201,6 +201,21 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <Link to="/app/help" aria-label="Help & Glossary">
+                <HelpCircle className="h-4 w-4" />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Help & Glossary</TooltipContent>
+        </Tooltip>
         <ThemeToggle />
         <NotificationBell />
         <Separator orientation="vertical" className="h-5 mx-1" />
