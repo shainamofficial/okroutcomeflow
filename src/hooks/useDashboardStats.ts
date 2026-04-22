@@ -14,6 +14,18 @@ export interface DashboardStats {
     behind: number;
     noData: number;
   };
+  initiativeDistribution: {
+    not_started: number;
+    in_progress: number;
+    completed: number;
+    blocked: number;
+  };
+  taskStats: {
+    total: number;
+    done: number;
+    inProgress: number;
+    blocked: number;
+  };
 }
 
 export interface UpcomingReview {
@@ -66,35 +78,74 @@ export function useDashboardStats() {
           initiativesCount: 0,
           tasksCount: 0,
           krStatusDistribution: { onTrack: 0, atRisk: 0, behind: 0, noData: 0 },
+          initiativeDistribution: { not_started: 0, in_progress: 0, completed: 0, blocked: 0 },
+          taskStats: { total: 0, done: 0, inProgress: 0, blocked: 0 },
         };
       }
 
-      // Fetch counts in parallel
-      const [objectives, keyResults, initiatives, tasks, metricConfigs, metricValues] = await Promise.all([
-        supabase
-          .from("objectives")
-          .select("id", { count: "exact" })
-          .eq("organization_id", profile.organization_id),
-        supabase
-          .from("key_results")
-          .select("id", { count: "exact" })
-          .eq("organization_id", profile.organization_id),
+      const orgId = profile.organization_id;
+
+      const initiativeStatusCount = (status: "not_started" | "in_progress" | "completed" | "blocked") =>
         supabase
           .from("initiatives")
-          .select("id", { count: "exact" })
-          .eq("organization_id", profile.organization_id),
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("status", status);
+
+      const taskStatusCount = (status: "done" | "in_progress" | "blocked") =>
         supabase
           .from("tasks")
-          .select("id, initiative:initiatives!inner(organization_id)", { count: "exact" })
-          .eq("initiative.organization_id", profile.organization_id),
+          .select("id, initiative:initiatives!inner(organization_id)", { count: "exact", head: true })
+          .eq("initiative.organization_id", orgId)
+          .eq("status", status);
+
+      // Fetch counts in parallel
+      const [
+        objectives,
+        keyResults,
+        initiatives,
+        tasks,
+        metricConfigs,
+        metricValues,
+        initNotStarted,
+        initInProgress,
+        initCompleted,
+        initBlocked,
+        tasksDone,
+        tasksInProgress,
+        tasksBlocked,
+      ] = await Promise.all([
+        supabase
+          .from("objectives")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId),
+        supabase
+          .from("key_results")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId),
+        supabase
+          .from("initiatives")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId),
+        supabase
+          .from("tasks")
+          .select("id, initiative:initiatives!inner(organization_id)", { count: "exact", head: true })
+          .eq("initiative.organization_id", orgId),
         supabase
           .from("kr_metric_config")
           .select("id, key_result_id, start_value, target_value, direction, key_result:key_results!inner(organization_id)")
-          .eq("key_result.organization_id", profile.organization_id),
+          .eq("key_result.organization_id", orgId),
         supabase
           .from("kr_metric_values")
           .select("kr_metric_config_id, value, date")
           .order("date", { ascending: false }),
+        initiativeStatusCount("not_started"),
+        initiativeStatusCount("in_progress"),
+        initiativeStatusCount("completed"),
+        initiativeStatusCount("blocked"),
+        taskStatusCount("done"),
+        taskStatusCount("in_progress"),
+        taskStatusCount("blocked"),
       ]);
 
       // Calculate KR status distribution based on progress
@@ -145,12 +196,26 @@ export function useDashboardStats() {
       // KRs without metric config
       noData += krCount - configuredKrs.size;
 
+      const tasksCount = tasks.count || 0;
+
       return {
         objectivesCount: objectives.count || 0,
         keyResultsCount: krCount,
         initiativesCount: initiatives.count || 0,
-        tasksCount: tasks.count || 0,
+        tasksCount,
         krStatusDistribution: { onTrack, atRisk, behind, noData },
+        initiativeDistribution: {
+          not_started: initNotStarted.count || 0,
+          in_progress: initInProgress.count || 0,
+          completed: initCompleted.count || 0,
+          blocked: initBlocked.count || 0,
+        },
+        taskStats: {
+          total: tasksCount,
+          done: tasksDone.count || 0,
+          inProgress: tasksInProgress.count || 0,
+          blocked: tasksBlocked.count || 0,
+        },
       };
     },
     enabled: !!profile?.organization_id,
