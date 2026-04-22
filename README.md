@@ -1,73 +1,88 @@
-# Welcome to your Lovable project
+# OKRoutcomeFlow
 
-## Project info
+OKRoutcomeFlow is a lightweight OKR tool that connects company strategy to the day-to-day work that moves it. It is built for small-to-mid-sized product and ops teams that have outgrown spreadsheets but don't want to learn Jira.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## What it does
 
-## How can I edit this code?
+The app is organised around four primitives:
 
-There are several ways of editing your application.
+- **Objectives** — qualitative, inspirational statements of what the team wants to achieve this cycle.
+- **Key Results** — measurable outcomes that prove an Objective is being met. Each KR has a start value, target value, deadline, and one accountable owner.
+- **Initiatives** — the projects you actually run to move Key Results. Each initiative links to the KR(s) it supports.
+- **Tasks** — concrete, assignable work items under each initiative, with due dates, owners, dependencies, and status.
 
-**Use Lovable**
+Around those primitives the app provides role-based access, review cadences, multiple views (timeline, calendar, workload, table, board), automations, custom fields, file attachments, mentions and activity log, and configurable notifications.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Vite + React + TypeScript** — frontend build and runtime
+- **Tailwind CSS + shadcn/ui + Radix UI** — styling and accessible primitives
+- **TanStack Query** — server state, caching, and optimistic updates
+- **Supabase** — Postgres, Auth, and Row Level Security
+- **react-router-dom** — routing
+- **Vitest** — unit tests
+- Scaffolded and iterated with **[Lovable](https://lovable.dev)**
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Local setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+cd okroutcomeflow
+npm install
+cp .env.example .env   # then fill in your Supabase project values
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The dev server runs at http://localhost:5173.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Environment variables
 
-**Use GitHub Codespaces**
+| Variable | Purpose |
+|---|---|
+| `VITE_SUPABASE_PROJECT_ID` | Supabase project reference (the subdomain of your project URL). |
+| `VITE_SUPABASE_URL` | Full Supabase project URL, e.g. `https://<project-id>.supabase.co`. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | The Supabase anon (publishable) key shipped to the browser. |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+> ⚠️ **Security**: the anon key is safe to expose **only** if every Postgres table has Row Level Security enabled and scoped policies. Audit RLS before going to production.
 
-## What technologies are used for this project?
+## Supabase setup
 
-This project is built with:
+The `supabase/` folder contains the project configuration, SQL migrations, and edge function source. To attach a fresh Supabase project and apply the schema:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
 
-## How can I deploy this project?
+## Scripts
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+| Script | What it does |
+|---|---|
+| `npm run dev` | Start the Vite dev server with HMR. |
+| `npm run build` | Type-check and produce a production build in `dist/`. |
+| `npm run preview` | Serve the production build locally for sanity checks. |
+| `npm run lint` | Run ESLint across the project. |
+| `npm run test` | Run the Vitest test suite. |
 
-## Can I connect a custom domain to my Lovable project?
+## Roles
 
-Yes, you can!
+| Role | Can do |
+|---|---|
+| **Contributor** | View OKRs and initiatives in their org, update assigned tasks, log KR metric values, post updates and comments. |
+| **Manager** | Everything a contributor can, plus invite/deactivate users, manage teams, and create or edit OKRs and initiatives. |
+| **Admin** | Full org control — organization settings, custom fields, cycles, automations, and role assignment. |
+| **Platform admin** | Cross-org operator: manage organizations and platform-level users from the Platform console. |
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Deploy
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+OKRoutcomeFlow is a Vite single-page app backed by Supabase. To deploy, run `npm run build` and serve `dist/` from any static host — Vercel, Netlify, Cloudflare Pages, or S3 + CloudFront all work. Or open the project in [Lovable](https://lovable.dev) and use **Share → Publish** to ship a hosted version in one click.
+
+Make sure your hosting target's environment exposes the three `VITE_SUPABASE_*` variables at build time.
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `npm run lint` and `npm run test` before opening a PR, and keep changes scoped to a single concern where possible.
+
+## License
+
+MIT
