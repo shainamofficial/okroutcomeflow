@@ -70,16 +70,36 @@ Immediate hardening; everything else builds on the CI gate.
 - [x] React Query defaults: `staleTime: 60_000`, `placeholderData: keepPreviousData`, `retry: 1`
 - [x] Optimistic updates: metric add/delete values (useKRMetrics), TableView inline edits
       (task status updates in useTasks already had them)
-- [ ] Virtualize long lists (`@tanstack/react-virtual`): TableView, ActivityLog, timeline rows
+- [x] Bounded list rendering — approach revised from full virtualization: TableView uses
+      progressive row reveal (60-row chunks via IntersectionObserver; preserves table
+      semantics, grouping, inline editors); ActivityLog converted to useInfiniteQuery
+      (50/page, infinite scroll). True virtualization deferred — table markup + page-level
+      scroll made it high-risk, and Phase 4 server pagination supersedes it.
+      Timeline row virtualization deferred (absolute-positioned Gantt; memo landed instead)
 - [x] Memoize timeline hot path: TimelineRow wrapped in memo; all its function props
       stabilized via useCallback in TimelineChart + Timeline page
       (TimelineBar memo deferred — needs same treatment inside TimelineRow)
 - [x] `<link rel="preconnect">` to Supabase origin in index.html
-- [ ] Pagination/infinite queries for activity log + table view (bounded fetches)
+- [x] Pagination/infinite queries: activity log fetches 50/page (was a flat 100-cap);
+      table view fetch stays client-side until Phase 4 (CSV export + client sort need
+      the full set) but rendering is now bounded
 - [ ] Collapse dashboard's 4 round trips into 1 Postgres RPC (interim until Phase 4 API endpoint)
 
 **Budgets (enforced from here on):** initial JS < 200 KB gz; route chunks < 100 KB gz each.
 **Done when:** `npm run build` shows split chunks within budget; dashboard loads with 1 data round trip.
+
+## Workflow: branch discipline from Phase 2 onward
+
+Phase 0–1 work lands directly on `main` (small, same-day-verifiable changes; CI gates every
+push). Starting with Phase 2, all work moves to a branch + PR flow because phases 2–6 contain
+long-running, risky changes that must never sit half-finished on `main`:
+
+1. Branch per work item: `phase-2/monorepo-setup`, `phase-3/better-auth`, etc.
+2. Open a PR; CI (lint + typecheck + test + build) must pass.
+3. Merge criteria: CI green **and** the affected flows manually QA'd on the preview build.
+4. Squash-merge, delete the branch. `main` stays deployable at every commit.
+5. When Phase 2 starts: enable branch protection on `main` — require the CI check,
+   block direct pushes.
 
 ## Phase 2 — Monorepo + backend skeleton
 

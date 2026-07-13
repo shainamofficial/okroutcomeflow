@@ -1,30 +1,46 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow } from "date-fns";
-import { MessageSquare, TrendingUp, AlertTriangle, Gavel, Activity } from "lucide-react";
+import { MessageSquare, TrendingUp, AlertTriangle, Gavel, Activity, Loader2 } from "lucide-react";
 import { UpdateKindBadge } from "@/components/updates/UpdateKindBadge";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+
+const PAGE_SIZE = 50;
 
 export default function ActivityLog() {
   const { profile } = useAuth();
 
-  const { data: updates = [], isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["activity-log", profile?.organization_id],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam * PAGE_SIZE;
       const { data, error } = await supabase
         .from("updates")
         .select("*, user:users_profile!updates_user_id_fkey(name, email, avatar_url)")
         .eq("organization_id", profile!.organization_id!)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
       return data;
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === PAGE_SIZE ? pages.length : undefined,
     enabled: !!profile?.organization_id,
   });
+
+  const updates = data?.pages.flat() ?? [];
+
+  const sentinelRef = useInfiniteScroll(
+    () => {
+      if (!isFetchingNextPage) fetchNextPage();
+    },
+    !!hasNextPage
+  );
 
   return (
     <div className="space-y-6">
@@ -78,6 +94,12 @@ export default function ActivityLog() {
               </CardContent>
             </Card>
           ))}
+          <div ref={sentinelRef} />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
       )}
     </div>

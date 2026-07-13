@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAllTasks, Task, TaskStatus } from "@/hooks/useTasks";
 import { useInitiatives } from "@/hooks/useInitiatives";
 import { useCustomFields, useCustomFieldValues } from "@/hooks/useCustomFields";
@@ -19,6 +19,7 @@ import { InlineDatePicker } from "@/components/table/InlineDatePicker";
 import { CustomFieldCell } from "@/components/custom-fields/CustomFieldCell";
 import { CustomFieldManager } from "@/components/custom-fields/CustomFieldManager";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { Badge } from "@/components/ui/badge";
 import { TaskStatusBadge } from "@/components/tasks/TaskStatusBadge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -96,6 +97,32 @@ export default function TableView() {
     });
     return map;
   }, [filteredTasks, groupBy, initiativeMap]);
+
+  // Progressive rendering: only mount ROW_CHUNK rows at a time and reveal more
+  // as the user scrolls, so a large org's task table stays fast on first paint.
+  // (Server-side pagination replaces this in the backend migration.)
+  const ROW_CHUNK = 60;
+  const [visibleCount, setVisibleCount] = useState(ROW_CHUNK);
+  useEffect(() => {
+    setVisibleCount(ROW_CHUNK);
+  }, [statusFilter, sortField, sortDir, groupBy]);
+
+  const groupsToRender = useMemo(() => {
+    let budget = visibleCount;
+    return Object.entries(grouped)
+      .map(([group, groupTasks]) => {
+        const shown = groupTasks.slice(0, Math.max(0, budget));
+        budget -= shown.length;
+        return { group, shown, total: groupTasks.length };
+      })
+      .filter(({ shown, total }) => total === 0 || shown.length > 0);
+  }, [grouped, visibleCount]);
+
+  const hasMoreRows = visibleCount < filteredTasks.length;
+  const sentinelRef = useInfiniteScroll(
+    () => setVisibleCount((c) => c + ROW_CHUNK),
+    hasMoreRows
+  );
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -223,7 +250,7 @@ export default function TableView() {
         ) : toolbar}
       </div>
 
-      {Object.entries(grouped).map(([group, groupTasks]) => (
+      {groupsToRender.map(({ group, shown: groupTasks, total: groupTotal }) => (
         <div key={group}>
           {group && groupBy !== "none" && (
             <h3 className="text-sm font-semibold font-display mb-2 capitalize">{group.replace(/_/g, " ")}</h3>
@@ -232,7 +259,7 @@ export default function TableView() {
           {/* Mobile: card layout */}
           {isMobile ? (
             <div className="space-y-2">
-              {groupTasks.length === 0 ? (
+              {groupTotal === 0 ? (
                 <p className="text-center text-sm text-muted-foreground py-8">No tasks found</p>
               ) : (
                 groupTasks.map((task) => <MobileTaskCard key={task.id} task={task} />)
@@ -257,7 +284,7 @@ export default function TableView() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {groupTasks.length === 0 ? (
+                      {groupTotal === 0 ? (
                         <TableRow>
                           <TableCell colSpan={colSpan} className="text-center text-sm text-muted-foreground py-8">
                             No tasks found
@@ -323,6 +350,11 @@ export default function TableView() {
           )}
         </div>
       ))}
+      {hasMoreRows && (
+        <div ref={sentinelRef} className="py-2 text-center text-xs text-muted-foreground">
+          Showing {visibleCount} of {filteredTasks.length} tasks — scroll for more
+        </div>
+      )}
     </div>
   );
 }
