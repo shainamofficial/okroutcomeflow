@@ -1,4 +1,4 @@
-import { useMemo, useRef, useImperativeHandle, forwardRef } from "react";
+import { useCallback, useMemo, useRef, useImperativeHandle, forwardRef } from "react";
 import {
   startOfWeek,
   endOfWeek,
@@ -134,15 +134,21 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
   const totalDays = differenceInDays(endDate, startDate) + 1;
   const dayWidth = (columns.length * columnWidth) / totalDays;
 
-  const getPositionForDate = (date: Date): number => {
-    const days = differenceInDays(date, startDate);
-    return days * dayWidth;
-  };
+  const getPositionForDate = useCallback(
+    (date: Date): number => {
+      const days = differenceInDays(date, startDate);
+      return days * dayWidth;
+    },
+    [startDate, dayWidth]
+  );
 
-  const getDateForPosition = (position: number): Date => {
-    const days = Math.round(position / dayWidth);
-    return addDays(startDate, days);
-  };
+  const getDateForPosition = useCallback(
+    (position: number): Date => {
+      const days = Math.round(position / dayWidth);
+      return addDays(startDate, days);
+    },
+    [startDate, dayWidth]
+  );
 
   // Scroll to today + autofit
   useImperativeHandle(ref, () => ({
@@ -168,39 +174,42 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
     },
   }));
 
-  const handleInitiativeDrag = async (
-    initiativeId: string,
-    newStartDate: string | null,
-    newEndDate: string | null
-  ) => {
-    if (newStartDate && newEndDate && new Date(newEndDate) < new Date(newStartDate)) {
-      toast({
-        title: "Invalid dates",
-        description: "End date cannot be before start date",
-        variant: "destructive",
-      });
-      return;
-    }
+  const { mutateAsync: updateInitiativeAsync } = updateInitiative;
+  const handleInitiativeDrag = useCallback(
+    async (initiativeId: string, newStartDate: string | null, newEndDate: string | null) => {
+      if (newStartDate && newEndDate && new Date(newEndDate) < new Date(newStartDate)) {
+        toast({
+          title: "Invalid dates",
+          description: "End date cannot be before start date",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    try {
-      await updateInitiative.mutateAsync({
-        id: initiativeId,
-        startDate: newStartDate || undefined,
-        endDate: newEndDate || undefined,
-      });
-    } catch (error) {
-      // Error is handled by mutation
-    }
-  };
+      try {
+        await updateInitiativeAsync({
+          id: initiativeId,
+          startDate: newStartDate || undefined,
+          endDate: newEndDate || undefined,
+        });
+      } catch (error) {
+        // Error is handled by mutation
+      }
+    },
+    [updateInitiativeAsync, toast]
+  );
 
-  const handleTaskDrag = async (
-    taskId: string,
-    initiativeId: string,
-    newStartDate: string | null,
-    newDueDate: string | null
-  ) => {
-    // Handled by TimelineRow
-  };
+  const handleTaskDrag = useCallback(
+    async (
+      taskId: string,
+      initiativeId: string,
+      newStartDate: string | null,
+      newDueDate: string | null
+    ) => {
+      // Handled by TimelineRow
+    },
+    []
+  );
 
   const formatColumnHeader = (date: Date): string => {
     switch (zoomLevel) {
@@ -352,10 +361,10 @@ export const TimelineChart = forwardRef<TimelineChartHandle, TimelineChartProps>
                 getPositionForDate={getPositionForDate}
                 getDateForPosition={getDateForPosition}
                 canDragInitiative={canDragInitiative(initiative)}
-                canDragTask={(task) => canDragTask(task, initiative)}
+                canDragTask={canDragTask}
                 onInitiativeDrag={handleInitiativeDrag}
                 onTaskDrag={handleTaskDrag}
-                onInitiativeClick={() => onInitiativeClick(initiative)}
+                onInitiativeClick={onInitiativeClick}
                 onTaskClick={onTaskClick}
                 columns={columns}
                 columnWidth={columnWidth}

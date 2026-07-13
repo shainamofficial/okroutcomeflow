@@ -64,15 +64,18 @@ export default function Timeline() {
   const [initiativeDrawerOpen, setInitiativeDrawerOpen] = useState(false);
   const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
 
-  const handleInitiativeClick = (initiative: Initiative) => {
+  const handleInitiativeClick = useCallback((initiative: Initiative) => {
     setSelectedInitiative(initiative);
     setInitiativeDrawerOpen(true);
-  };
+  }, []);
 
-  const handleTaskClick = (task: Task & { initiative: { id: string; organization_id: string } }) => {
-    setSelectedTask(task);
-    setTaskDrawerOpen(true);
-  };
+  const handleTaskClick = useCallback(
+    (task: Task & { initiative: { id: string; organization_id: string } }) => {
+      setSelectedTask(task);
+      setTaskDrawerOpen(true);
+    },
+    []
+  );
 
   const handleScrollToToday = useCallback(() => {
     chartRef.current?.scrollToToday();
@@ -199,22 +202,29 @@ export default function Timeline() {
     return { withDates, withoutDates };
   };
 
-  // Determine if user can drag a specific item
-  const canDragInitiative = (initiative: Initiative) => {
-    if (isAdmin || isManager) return true;
-    if (initiative.owner_id === profile?.id) return true;
-    return false;
-  };
+  // Determine if user can drag a specific item.
+  // Stable references so memoized timeline rows don't re-render needlessly.
+  const canDragInitiative = useCallback(
+    (initiative: Initiative) => {
+      if (isAdmin || isManager) return true;
+      if (initiative.owner_id === profile?.id) return true;
+      return false;
+    },
+    [isAdmin, isManager, profile?.id]
+  );
 
-  const canDragTask = (
-    task: Task & { initiative: { id: string; organization_id: string } },
-    initiative: Initiative
-  ) => {
-    if (isAdmin || isManager) return true;
-    if (initiative.owner_id === profile?.id) return true;
-    if (task.assignee_user_id === profile?.id) return true;
-    return false;
-  };
+  const canDragTask = useCallback(
+    (
+      task: Task & { initiative: { id: string; organization_id: string } },
+      initiative: Initiative
+    ) => {
+      if (isAdmin || isManager) return true;
+      if (initiative.owner_id === profile?.id) return true;
+      if (task.assignee_user_id === profile?.id) return true;
+      return false;
+    },
+    [isAdmin, isManager, profile?.id]
+  );
 
   const isLoading = initiativesLoading || tasksLoading;
 

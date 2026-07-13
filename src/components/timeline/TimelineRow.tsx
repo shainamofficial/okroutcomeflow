@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,10 @@ interface TimelineRowProps {
   getPositionForDate: (date: Date) => number;
   getDateForPosition: (position: number) => Date;
   canDragInitiative: boolean;
-  canDragTask: (task: Task & { initiative: { id: string; organization_id: string } }) => boolean;
+  canDragTask: (
+    task: Task & { initiative: { id: string; organization_id: string } },
+    initiative: TimelineInitiative
+  ) => boolean;
   onInitiativeDrag: (
     initiativeId: string,
     newStartDate: string | null,
@@ -34,7 +37,7 @@ interface TimelineRowProps {
     newStartDate: string | null,
     newDueDate: string | null
   ) => void;
-  onInitiativeClick: () => void;
+  onInitiativeClick: (initiative: TimelineInitiative) => void;
   onTaskClick: (task: Task & { initiative: { id: string; organization_id: string } }) => void;
   columns: Date[];
   columnWidth: number;
@@ -68,7 +71,10 @@ function buildTaskTree(tasks: (Task & { initiative: { id: string; organization_i
   return roots;
 }
 
-export function TimelineRow({
+// Memoized: the timeline renders one row per initiative, and parent state
+// changes (hover, drawer opens, drag elsewhere) must not re-render every row.
+// All function props must therefore be referentially stable (useCallback).
+export const TimelineRow = memo(function TimelineRow({
   initiative,
   startDate,
   dayWidth,
@@ -206,7 +212,7 @@ export function TimelineRow({
     const task = node.task;
     const taskHasBar = task.start_date && task.due_date;
     const taskHasMilestone = !task.start_date && task.due_date;
-    const taskCanDrag = canDragTask(task);
+    const taskCanDrag = canDragTask(task, initiative);
     const hasSubtasks = node.children.length > 0;
     const taskExpanded = isTaskExpanded(task.id);
 
@@ -412,7 +418,7 @@ export function TimelineRow({
           )}
           <div
             className="flex-1 min-w-0 cursor-pointer hover:bg-muted/50 rounded p-1 -m-1"
-            onClick={onInitiativeClick}
+            onClick={() => onInitiativeClick(initiative)}
           >
             <div className="flex items-center gap-1.5">
               <span className={cn("font-semibold truncate", isCompact ? "text-xs" : "text-sm")}>
@@ -471,7 +477,7 @@ export function TimelineRow({
                   format(newEnd, "yyyy-MM-dd")
                 )
               }
-              onClick={onInitiativeClick}
+              onClick={() => onInitiativeClick(initiative)}
               variant="initiative"
               label={initiative.title}
               ownerName={initiative.owner?.name || initiative.owner?.email}
@@ -490,7 +496,7 @@ export function TimelineRow({
               onDragEnd={(newDate) =>
                 onInitiativeDrag(initiative.id, null, format(newDate, "yyyy-MM-dd"))
               }
-              onClick={onInitiativeClick}
+              onClick={() => onInitiativeClick(initiative)}
               variant="initiative"
               label={initiative.title}
               ownerName={initiative.owner?.name || initiative.owner?.email}
@@ -536,4 +542,4 @@ export function TimelineRow({
       )}
     </div>
   );
-}
+});

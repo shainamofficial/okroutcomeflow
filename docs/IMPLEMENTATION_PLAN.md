@@ -68,9 +68,12 @@ Immediate hardening; everything else builds on the CI gate.
       → initial bundle 1728 KB → 666 KB (473 → 197 KB gz)
 - [x] Async chunks for recharts (98 KB gz own chunk) and framer-motion (in LandingPage chunk)
 - [x] React Query defaults: `staleTime: 60_000`, `placeholderData: keepPreviousData`, `retry: 1`
-- [ ] Optimistic updates: task status changes, metric check-ins
+- [x] Optimistic updates: metric add/delete values (useKRMetrics), TableView inline edits
+      (task status updates in useTasks already had them)
 - [ ] Virtualize long lists (`@tanstack/react-virtual`): TableView, ActivityLog, timeline rows
-- [ ] Memoize timeline hot path (`TimelineRow`, `TimelineBar`, `TimelineChart`)
+- [x] Memoize timeline hot path: TimelineRow wrapped in memo; all its function props
+      stabilized via useCallback in TimelineChart + Timeline page
+      (TimelineBar memo deferred — needs same treatment inside TimelineRow)
 - [x] `<link rel="preconnect">` to Supabase origin in index.html
 - [ ] Pagination/infinite queries for activity log + table view (bounded fetches)
 - [ ] Collapse dashboard's 4 round trips into 1 Postgres RPC (interim until Phase 4 API endpoint)

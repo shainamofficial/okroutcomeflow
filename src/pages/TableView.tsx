@@ -10,6 +10,7 @@ import { isPast, isToday, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditCell } from "@/components/table/InlineEditCell";
@@ -29,6 +30,7 @@ export default function TableView() {
   const { tasks } = useAllTasks();
   const { initiatives } = useInitiatives();
   const { definitions } = useCustomFields("task");
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -48,8 +50,16 @@ export default function TableView() {
   }, [initiatives]);
 
   const updateTask = async (id: string, updates: Record<string, unknown>) => {
+    // Optimistic: patch the cached rows immediately, roll back if the write fails.
+    const cacheKey = ["all_tasks", profile?.organization_id];
+    const previous = queryClient.getQueryData<Task[]>(cacheKey);
+    queryClient.setQueryData<Task[]>(cacheKey, (old) =>
+      old?.map((t) => (t.id === id ? { ...t, ...updates } : t))
+    );
+
     const { error } = await supabase.from("tasks").update(updates).eq("id", id);
     if (error) {
+      queryClient.setQueryData(cacheKey, previous);
       toast({ title: "Failed to update task", description: error.message, variant: "destructive" });
     } else {
       queryClient.invalidateQueries({ queryKey: ["all_tasks"] });

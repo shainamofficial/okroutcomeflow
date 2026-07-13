@@ -223,16 +223,37 @@ export function useKRMetricValues(configId: string | undefined) {
       if (error) throw error;
       return data;
     },
+    onMutate: async ({ date, value }) => {
+      await queryClient.cancelQueries({ queryKey: ["kr-metric-values", configId] });
+      const previous = queryClient.getQueryData<KRMetricValue[]>(["kr-metric-values", configId]);
+      const optimistic: KRMetricValue = {
+        id: `optimistic-${date}-${value}`,
+        kr_metric_config_id: configId ?? "",
+        date,
+        value,
+        created_by: profile?.id ?? null,
+        created_at: new Date().toISOString(),
+      };
+      queryClient.setQueryData<KRMetricValue[]>(["kr-metric-values", configId], (old) =>
+        [...(old ?? []), optimistic].sort((a, b) => a.date.localeCompare(b.date))
+      );
+      return { previous };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kr-metric-values", configId] });
       toast({ title: "Metric value added" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["kr-metric-values", configId], context.previous);
+      }
       toast({
         title: "Failed to add metric value",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["kr-metric-values", configId] });
     },
   });
 
@@ -245,16 +266,29 @@ export function useKRMetricValues(configId: string | undefined) {
 
       if (error) throw error;
     },
+    onMutate: async (valueId) => {
+      await queryClient.cancelQueries({ queryKey: ["kr-metric-values", configId] });
+      const previous = queryClient.getQueryData<KRMetricValue[]>(["kr-metric-values", configId]);
+      queryClient.setQueryData<KRMetricValue[]>(["kr-metric-values", configId], (old) =>
+        (old ?? []).filter((v) => v.id !== valueId)
+      );
+      return { previous };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kr-metric-values", configId] });
       toast({ title: "Metric value deleted" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["kr-metric-values", configId], context.previous);
+      }
       toast({
         title: "Failed to delete metric value",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["kr-metric-values", configId] });
     },
   });
 
