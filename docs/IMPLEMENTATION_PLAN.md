@@ -63,15 +63,15 @@ Immediate hardening; everything else builds on the CI gate.
 
 ## Phase 1 — Frontend performance quick wins *(no backend dependency)*
 
-- [ ] Route-based code splitting: `React.lazy` + `Suspense` for all 28 pages;
+- [x] Route-based code splitting: `React.lazy` + `Suspense` for all 28 pages;
       collapse repeated `<ProtectedRoute><AppLayout>` into layout routes
-- [ ] Async chunks for recharts (4 files) and framer-motion (landing page)
-- [ ] React Query defaults: `staleTime: 60_000`, `placeholderData: keepPreviousData`;
-      per-query overrides where freshness matters
+      → initial bundle 1728 KB → 666 KB (473 → 197 KB gz)
+- [x] Async chunks for recharts (98 KB gz own chunk) and framer-motion (in LandingPage chunk)
+- [x] React Query defaults: `staleTime: 60_000`, `placeholderData: keepPreviousData`, `retry: 1`
 - [ ] Optimistic updates: task status changes, metric check-ins
 - [ ] Virtualize long lists (`@tanstack/react-virtual`): TableView, ActivityLog, timeline rows
 - [ ] Memoize timeline hot path (`TimelineRow`, `TimelineBar`, `TimelineChart`)
-- [ ] `<link rel="preconnect">` to Supabase origin in index.html
+- [x] `<link rel="preconnect">` to Supabase origin in index.html
 - [ ] Pagination/infinite queries for activity log + table view (bounded fetches)
 - [ ] Collapse dashboard's 4 round trips into 1 Postgres RPC (interim until Phase 4 API endpoint)
 

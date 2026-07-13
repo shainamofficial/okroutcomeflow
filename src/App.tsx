@@ -1,9 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, keepPreviousData } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PlatformAdminProvider } from "@/contexts/PlatformAdminContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -13,284 +14,201 @@ import { AdminRoute } from "@/components/auth/AdminRoute";
 import { ManagerRoute } from "@/components/auth/ManagerRoute";
 import { PlatformAdminRoute } from "@/components/auth/PlatformAdminRoute";
 import { AppLayout } from "@/components/app/AppLayout";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import LandingPage from "./pages/LandingPage";
-import SignupInvite from "./pages/SignupInvite";
-import AwaitingApproval from "./pages/AwaitingApproval";
-import Inactive from "./pages/Inactive";
-import Dashboard from "./pages/Dashboard";
-import OrganizationSettings from "./pages/OrganizationSettings";
-import UserManagement from "./pages/UserManagement";
-import TeamManagement from "./pages/TeamManagement";
-import OKRs from "./pages/OKRs";
-import Initiatives from "./pages/Initiatives";
-import Reviews from "./pages/Reviews";
-import Timeline from "./pages/Timeline";
-import MyItems from "./pages/MyItems";
-import Platform from "./pages/Platform";
-import CalendarView from "./pages/CalendarView";
-import Workload from "./pages/Workload";
-import ActivityLog from "./pages/ActivityLog";
-import TableView from "./pages/TableView";
-import Automations from "./pages/Automations";
-import NotificationSettings from "./pages/NotificationSettings";
-import SharedInitiative from "./pages/SharedInitiative";
-import InitiativeDetail from "./pages/InitiativeDetail";
-import NotFound from "./pages/NotFound";
-import Help from "./pages/Help";
 
-const queryClient = new QueryClient();
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const SignupInvite = lazy(() => import("./pages/SignupInvite"));
+const AwaitingApproval = lazy(() => import("./pages/AwaitingApproval"));
+const Inactive = lazy(() => import("./pages/Inactive"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const OrganizationSettings = lazy(() => import("./pages/OrganizationSettings"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const OKRs = lazy(() => import("./pages/OKRs"));
+const Initiatives = lazy(() => import("./pages/Initiatives"));
+const Reviews = lazy(() => import("./pages/Reviews"));
+const Timeline = lazy(() => import("./pages/Timeline"));
+const MyItems = lazy(() => import("./pages/MyItems"));
+const Platform = lazy(() => import("./pages/Platform"));
+const CalendarView = lazy(() => import("./pages/CalendarView"));
+const Workload = lazy(() => import("./pages/Workload"));
+const ActivityLog = lazy(() => import("./pages/ActivityLog"));
+const TableView = lazy(() => import("./pages/TableView"));
+const Automations = lazy(() => import("./pages/Automations"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
+const SharedInitiative = lazy(() => import("./pages/SharedInitiative"));
+const InitiativeDetail = lazy(() => import("./pages/InitiativeDetail"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Help = lazy(() => import("./pages/Help"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      placeholderData: keepPreviousData,
+      retry: 1,
+    },
+  },
+});
+
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
+
+// Layout routes: guard + chrome render once, pages swap via <Outlet />.
+// The inner Suspense keeps the sidebar visible while a lazy page loads.
+const ProtectedLayout = () => (
+  <ProtectedRoute>
+    <AppLayout>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
+  </ProtectedRoute>
+);
+
+const ManagerLayout = () => (
+  <ManagerRoute>
+    <AppLayout>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
+  </ManagerRoute>
+);
+
+const AdminLayout = () => (
+  <AdminRoute>
+    <AppLayout>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
+  </AdminRoute>
+);
+
+const PlatformAdminLayout = () => (
+  <PlatformAdminRoute>
+    <AppLayout>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
+  </PlatformAdminRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <PlatformAdminProvider>
-            <Routes>
-              {/* Public routes - redirect to app if authenticated */}
-              <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <Signup />
-                </PublicRoute>
-              }
-            />
-            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <PlatformAdminProvider>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  {/* Public routes - redirect to app if authenticated */}
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicRoute>
+                        <Login />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/signup"
+                    element={
+                      <PublicRoute>
+                        <Signup />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/forgot-password"
+                    element={
+                      <PublicRoute>
+                        <ForgotPassword />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Invite signup route - public */}
-            <Route path="/signup-invite" element={<SignupInvite />} />
-            {/* Status-specific routes */}
-            <Route
-              path="/awaiting-approval"
-              element={
-                <StatusRoute requiredStatus="pending">
-                  <AwaitingApproval />
-                </StatusRoute>
-              }
-            />
-            <Route
-              path="/inactive"
-              element={
-                <StatusRoute requiredStatus="inactive">
-                  <Inactive />
-                </StatusRoute>
-              }
-            />
+                  {/* Invite signup route - public */}
+                  <Route path="/signup-invite" element={<SignupInvite />} />
 
-            {/* Protected routes with app layout */}
-            <Route
-              path="/app"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/me"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <MyItems />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/okrs"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <OKRs />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/initiatives"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Initiatives />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/initiatives/:id"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <InitiativeDetail />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/reviews"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Reviews />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/timeline"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Timeline />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <CalendarView />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/workload"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Workload />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/activity"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ActivityLog />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/table"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <TableView />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/automations"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Automations />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/help"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Help />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/settings/notifications"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <NotificationSettings />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/app/settings/users"
-              element={
-                <ManagerRoute>
-                  <AppLayout>
-                    <UserManagement />
-                  </AppLayout>
-                </ManagerRoute>
-              }
-            />
-            <Route
-              path="/app/settings/teams"
-              element={
-                <ManagerRoute>
-                  <AppLayout>
-                    <TeamManagement />
-                  </AppLayout>
-                </ManagerRoute>
-              }
-            />
-            <Route
-              path="/app/settings/organization"
-              element={
-                <AdminRoute>
-                  <AppLayout>
-                    <OrganizationSettings />
-                  </AppLayout>
-                </AdminRoute>
-              }
-              />
+                  {/* Status-specific routes */}
+                  <Route
+                    path="/awaiting-approval"
+                    element={
+                      <StatusRoute requiredStatus="pending">
+                        <AwaitingApproval />
+                      </StatusRoute>
+                    }
+                  />
+                  <Route
+                    path="/inactive"
+                    element={
+                      <StatusRoute requiredStatus="inactive">
+                        <Inactive />
+                      </StatusRoute>
+                    }
+                  />
 
-              {/* Platform admin route */}
-              <Route
-                path="/platform"
-                element={
-                  <PlatformAdminRoute>
-                    <AppLayout>
-                      <Platform />
-                    </AppLayout>
-                  </PlatformAdminRoute>
-                }
-              />
+                  {/* Protected routes with app layout */}
+                  <Route path="/app" element={<ProtectedLayout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="me" element={<MyItems />} />
+                    <Route path="okrs" element={<OKRs />} />
+                    <Route path="initiatives" element={<Initiatives />} />
+                    <Route path="initiatives/:id" element={<InitiativeDetail />} />
+                    <Route path="reviews" element={<Reviews />} />
+                    <Route path="timeline" element={<Timeline />} />
+                    <Route path="calendar" element={<CalendarView />} />
+                    <Route path="workload" element={<Workload />} />
+                    <Route path="activity" element={<ActivityLog />} />
+                    <Route path="table" element={<TableView />} />
+                    <Route path="automations" element={<Automations />} />
+                    <Route path="help" element={<Help />} />
+                    <Route path="settings/notifications" element={<NotificationSettings />} />
+                  </Route>
 
-              {/* Public shared initiative */}
-              <Route path="/share/initiative/:token" element={<SharedInitiative />} />
+                  {/* Manager-gated settings */}
+                  <Route path="/app/settings" element={<ManagerLayout />}>
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="teams" element={<TeamManagement />} />
+                  </Route>
 
-              {/* Public landing page */}
-              <Route path="/" element={<LandingPage />} />
+                  {/* Admin-gated settings */}
+                  <Route path="/app/settings/organization" element={<AdminLayout />}>
+                    <Route index element={<OrganizationSettings />} />
+                  </Route>
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </PlatformAdminProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+                  {/* Platform admin route */}
+                  <Route path="/platform" element={<PlatformAdminLayout />}>
+                    <Route index element={<Platform />} />
+                  </Route>
+
+                  {/* Public shared initiative */}
+                  <Route path="/share/initiative/:token" element={<SharedInitiative />} />
+
+                  {/* Public landing page */}
+                  <Route path="/" element={<LandingPage />} />
+
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </PlatformAdminProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
