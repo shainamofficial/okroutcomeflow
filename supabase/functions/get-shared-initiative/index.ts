@@ -1,5 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.91.1";
 
+interface KrLinkRow {
+  id: string;
+  weight: number;
+  key_result: { id: string } | null;
+}
+
+interface MetricRow {
+  id: string;
+  key_result_id: string;
+}
+
+interface MetricValueRow {
+  kr_metric_config_id: string;
+  value: number;
+  date: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -14,7 +31,7 @@ Deno.serve(async (req) => {
   try {
     const { token, email } = await req.json();
 
-    if (!token || !email) {
+    if (typeof token !== "string" || typeof email !== "string" || !token || !email) {
       return new Response(
         JSON.stringify({ error: "Token and email are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -47,13 +64,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if email is in allowed viewers
+    // Check if email is in allowed viewers. The pattern must be escaped:
+    // ilike treats % and _ as wildcards, so raw input like "%" would match
+    // every viewer row and bypass the allowlist.
     const normalizedEmail = email.toLowerCase().trim();
+    const escapedEmail = normalizedEmail.replace(/[\\%_]/g, "\\$&");
     const { data: viewer, error: viewerError } = await supabase
       .from("initiative_share_viewers")
       .select("id")
       .eq("share_link_id", shareLink.id)
-      .ilike("email", normalizedEmail)
+      .ilike("email", escapedEmail)
       .single();
 
     if (viewerError || !viewer) {
@@ -104,8 +124,8 @@ Deno.serve(async (req) => {
       .eq("initiative_id", shareLink.initiative_id);
 
     // Fetch KR metric configs and latest values for linked KRs
-    const krIds = (krLinks || []).map((l: any) => l.key_result?.id).filter(Boolean);
-    let metricsData: any[] = [];
+    const krIds = ((krLinks || []) as KrLinkRow[]).map((l) => l.key_result?.id).filter(Boolean);
+    let metricsData: (MetricRow & { latest_value: MetricValueRow | null })[] = [];
     if (krIds.length > 0) {
       const { data: metrics } = await supabase
         .from("kr_metric_config")
@@ -116,16 +136,18 @@ Deno.serve(async (req) => {
         .in("key_result_id", krIds);
 
       if (metrics && metrics.length > 0) {
-        const configIds = metrics.map((m: any) => m.id);
+        const configIds = (metrics as MetricRow[]).map((m) => m.id);
         const { data: values } = await supabase
           .from("kr_metric_values")
           .select("kr_metric_config_id, value, date")
           .in("kr_metric_config_id", configIds)
           .order("date", { ascending: false });
 
-        metricsData = metrics.map((m: any) => ({
+        metricsData = (metrics as MetricRow[]).map((m) => ({
           ...m,
-          latest_value: values?.find((v: any) => v.kr_metric_config_id === m.id) || null,
+          latest_value:
+            (values as MetricValueRow[] | null)?.find((v) => v.kr_metric_config_id === m.id) ||
+            null,
         }));
       }
     }
@@ -147,9 +169,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         initiative,
         tasks: tasks || [],
-        krLinks: (krLinks || []).map((l: any) => ({
+        krLinks: ((krLinks || []) as KrLinkRow[]).map((l) => ({
           ...l,
-          metrics: metricsData.filter((m: any) => m.key_result_id === l.key_result?.id),
+          metrics: metricsData.filter((m) => m.key_result_id === l.key_result?.id),
         })),
         updates: updates || [],
       }),

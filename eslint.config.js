@@ -21,6 +21,9 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // TODO(strict-mode campaign, Phase 5): restore to "error" — 37 pre-existing
+      // violations as of 2026-07-14; new code should not add more.
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
 );
