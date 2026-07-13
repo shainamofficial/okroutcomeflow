@@ -21,7 +21,6 @@ Around those primitives the app provides role-based access, review cadences, mul
 - **Supabase** — Postgres, Auth, and Row Level Security
 - **react-router-dom** — routing
 - **Vitest** — unit tests
-- Scaffolded and iterated with **[Lovable](https://lovable.dev)**
 
 ## Local setup
 
@@ -75,7 +74,7 @@ supabase db push
 
 ## Deploy
 
-OKRoutcomeFlow is a Vite single-page app backed by Supabase. To deploy, run `npm run build` and serve `dist/` from any static host — Vercel, Netlify, Cloudflare Pages, or S3 + CloudFront all work. Or open the project in [Lovable](https://lovable.dev) and use **Share → Publish** to ship a hosted version in one click.
+OKRoutcomeFlow is a Vite single-page app backed by Supabase. To deploy, run `npm run build` and serve `dist/` from any static host — Vercel, Netlify, Cloudflare Pages, or S3 + CloudFront all work.
 
 Make sure your hosting target's environment exposes the three `VITE_SUPABASE_*` variables at build time.
 

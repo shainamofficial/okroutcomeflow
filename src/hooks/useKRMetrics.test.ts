@@ -55,7 +55,9 @@ describe("calculateProgress", () => {
     };
 
     it("on_track when current value meets linear expectation", () => {
-      const result = calculateProgress(config, [value(50)]);
+      // expectedProgress includes time-of-day elapsed, so it sits just above
+      // 0.5 for most of the day — use 52 to stay clearly at/ahead of pace
+      const result = calculateProgress(config, [value(52)]);
       expect(result.progressPercent).toBeCloseTo(0.5, 1);
       expect(result.status).toBe("on_track");
     });
@@ -90,7 +92,8 @@ describe("calculateProgress", () => {
         start_value: 100,
         target_value: 50,
       };
-      const result = calculateProgress(config, [value(75)]);
+      // 74 → progress 0.52, clearly at/ahead of the ~0.5 linear expectation
+      const result = calculateProgress(config, [value(74)]);
       expect(result.progressPercent).toBeCloseTo(0.5, 1);
       expect(result.status).toBe("on_track");
     });
