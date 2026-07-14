@@ -128,9 +128,13 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
 
 ## Phase 2 — Monorepo + backend skeleton
 
-- [ ] Restructure to `apps/web`, `apps/api`, `packages/shared` (npm workspaces); CI updated
-- [ ] Scaffold Hono + tRPC server; health endpoint; error handling + request logging
+- [x] Restructure to `apps/web`, `apps/api`, `packages/shared` (npm workspaces); CI updated
+      (PR: phase-2/monorepo-setup, 2026-07-14)
+- [x] Scaffold Hono + tRPC server; health endpoint; error handling + request logging;
+      CORS restricted to the web origin; strict TypeScript in the api workspace
 - [ ] Connect to the **existing Supabase Postgres** via connection string (server-side, pooled)
+      ⚠️ Needs DATABASE_URL from the user: Supabase dashboard → Project Settings →
+      Database → Connection string (use the pooler URI) for project cgsjmrxtuyrfvkuqjvin
 - [ ] Drizzle introspection → `packages/shared` schema; verify against
       `src/integrations/supabase/types.ts`
 - [ ] First read procedure (e.g. `objectives.list`) consumed by one frontend hook behind a flag
