@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import type { KeyResult } from "./useOKRs";
 import type { Initiative } from "./useInitiatives";
@@ -12,6 +13,10 @@ export function useMyKeyResults() {
     queryKey: ["my_key_results", profile?.id],
     queryFn: async (): Promise<KeyResult[]> => {
       if (!profile?.id || !profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.myItems.keyResults.query()) as KeyResult[];
+      }
 
       const { data, error } = await supabase
         .from("key_results")
@@ -38,6 +43,10 @@ export function useMyInitiatives() {
     queryFn: async (): Promise<Initiative[]> => {
       if (!profile?.id || !profile?.organization_id) return [];
 
+      if (trpc) {
+        return (await trpc.myItems.initiatives.query()) as Initiative[];
+      }
+
       const { data, error } = await supabase
         .from("initiatives")
         .select(`
@@ -62,6 +71,10 @@ export function useMyTasks() {
     queryKey: ["my_tasks", profile?.id],
     queryFn: async (): Promise<Task[]> => {
       if (!profile?.id || !profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.myItems.tasks.query()) as Task[];
+      }
 
       const { data, error } = await supabase
         .from("tasks")

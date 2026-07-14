@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface SearchResult {
@@ -28,6 +29,12 @@ export function useGlobalSearch(searchQuery: string) {
     queryFn: async (): Promise<GroupedSearchResults> => {
       if (!profile?.organization_id || !trimmedQuery) {
         return { objectives: [], keyResults: [], initiatives: [], tasks: [] };
+      }
+
+      if (trpc) {
+        return (await trpc.search.global.query({
+          query: trimmedQuery,
+        })) as GroupedSearchResults;
       }
 
       // Search all entities in parallel

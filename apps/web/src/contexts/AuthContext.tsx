@@ -109,21 +109,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // The setTimeout dodges supabase-js's deadlock when calling
+          // client methods inside this callback. loading must only clear
+          // AFTER the profile/roles are in state — clearing it earlier
+          // made route guards evaluate an empty auth snapshot on direct
+          // page loads and bounce authorized users to /app.
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfile(session.user.id).finally(() => setLoading(false));
           }, 100);
         } else {
           setProfile(null);
           setRoles([]);
           setMemberships([]);
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
@@ -132,10 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

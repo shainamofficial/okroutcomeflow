@@ -63,6 +63,13 @@ export function CommandPalette() {
     navigate(path);
   }, [closeSearch, navigate]);
 
+  // With cmdk filtering disabled, navigation commands are filtered here.
+  const trimmed = query.trim().toLowerCase();
+  const navMatches =
+    trimmed.length === 0
+      ? navCommands
+      : navCommands.filter((cmd) => cmd.label.toLowerCase().includes(trimmed));
+
   const handleSelect = useCallback((type: string) => {
     closeSearch();
     switch (type) {
@@ -98,7 +105,15 @@ export function CommandPalette() {
         </kbd>
       </Button>
 
-      <CommandDialog open={isOpen} onOpenChange={(open) => !open && closeSearch()}>
+      {/* shouldFilter=false: search results are already filtered by the
+          server; cmdk's fuzzy re-filter was discarding legitimate matches
+          (e.g. titles with prefixes). Navigation commands are filtered
+          manually below instead. */}
+      <CommandDialog
+        open={isOpen}
+        onOpenChange={(open) => !open && closeSearch()}
+        commandProps={{ shouldFilter: false }}
+      >
         <CommandInput
           placeholder="Search or type a command..."
           value={query}
@@ -159,17 +174,19 @@ export function CommandPalette() {
           )}
 
           {/* Navigation commands */}
-          <CommandGroup heading="Navigation">
-            {navCommands.map((cmd) => (
-              <CommandItem key={cmd.path} onSelect={() => handleNavigate(cmd.path)}>
-                <cmd.icon className="h-4 w-4 text-muted-foreground" />
-                <span className="ml-2">{cmd.label}</span>
-                {cmd.shortcut && (
-                  <span className="ml-auto text-xs text-muted-foreground">{cmd.shortcut}</span>
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {navMatches.length > 0 && (
+            <CommandGroup heading="Navigation">
+              {navMatches.map((cmd) => (
+                <CommandItem key={cmd.path} onSelect={() => handleNavigate(cmd.path)}>
+                  <cmd.icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="ml-2">{cmd.label}</span>
+                  {cmd.shortcut && (
+                    <span className="ml-auto text-xs text-muted-foreground">{cmd.shortcut}</span>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </>
