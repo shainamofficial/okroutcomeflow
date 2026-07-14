@@ -49,7 +49,7 @@ Immediate hardening; everything else builds on the CI gate.
 
 - [x] Fix share-link wildcard bypass: escape `%`/`_` before `ilike` in
       `supabase/functions/get-shared-initiative/index.ts` (+ input type validation).
-      **Deploy note:** requires `supabase functions deploy get-shared-initiative`. ⚠️ NOT YET DEPLOYED
+      ✅ Deployed to the new project (2026-07-14)
 - [x] `typecheck` script (`tsc -b`); build becomes `tsc -b && vite build`
 - [x] Lint green: fix `require()` import in tailwind.config.ts, empty interfaces;
       temporarily downgrade `@typescript-eslint/no-explicit-any` to `warn`
@@ -87,7 +87,7 @@ Immediate hardening; everything else builds on the CI gate.
       (13 in useDashboardStats alone, incl. an unbounded org-wide metric-values fetch).
       New `get_dashboard_data(_org_id)` computes all sections server-side
       (migration `20260714120000_dashboard_rpc.sql`); all four dashboard hooks now share
-      one query. ⚠️ Requires `supabase db push` before the dashboard works again.
+      one query. ✅ Applied to the new project (2026-07-14).
 
 **Budgets (enforced from here on):** initial JS < 200 KB gz; route chunks < 100 KB gz each.
 **Done when:** `npm run build` shows split chunks within budget; dashboard loads with 1 data round trip.
@@ -104,6 +104,27 @@ long-running, risky changes that must never sit half-finished on `main`:
 4. Squash-merge, delete the branch. `main` stays deployable at every commit.
 5. When Phase 2 starts: enable branch protection on `main` — require the CI check,
    block direct pushes.
+
+## Supabase migration to own account ✅ (2026-07-14)
+
+The original database was a Lovable-managed Supabase project the user's account couldn't
+access. Fresh-start migration executed via the Supabase MCP (data was disposable):
+
+- New project **okroutcomeflow** (`cgsjmrxtuyrfvkuqjvin`), region ap-south-1 (Mumbai),
+  free tier, owned by the user's Supabase org
+- All 38 repo migrations applied in order as 8 baseline batches (identical schema:
+  33 tables all with RLS, 22+ functions, 2 storage buckets, seeds incl. platform admin)
+- Fixed `get-shared-initiative` edge function deployed (`verify_jwt=false` per config.toml)
+- `.env` (untracked), `supabase/config.toml`, and index.html preconnect now point at the
+  new project. The old Lovable project is abandoned; its anon key in git history is dead.
+- ⚠️ User to-dos in the Supabase dashboard (cannot be done via MCP):
+  Auth → URL Configuration → set Site URL (localhost:8080 for now) and redirect URLs;
+  Auth → Providers → configure Google OAuth (new client secret) if Google login is wanted;
+  Auth → disable "Confirm email" if the old project had it off.
+- Security advisors on the new project: 57 pre-existing findings inherited from the schema
+  (1 ERROR: `user_invitations_safe` SECURITY DEFINER view; 55 WARN: SECURITY DEFINER
+  functions executable by anon/authenticated; 1 WARN: public logo bucket allows listing).
+  → folded into the Phase 5 hardening pass.
 
 ## Phase 2 — Monorepo + backend skeleton
 
