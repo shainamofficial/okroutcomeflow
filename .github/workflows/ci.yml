@@ -22,13 +22,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
+      - name: Typecheck (all workspaces)
         run: npm run typecheck
 
       - name: Test
         run: npm run test
 
-      - name: Build
+      - name: Build web
         run: npm run build
         env:
           # Build-time placeholders; real values are injected by the hosting provider.
