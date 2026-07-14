@@ -12,6 +12,6 @@
     "build": "npm run build -w apps/web",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test -w apps/web"
+    "test": "npm run test --workspaces --if-present"
   }
 }
