@@ -1428,6 +1428,10 @@ export type Database = {
         Args: { _domain: string; _org_id: string }
         Returns: boolean
       }
+      get_dashboard_data: {
+        Args: { _org_id: string }
+        Returns: Json
+      }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {

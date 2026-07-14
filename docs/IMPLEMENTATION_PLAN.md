@@ -83,7 +83,11 @@ Immediate hardening; everything else builds on the CI gate.
 - [x] Pagination/infinite queries: activity log fetches 50/page (was a flat 100-cap);
       table view fetch stays client-side until Phase 4 (CSV export + client sort need
       the full set) but rendering is now bounded
-- [ ] Collapse dashboard's 4 round trips into 1 Postgres RPC (interim until Phase 4 API endpoint)
+- [x] Collapse dashboard round trips into 1 Postgres RPC — was actually **16** round trips
+      (13 in useDashboardStats alone, incl. an unbounded org-wide metric-values fetch).
+      New `get_dashboard_data(_org_id)` computes all sections server-side
+      (migration `20260714120000_dashboard_rpc.sql`); all four dashboard hooks now share
+      one query. ⚠️ Requires `supabase db push` before the dashboard works again.
 
 **Budgets (enforced from here on):** initial JS < 200 KB gz; route chunks < 100 KB gz each.
 **Done when:** `npm run build` shows split chunks within budget; dashboard loads with 1 data round trip.
