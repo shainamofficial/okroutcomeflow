@@ -132,14 +132,20 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       (PR: phase-2/monorepo-setup, 2026-07-14)
 - [x] Scaffold Hono + tRPC server; health endpoint; error handling + request logging;
       CORS restricted to the web origin; strict TypeScript in the api workspace
-- [ ] Connect to the **existing Supabase Postgres** via connection string (server-side, pooled)
-      ⚠️ Needs DATABASE_URL from the user: Supabase dashboard → Project Settings →
-      Database → Connection string (use the pooler URI) for project cgsjmrxtuyrfvkuqjvin
-- [ ] Drizzle introspection → `packages/shared` schema; verify against
-      `src/integrations/supabase/types.ts`
-- [ ] First read procedure (e.g. `objectives.list`) consumed by one frontend hook behind a flag
-- [ ] Generate a consolidated schema dump (`supabase db dump`) committed as
-      `docs/schema-baseline.sql` (fixes unauditable-migrations issue)
+- [x] Connect to Supabase Postgres: app queries via transaction pooler (:6543, prepare:false);
+      drizzle-kit uses the session pooler (:5432) — the transaction pooler hangs introspection.
+      `npm run db:check -w apps/api` smoke-tests connectivity.
+- [x] Drizzle introspection → `apps/api/src/db/schema.ts` (deviation from plan: schema lives
+      in the api workspace, not packages/shared — only the api queries the DB; shared gets
+      zod schemas/permissions later). Generator required 5 hand-fixes (documented inline):
+      empty-string default, bare gen_random_uuid, 3 FKs to auth.users; relations.ts deleted
+      until the relational query API is needed. ⚠️ Re-running db:pull overwrites hand-fixes.
+- [x] First read procedure `objectives.list` behind the `VITE_API_URL` flag: token verified
+      against Supabase Auth, active org resolved from organization_memberships,
+      protectedProcedure rejects anon (verified 401). Response shape byte-identical to the
+      Supabase query. ⚠️ Happy-path E2E awaits user QA with the flag on.
+- [ ] Generate a consolidated schema dump committed as `docs/schema-baseline.sql`
+      (fixes unauditable-migrations issue)
 
 **Done when:** web app runs with one hook served by the API and the rest still on Supabase.
 

@@ -28,3 +28,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# drizzle-kit pull artifacts (schema.ts/relations.ts are kept; snapshots are not)
+apps/api/src/db/meta/
+apps/api/src/db/*.sql

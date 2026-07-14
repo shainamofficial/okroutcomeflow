@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,6 +41,13 @@ export function useObjectives() {
     queryKey: ["objectives", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      // Strangler migration: served by the owned API when VITE_API_URL is
+      // set; identical response shape either way.
+      if (trpc) {
+        return (await trpc.objectives.list.query()) as Objective[];
+      }
+
       const { data, error } = await supabase
         .from("objectives")
         .select("*")
