@@ -144,8 +144,9 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       against Supabase Auth, active org resolved from organization_memberships,
       protectedProcedure rejects anon (verified 401). Response shape byte-identical to the
       Supabase query. ⚠️ Happy-path E2E awaits user QA with the flag on.
-- [ ] Generate a consolidated schema dump committed as `docs/schema-baseline.sql`
-      (fixes unauditable-migrations issue)
+- [x] Consolidated schema dump committed as `docs/schema-baseline.sql` (623 lines: all
+      enums, 33 tables, policies, view — generated via drizzle-kit introspection;
+      regeneration command documented in the file header). **Phase 2 complete.**
 
 **Done when:** web app runs with one hook served by the API and the rest still on Supabase.
 
