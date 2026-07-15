@@ -169,8 +169,17 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
 Order by risk — reads first, mutations last. Each hook: tRPC procedure(s) + authz checks
 (from `permissions.ts`) + swap frontend hook + delete direct Supabase calls.
 
-- [ ] Reads: `useDashboardStats` (single endpoint — kills round trips), `useMyItems`,
-      `useGlobalSearch`, `useOrgUsers`, `useTeams` (read), `useReviews` (read)
+- [ ] Reads: `useDashboardStats` (single endpoint — kills round trips; needs API-side
+      implementation, the SQL RPC's auth.uid() guard doesn't apply to API connections),
+      `useTeams` (read), `useReviews` (read)
+      - [x] Batch 1 (2026-07-15, PR phase-4/reads-batch-1): `useMyItems` (3 procedures,
+        tRPC batches them into one HTTP request), `useOrgUsers.list` (managerProcedure
+        mirrors has_role; proper org-scoped join replaces fetch-all-roles-client-side),
+        `useGlobalSearch` (server-grouped, ilike input escaped via shared escapeLike).
+        19 new API tests (47 total). Two pre-existing bugs found by QA and fixed:
+        AuthContext cleared `loading` before roles loaded (direct loads of guarded URLs
+        bounced authorized users); CommandPalette's cmdk fuzzy filter discarded
+        server-matched search results (shouldFilter=false + manual nav filtering).
 - [ ] OKR core: `useOKRs`, `useKRMetrics`, `useInitiatives`, `useTaskDependencies`
 - [ ] Mutations: `useTasks`, `useUpdates` (+ mentions/reactions), `useTeams` (write),
       `useCustomFields`, `useAutomations`, `useNotifications` + preferences,

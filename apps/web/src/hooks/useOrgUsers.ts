@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
@@ -26,6 +27,10 @@ export function useOrgUsers() {
     queryKey: ['org-users', profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.orgUsers.list.query()) as OrgUser[];
+      }
 
       const { data: profiles, error: profilesError } = await supabase
         .from('users_profile')
