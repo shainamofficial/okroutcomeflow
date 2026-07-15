@@ -169,9 +169,12 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
 Order by risk — reads first, mutations last. Each hook: tRPC procedure(s) + authz checks
 (from `permissions.ts`) + swap frontend hook + delete direct Supabase calls.
 
-- [ ] Reads: `useDashboardStats` (single endpoint — kills round trips; needs API-side
-      implementation, the SQL RPC's auth.uid() guard doesn't apply to API connections),
-      `useTeams` (read), `useReviews` (read)
+- [ ] Reads: remaining after batch 2 — `useNotifications`, `useInitiatives`/`useOKRs`
+      (read portions), `useTasks` (read portions), platform hooks
+      - [x] Batch 2 (2026-07-15, PR phase-4/reads-batch-2): `dashboard.get` (API-side port
+        of the get_dashboard_data SQL — the RPC becomes deletable once the web app stops
+        calling it), `teams.list` + `teams.members` (org-membership enforced via join),
+        `reviews.cadence`/`sessions`/`allSessions`. 14 new API tests (61 total).
       - [x] Batch 1 (2026-07-15, PR phase-4/reads-batch-1): `useMyItems` (3 procedures,
         tRPC batches them into one HTTP request), `useOrgUsers.list` (managerProcedure
         mirrors has_role; proper org-scoped join replaces fetch-all-roles-client-side),

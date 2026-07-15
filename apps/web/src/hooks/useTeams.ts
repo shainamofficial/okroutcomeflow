@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -33,6 +34,10 @@ export function useTeams() {
     queryKey: ['teams', profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.teams.list.query()) as Team[];
+      }
 
       const { data, error } = await supabase
         .from('teams')
@@ -133,6 +138,10 @@ export function useTeamMembers(teamId: string | null) {
     queryFn: async () => {
       if (!teamId) return [];
 
+      if (trpc) {
+        return (await trpc.teams.members.query({ teamId })) as TeamMember[];
+      }
+
       const { data, error } = await supabase
         .from('team_members')
         .select(`
@@ -145,7 +154,7 @@ export function useTeamMembers(teamId: string | null) {
         .eq('team_id', teamId);
 
       if (error) throw error;
-      
+
       return (data || []).map(m => ({
         ...m,
         user: Array.isArray(m.user) ? m.user[0] : m.user,
