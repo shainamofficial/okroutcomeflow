@@ -1,32 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { authClient } from '@/lib/auth-client';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Supabase handles the token exchange automatically via the URL hash
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setReady(true);
-      }
-    });
-    // Also check if already in recovery state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const [searchParams] = useSearchParams();
+  // Better Auth puts the reset token in the redirect URL query string.
+  const token = searchParams.get('token');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,26 +22,30 @@ export default function ResetPassword() {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
     }
+    if (!token) {
+      toast({ title: 'Invalid or missing reset link', variant: 'destructive' });
+      return;
+    }
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await authClient.resetPassword({ newPassword: password, token });
 
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message ?? 'Reset failed', variant: 'destructive' });
       setLoading(false);
       return;
     }
 
     toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
-    navigate('/app');
+    navigate('/login');
   };
 
-  if (!ready) {
+  if (!token) {
     return (
-      <AuthLayout title="Reset password" subtitle="Verifying your reset link...">
-        <div className="flex items-center justify-center py-8">
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
+      <AuthLayout title="Reset password" subtitle="Invalid reset link">
+        <p className="text-sm text-muted-foreground text-center py-4">
+          This password reset link is missing or invalid. Request a new one from the sign-in page.
+        </p>
       </AuthLayout>
     );
   }

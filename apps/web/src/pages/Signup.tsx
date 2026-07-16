@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Mail } from 'lucide-react';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -15,8 +13,8 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,18 +45,15 @@ export default function Signup() {
       return;
     }
 
-    setEmailSent(true);
+    // Better Auth signs the user in immediately (no email verification);
+    // routing sends them to the dashboard or awaiting-approval by status.
     setLoading(false);
+    navigate('/app');
   };
 
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/app`,
-      },
-    });
+    const { error } = await signInWithGoogle();
 
     if (error) {
       toast({
@@ -69,37 +64,6 @@ export default function Signup() {
       setGoogleLoading(false);
     }
   };
-
-  if (emailSent) {
-    return (
-      <AuthLayout title="Check your email" subtitle="We've sent you a verification link">
-        <div className="flex flex-col items-center gap-4 py-4">
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Mail className="h-6 w-6 text-primary" />
-          </div>
-          <p className="text-sm text-muted-foreground text-center">
-            We sent a verification email to <span className="font-medium text-foreground">{email}</span>.
-            Click the link in the email to activate your account.
-          </p>
-          <p className="text-xs text-muted-foreground text-center">
-            Didn't receive it? Check your spam folder or{' '}
-            <button
-              onClick={() => setEmailSent(false)}
-              className="text-foreground underline underline-offset-4 hover:text-primary"
-            >
-              try again
-            </button>.
-          </p>
-        </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already verified?{' '}
-          <Link to="/login" className="text-foreground underline underline-offset-4 hover:text-primary">
-            Sign in
-          </Link>
-        </p>
-      </AuthLayout>
-    );
-  }
 
   return (
     <AuthLayout title="Create an account" subtitle="Get started with OutcomeFlow">

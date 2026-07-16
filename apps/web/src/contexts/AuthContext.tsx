@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { authClient } from '@/lib/auth-client';
+import { trpc } from '@/lib/trpc';
 import { useQueryClient } from '@tanstack/react-query';
 
 type UserStatus = 'pending' | 'active' | 'inactive';
 type AppRole = 'admin' | 'manager' | 'contributor' | 'viewer';
+
+interface AuthUser {
+  id: string;
+  email: string;
+}
 
 interface UserProfile {
   id: string;
@@ -16,10 +21,6 @@ interface UserProfile {
   created_at: string;
 }
 
-interface UserRole {
-  role: AppRole;
-}
-
 interface OrgMembership {
   id: string;
   organization_id: string;
@@ -28,14 +29,14 @@ interface OrgMembership {
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   roles: AppRole[];
   memberships: OrgMembership[];
   loading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   switchOrganization: (targetOrgId: string) => Promise<{ error: Error | null }>;
@@ -44,159 +45,99 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { data: session, isPending } = authClient.useSession();
+  const queryClient = useQueryClient();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [memberships, setMemberships] = useState<OrgMembership[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  const fetchProfile = async (userId: string) => {
+  const sessionUser = session?.user;
+  const user: AuthUser | null = sessionUser
+    ? { id: sessionUser.id, email: sessionUser.email }
+    : null;
+  const userId = sessionUser?.id ?? null;
+
+  // Tracks the id whose profile is loaded, so `loading` reflects reality.
+  const loadedFor = useRef<string | null>(null);
+
+  const loadProfile = useCallback(async (id: string) => {
+    setProfileLoading(true);
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('users_profile')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        return;
-      }
-
-      if (profileData) {
-        setProfile(profileData as UserProfile);
-      }
-
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
-        return;
-      }
-
-      if (rolesData) {
-        setRoles(rolesData.map((r: UserRole) => r.role));
-      }
-
-      // Fetch organization memberships
-      const { data: membershipData, error: membershipError } = await supabase
-        .from('organization_memberships')
-        .select('id, organization_id, is_active, joined_at')
-        .eq('user_id', userId);
-
-      if (membershipError) {
-        console.error('Error fetching memberships:', membershipError);
-        return;
-      }
-
-      if (membershipData) {
-        setMemberships(membershipData as OrgMembership[]);
-      }
+      const me = await trpc.session.me.query();
+      setProfile((me.profile as UserProfile | null) ?? null);
+      setRoles(me.roles as AppRole[]);
+      setMemberships(me.memberships as OrgMembership[]);
+      loadedFor.current = id;
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('Error loading session profile:', error);
+    } finally {
+      setProfileLoading(false);
     }
-  };
-
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id);
-    }
-  };
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    if (userId) {
+      if (loadedFor.current !== userId) void loadProfile(userId);
+    } else {
+      setProfile(null);
+      setRoles([]);
+      setMemberships([]);
+      loadedFor.current = null;
+    }
+  }, [userId, loadProfile]);
 
-        if (session?.user) {
-          // The setTimeout dodges supabase-js's deadlock when calling
-          // client methods inside this callback. loading must only clear
-          // AFTER the profile/roles are in state — clearing it earlier
-          // made route guards evaluate an empty auth snapshot on direct
-          // page loads and bounce authorized users to /app.
-          setTimeout(() => {
-            fetchProfile(session.user.id).finally(() => setLoading(false));
-          }, 100);
-        } else {
-          setProfile(null);
-          setRoles([]);
-          setMemberships([]);
-          setLoading(false);
-        }
-      }
-    );
+  // loading stays true until the session resolves AND (if signed in) the
+  // profile is loaded — route guards must never see a half-populated auth.
+  const loading = isPending || (!!userId && loadedFor.current !== userId);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const refreshProfile = useCallback(async () => {
+    if (userId) await loadProfile(userId);
+  }, [userId, loadProfile]);
 
   const signUp = async (email: string, password: string, name: string) => {
     const trimmedEmail = email.trim().toLowerCase();
-    const domain = trimmedEmail.split('@')[1];
-
-    if (!domain || domain.trim() === '') {
-      return { error: new Error('Invalid email address') };
-    }
-
-    const { error } = await supabase.auth.signUp({
+    if (!trimmedEmail.split('@')[1]) return { error: new Error('Invalid email address') };
+    const { error } = await authClient.signUp.email({
       email: trimmedEmail,
       password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          name: name.trim(),
-        },
-      },
+      name: name.trim(),
     });
-
-    return { error: error ? new Error(error.message) : null };
+    return { error: error ? new Error(error.message ?? 'Sign up failed') : null };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await authClient.signIn.email({
       email: email.trim().toLowerCase(),
       password,
     });
+    return { error: error ? new Error(error.message ?? 'Sign in failed') : null };
+  };
 
-    return { error: error ? new Error(error.message) : null };
+  const signInWithGoogle = async () => {
+    const { error } = await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: `${window.location.origin}/app`,
+    });
+    return { error: error ? new Error(error.message ?? 'Google sign-in failed') : null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authClient.signOut();
     setProfile(null);
     setRoles([]);
     setMemberships([]);
+    loadedFor.current = null;
+    queryClient.clear();
   };
 
   const switchOrganization = async (targetOrgId: string) => {
-    if (!user) return { error: new Error('Not authenticated') };
-
+    if (!userId) return { error: new Error('Not authenticated') };
     try {
-      const { error } = await supabase.rpc('switch_organization', {
-        _user_id: user.id,
-        _target_org_id: targetOrgId,
-      });
-
-      if (error) return { error: new Error(error.message) };
-
-      // Refresh profile, roles, and memberships
-      await fetchProfile(user.id);
-
+      await trpc.session.switchOrganization.mutate({ targetOrgId });
+      await loadProfile(userId);
+      queryClient.invalidateQueries();
       return { error: null };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('Failed to switch organization') };
@@ -207,13 +148,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        session,
         profile,
         roles,
         memberships,
         loading,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         refreshProfile,
         switchOrganization,
