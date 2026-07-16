@@ -5,7 +5,12 @@ const { rolesMock, selectMock } = vi.hoisted(() => ({
   selectMock: vi.fn(),
 }));
 
-vi.mock("./lib/roles", () => ({ getCallerRoles: rolesMock }));
+vi.mock("./lib/roles", () => ({
+  getCallerRoles: rolesMock,
+  getActor: vi.fn(),
+  // Non-platform-admin by default → platform procedures give FORBIDDEN.
+  isCallerPlatformAdmin: vi.fn().mockResolvedValue(false),
+}));
 vi.mock("./db/client", () => ({ db: { select: selectMock } }));
 
 import { appRouter } from "./router";
@@ -105,6 +110,16 @@ describe("protectedProcedure gating", () => {
     ["invitations.list", (c) => c.invitations.list()],
     ["invitations.create", (c) => c.invitations.create({ email: "x@y.co", role: "contributor" })],
     ["invitations.revoke", (c) => c.invitations.revoke({ invitationId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["platform.admins.list", (c) => c.platform.admins.list()],
+    ["platform.admins.add", (c) => c.platform.admins.add({ email: "x@y.co" })],
+    ["platform.admins.remove", (c) => c.platform.admins.remove({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["platform.orgs.list", (c) => c.platform.orgs.list()],
+    ["platform.orgs.detail", (c) => c.platform.orgs.detail({ orgId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["platform.orgs.delete", (c) => c.platform.orgs.delete({ orgId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["platform.users.list", (c) => c.platform.users.list()],
+    ["platform.users.updateStatus", (c) => c.platform.users.updateStatus({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", status: "active" })],
+    ["platform.users.updateRole", (c) => c.platform.users.updateRole({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", role: "viewer" })],
+    ["platform.users.delete", (c) => c.platform.users.delete({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {

@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { isElevated, type Role } from "@okroutcomeflow/shared";
 import type { Context } from "./context";
-import { getCallerRoles } from "./lib/roles";
+import { getCallerRoles, isCallerPlatformAdmin } from "./lib/roles";
 
 const t = initTRPC.context<Context>().create();
 
@@ -29,4 +29,18 @@ export const managerProcedure = protectedProcedure.use(async ({ ctx, next }) => 
     throw new TRPCError({ code: "FORBIDDEN", message: "Manager or admin role required" });
   }
   return next({ ctx: { ...ctx, roles } });
+});
+
+/**
+ * Platform-admin-only. Cross-org, so it does NOT require an active org —
+ * just an authenticated caller in the platform_admins list.
+ */
+export const platformProcedure = t.procedure.use(async ({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in required" });
+  }
+  if (!(await isCallerPlatformAdmin(ctx.userId))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Platform admin required" });
+  }
+  return next({ ctx: { userId: ctx.userId } });
 });
