@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
@@ -39,6 +40,10 @@ export function useInvitations() {
     queryFn: async () => {
       if (!profile?.organization_id) return [];
 
+      if (trpc) {
+        return (await trpc.invitations.list.query()) as Invitation[];
+      }
+
       // Query the safe view that excludes sensitive token data
       const { data, error } = await supabase
         .from('user_invitations_safe')
@@ -55,6 +60,10 @@ export function useInvitations() {
   const createInvitation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
       if (!profile?.organization_id) throw new Error('No organization');
+
+      if (trpc) {
+        return await trpc.invitations.create.mutate({ email, role });
+      }
 
       // Check if user already exists
       const { data: existingUser } = await supabase
@@ -107,6 +116,10 @@ export function useInvitations() {
 
   const revokeInvitation = useMutation({
     mutationFn: async (invitationId: string) => {
+      if (trpc) {
+        await trpc.invitations.revoke.mutate({ invitationId });
+        return;
+      }
       const { error } = await supabase
         .from('user_invitations')
         .update({ status: 'revoked' })
