@@ -1,8 +1,40 @@
 import { and, desc, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import * as perms from "@okroutcomeflow/shared";
 import { db } from "../db/client";
 import { initiatives, tasks, teams, usersProfile } from "../db/schema";
+import { getActor } from "../lib/roles";
 import { protectedProcedure, router } from "../trpc";
+
+const notFound = () =>
+  new TRPCError({ code: "NOT_FOUND", message: "Task or initiative not found in your organization" });
+const forbidden = () =>
+  new TRPCError({ code: "FORBIDDEN", message: "You don't have permission to do that" });
+
+/** Loads an initiative's owner + org, scoped to the caller's org. */
+async function loadInitiative(initiativeId: string, orgId: string) {
+  const [row] = await db
+    .select({ ownerId: initiatives.ownerId, organizationId: initiatives.organizationId })
+    .from(initiatives)
+    .where(and(eq(initiatives.id, initiativeId), eq(initiatives.organizationId, orgId)))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Loads a task's assignee + its initiative's owner, scoped to the caller's org. */
+async function loadTaskContext(taskId: string, orgId: string) {
+  const [row] = await db
+    .select({
+      assigneeUserId: tasks.assigneeUserId,
+      initiativeOwnerId: initiatives.ownerId,
+    })
+    .from(tasks)
+    .innerJoin(initiatives, eq(initiatives.id, tasks.initiativeId))
+    .where(and(eq(tasks.id, taskId), eq(initiatives.organizationId, orgId)))
+    .limit(1);
+  return row ?? null;
+}
 
 const taskColumns = {
   id: tasks.id,
@@ -65,4 +97,100 @@ export const tasksRouter = router({
       .where(eq(initiatives.organizationId, ctx.orgId))
       .orderBy(desc(tasks.createdAt))
   ),
+
+  create: protectedProcedure
+    .input(
+      z.object({
+        initiativeId: z.string().uuid(),
+        title: z.string().min(1),
+        description: z.string().nullish(),
+        assigneeUserId: z.string().uuid().nullish(),
+        assigneeTeamId: z.string().uuid().nullish(),
+        status: z.enum(["todo", "in_progress", "blocked", "done"]).optional(),
+        startDate: z.string().nullish(),
+        dueDate: z.string().nullish(),
+        parentTaskId: z.string().uuid().nullish(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const initiative = await loadInitiative(input.initiativeId, ctx.orgId);
+      if (!initiative) throw notFound();
+      const actor = await getActor(ctx);
+      if (!perms.tasks.create(actor, { ownerId: initiative.ownerId })) throw forbidden();
+
+      const [created] = await db
+        .insert(tasks)
+        .values({
+          initiativeId: input.initiativeId,
+          title: input.title,
+          description: input.description ?? null,
+          assigneeUserId: input.assigneeUserId ?? null,
+          assigneeTeamId: input.assigneeTeamId ?? null,
+          status: input.status ?? "todo",
+          startDate: input.startDate ?? null,
+          dueDate: input.dueDate ?? null,
+          parentTaskId: input.parentTaskId ?? null,
+          createdBy: ctx.userId,
+        })
+        .returning();
+      return created;
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        title: z.string().min(1).optional(),
+        description: z.string().nullish(),
+        assigneeUserId: z.string().uuid().nullish(),
+        assigneeTeamId: z.string().uuid().nullish(),
+        status: z.enum(["todo", "in_progress", "blocked", "done"]).optional(),
+        startDate: z.string().nullish(),
+        dueDate: z.string().nullish(),
+        color: z.string().nullish(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const task = await loadTaskContext(input.id, ctx.orgId);
+      if (!task) throw notFound();
+      const actor = await getActor(ctx);
+      if (
+        !perms.canManageTask(actor, {
+          assigneeUserId: task.assigneeUserId,
+          initiativeOwnerId: task.initiativeOwnerId,
+        })
+      ) {
+        throw forbidden();
+      }
+
+      // Only touch columns explicitly provided (null is a real value = clear).
+      const patch: Record<string, unknown> = {};
+      if (input.title !== undefined) patch.title = input.title;
+      if (input.description !== undefined) patch.description = input.description ?? null;
+      if (input.assigneeUserId !== undefined) patch.assigneeUserId = input.assigneeUserId ?? null;
+      if (input.assigneeTeamId !== undefined) patch.assigneeTeamId = input.assigneeTeamId ?? null;
+      if (input.status !== undefined) patch.status = input.status;
+      if (input.startDate !== undefined) patch.startDate = input.startDate ?? null;
+      if (input.dueDate !== undefined) patch.dueDate = input.dueDate ?? null;
+      if (input.color !== undefined) patch.color = input.color ?? null;
+
+      if (Object.keys(patch).length > 0) {
+        await db.update(tasks).set(patch).where(eq(tasks.id, input.id));
+      }
+      return { ok: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const task = await loadTaskContext(input.id, ctx.orgId);
+      if (!task) throw notFound();
+      const actor = await getActor(ctx);
+      // Plain assignees can't delete — only elevated or the initiative owner.
+      if (!perms.tasks.delete(actor, { initiativeOwnerId: task.initiativeOwnerId })) {
+        throw forbidden();
+      }
+      await db.delete(tasks).where(eq(tasks.id, input.id));
+      return { ok: true };
+    }),
 });
