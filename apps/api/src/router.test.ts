@@ -87,6 +87,17 @@ describe("protectedProcedure gating", () => {
     ["customFields.createDefinition", (c) => c.customFields.createDefinition({ entityType: "task", name: "F", fieldType: "text" })],
     ["customFields.deleteDefinition", (c) => c.customFields.deleteDefinition({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["customFields.upsertValue", (c) => c.customFields.upsertValue({ fieldDefinitionId: "1b671a64-40d5-491e-99b0-da01ff1f3341", entityType: "task", entityId: "2b671a64-40d5-491e-99b0-da01ff1f3341", value: "x" })],
+    ["reviews.upsertCadence", (c) => c.reviews.upsertCadence({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341", frequency: "weekly", nextReviewDate: "2026-08-01" })],
+    ["reviews.deleteCadence", (c) => c.reviews.deleteCadence({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.createSession", (c) => c.reviews.createSession({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341", reviewDate: "2026-08-01" })],
+    ["reviews.updateSession", (c) => c.reviews.updateSession({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.deleteSession", (c) => c.reviews.deleteSession({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.participants", (c) => c.reviews.participants({ sessionId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.addParticipant", (c) => c.reviews.addParticipant({ sessionId: "1b671a64-40d5-491e-99b0-da01ff1f3341", userId: "2b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.removeParticipant", (c) => c.reviews.removeParticipant({ participantId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["tasks.watchers", (c) => c.tasks.watchers({ taskId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["tasks.toggleWatch", (c) => c.tasks.toggleWatch({ taskId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["tasks.dependencies", (c) => c.tasks.dependencies()],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {

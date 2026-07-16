@@ -124,6 +124,16 @@ export function useReviewCadence(keyResultId?: string) {
 
       const nextReviewDateStr = format(nextReviewDate, "yyyy-MM-dd");
 
+      if (trpc) {
+        return await trpc.reviews.upsertCadence.mutate({
+          keyResultId: params.keyResultId,
+          frequency: params.frequency,
+          dayOfWeek: params.dayOfWeek ?? null,
+          time: params.time || "09:00",
+          nextReviewDate: nextReviewDateStr,
+        });
+      }
+
       const { data, error } = await supabase
         .from("kr_review_cadence")
         .upsert({
@@ -179,6 +189,10 @@ export function useReviewCadence(keyResultId?: string) {
 
   const deleteCadence = useMutation({
     mutationFn: async (keyResultId: string) => {
+      if (trpc) {
+        await trpc.reviews.deleteCadence.mutate({ keyResultId });
+        return;
+      }
       const { error } = await supabase
         .from("kr_review_cadence")
         .delete()
@@ -245,6 +259,13 @@ export function useReviewSessions(keyResultId?: string) {
       reviewDate: string;
       status?: ReviewSessionStatus;
     }) => {
+      if (trpc) {
+        return await trpc.reviews.createSession.mutate({
+          keyResultId: params.keyResultId,
+          reviewDate: params.reviewDate,
+          status: params.status,
+        });
+      }
       const { data, error } = await supabase
         .from("kr_review_sessions")
         .insert({
@@ -280,6 +301,16 @@ export function useReviewSessions(keyResultId?: string) {
       notes?: string | null;
       completedAt?: string | null;
     }) => {
+      if (trpc) {
+        await trpc.reviews.updateSession.mutate({
+          id: params.id,
+          reviewDate: params.reviewDate,
+          status: params.status,
+          notes: params.notes,
+          completedAt: params.completedAt,
+        });
+        return;
+      }
       const updateData: Record<string, unknown> = {};
       if (params.reviewDate !== undefined) updateData.review_date = params.reviewDate;
       if (params.status !== undefined) updateData.status = params.status;
@@ -309,6 +340,10 @@ export function useReviewSessions(keyResultId?: string) {
 
   const deleteSession = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.reviews.deleteSession.mutate({ id });
+        return;
+      }
       const { error } = await supabase
         .from("kr_review_sessions")
         .delete()
@@ -384,6 +419,10 @@ export function useReviewParticipants(sessionId?: string) {
     queryFn: async () => {
       if (!sessionId) return [];
 
+      if (trpc) {
+        return (await trpc.reviews.participants.query({ sessionId })) as ReviewParticipant[];
+      }
+
       const { data, error } = await supabase
         .from("kr_review_participants")
         .select(`
@@ -400,6 +439,12 @@ export function useReviewParticipants(sessionId?: string) {
 
   const addParticipant = useMutation({
     mutationFn: async (params: { sessionId: string; userId: string }) => {
+      if (trpc) {
+        return await trpc.reviews.addParticipant.mutate({
+          sessionId: params.sessionId,
+          userId: params.userId,
+        });
+      }
       const { data, error } = await supabase
         .from("kr_review_participants")
         .insert({
@@ -426,6 +471,10 @@ export function useReviewParticipants(sessionId?: string) {
 
   const removeParticipant = useMutation({
     mutationFn: async (participantId: string) => {
+      if (trpc) {
+        await trpc.reviews.removeParticipant.mutate({ participantId });
+        return;
+      }
       const { error } = await supabase
         .from("kr_review_participants")
         .delete()

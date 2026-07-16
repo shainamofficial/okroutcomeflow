@@ -3,7 +3,14 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as perms from "@okroutcomeflow/shared";
 import { db } from "../db/client";
-import { initiatives, tasks, teams, usersProfile } from "../db/schema";
+import {
+  initiatives,
+  taskDependencies,
+  taskWatchers,
+  tasks,
+  teams,
+  usersProfile,
+} from "../db/schema";
 import { getActor } from "../lib/roles";
 import { protectedProcedure, router } from "../trpc";
 
@@ -193,4 +200,63 @@ export const tasksRouter = router({
       await db.delete(tasks).where(eq(tasks.id, input.id));
       return { ok: true };
     }),
+
+  // --- watchers & dependencies ---
+
+  watchers: protectedProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      db
+        .select({
+          id: taskWatchers.id,
+          task_id: taskWatchers.taskId,
+          user_id: taskWatchers.userId,
+          created_at: taskWatchers.createdAt,
+          user: {
+            id: usersProfile.id,
+            name: usersProfile.name,
+            email: usersProfile.email,
+            avatar_url: usersProfile.avatarUrl,
+          },
+        })
+        .from(taskWatchers)
+        .innerJoin(tasks, eq(tasks.id, taskWatchers.taskId))
+        .innerJoin(initiatives, eq(initiatives.id, tasks.initiativeId))
+        .leftJoin(usersProfile, eq(usersProfile.id, taskWatchers.userId))
+        .where(and(eq(taskWatchers.taskId, input.taskId), eq(initiatives.organizationId, ctx.orgId)))
+    ),
+
+  // Any org member may watch/unwatch a task for THEMSELVES (perms.tasks.watch).
+  toggleWatch: protectedProcedure
+    .input(z.object({ taskId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const task = await loadTaskContext(input.taskId, ctx.orgId);
+      if (!task) throw notFound();
+      const [existing] = await db
+        .select({ id: taskWatchers.id })
+        .from(taskWatchers)
+        .where(and(eq(taskWatchers.taskId, input.taskId), eq(taskWatchers.userId, ctx.userId)))
+        .limit(1);
+      if (existing) {
+        await db.delete(taskWatchers).where(eq(taskWatchers.id, existing.id));
+        return { watching: false };
+      }
+      await db.insert(taskWatchers).values({ taskId: input.taskId, userId: ctx.userId });
+      return { watching: true };
+    }),
+
+  dependencies: protectedProcedure.query(({ ctx }) =>
+    db
+      .select({
+        id: taskDependencies.id,
+        task_id: taskDependencies.taskId,
+        depends_on_task_id: taskDependencies.dependsOnTaskId,
+        dependency_type: taskDependencies.dependencyType,
+        created_at: taskDependencies.createdAt,
+      })
+      .from(taskDependencies)
+      .innerJoin(tasks, eq(tasks.id, taskDependencies.taskId))
+      .innerJoin(initiatives, eq(initiatives.id, tasks.initiativeId))
+      .where(eq(initiatives.organizationId, ctx.orgId))
+  ),
 });
