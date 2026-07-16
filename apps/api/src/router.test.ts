@@ -59,6 +59,15 @@ describe("protectedProcedure gating", () => {
     ["tasks.create", (c) => c.tasks.create({ initiativeId: "1b671a64-40d5-491e-99b0-da01ff1f3341", title: "x" })],
     ["tasks.update", (c) => c.tasks.update({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["tasks.delete", (c) => c.tasks.delete({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["objectives.create", (c) => c.objectives.create({ title: "x" })],
+    ["objectives.update", (c) => c.objectives.update({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341", title: "x" })],
+    ["objectives.delete", (c) => c.objectives.delete({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["okrs.createKeyResult", (c) => c.okrs.createKeyResult({ title: "x", objectiveId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["okrs.updateKeyResult", (c) => c.okrs.updateKeyResult({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341", title: "x" })],
+    ["okrs.deleteKeyResult", (c) => c.okrs.deleteKeyResult({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["initiatives.create", (c) => c.initiatives.create({ title: "x" })],
+    ["initiatives.update", (c) => c.initiatives.update({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["initiatives.delete", (c) => c.initiatives.delete({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
