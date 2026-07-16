@@ -12,6 +12,13 @@ vi.mock("./db/client", () => ({
   },
 }));
 
+// Better Auth session lookup — these tests exercise the Supabase-token
+// fallback, so getSession returns no session by default.
+const { getSessionMock } = vi.hoisted(() => ({
+  getSessionMock: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("./auth/auth", () => ({ auth: { api: { getSession: getSessionMock } } }));
+
 import { createContext } from "./context";
 
 const fetchMock = vi.fn();
@@ -37,6 +44,24 @@ afterEach(() => {
 });
 
 describe("createContext", () => {
+  beforeEach(() => getSessionMock.mockReset().mockResolvedValue(null));
+
+  it("uses the Better Auth session when present and does NOT call Supabase", async () => {
+    getSessionMock.mockResolvedValue({ user: { id: "ba-user" } });
+    limitMock.mockResolvedValue([{ orgId: "org-ba" }]);
+    const ctx = await createContext(opts({ authorization: "Bearer supabase-token" }));
+    expect(ctx).toEqual({ userId: "ba-user", orgId: "org-ba" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the Supabase token when there is no Better Auth session", async () => {
+    getSessionMock.mockResolvedValue(null);
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: "sb-user" }) });
+    limitMock.mockResolvedValue([{ orgId: "org-sb" }]);
+    const ctx = await createContext(opts({ authorization: "Bearer valid-token" }));
+    expect(ctx).toEqual({ userId: "sb-user", orgId: "org-sb" });
+  });
+
   it("is anonymous without an Authorization header and never calls Supabase", async () => {
     const ctx = await createContext(opts());
     expect(ctx).toEqual({ userId: null, orgId: null });
