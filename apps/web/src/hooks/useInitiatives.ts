@@ -79,6 +79,10 @@ export function useInitiatives() {
     }) => {
       if (!profile?.organization_id) throw new Error("No organization");
 
+      if (trpc) {
+        return await trpc.initiatives.create.mutate(params);
+      }
+
       const { data: initiative, error } = await supabase
         .from("initiatives")
         .insert({
@@ -139,6 +143,10 @@ export function useInitiatives() {
       linkedKRs?: { krId: string; weight?: number }[];
       color?: string | null;
     }) => {
+      if (trpc) {
+        await trpc.initiatives.update.mutate(params);
+        return;
+      }
       const updateData: Record<string, unknown> = {};
       if (params.title !== undefined) updateData.title = params.title;
       if (params.description !== undefined) updateData.description = params.description || null;
@@ -195,6 +203,10 @@ export function useInitiatives() {
 
   const deleteInitiative = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.initiatives.delete.mutate({ id });
+        return;
+      }
       const { error } = await supabase.from("initiatives").delete().eq("id", id);
       if (error) throw error;
     },

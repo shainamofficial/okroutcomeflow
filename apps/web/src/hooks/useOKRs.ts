@@ -72,6 +72,10 @@ export function useObjectives() {
         throw new Error("No organization or user");
       }
 
+      if (trpc) {
+        return await trpc.objectives.create.mutate({ title, description });
+      }
+
       const { data, error } = await supabase
         .from("objectives")
         .insert({
@@ -109,6 +113,10 @@ export function useObjectives() {
       title: string;
       description?: string;
     }) => {
+      if (trpc) {
+        await trpc.objectives.update.mutate({ id, title, description });
+        return;
+      }
       const { error } = await supabase
         .from("objectives")
         .update({ title, description: description || null })
@@ -131,6 +139,10 @@ export function useObjectives() {
 
   const deleteObjective = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.objectives.delete.mutate({ id });
+        return;
+      }
       const { error } = await supabase.from("objectives").delete().eq("id", id);
 
       if (error) throw error;
@@ -223,6 +235,16 @@ export function useKeyResults(objectiveId?: string) {
         throw new Error("Key Result cannot belong to both an Objective and a parent Key Result");
       }
 
+      if (trpc) {
+        return await trpc.okrs.createKeyResult.mutate({
+          title,
+          description,
+          objectiveId,
+          parentKrId,
+          ownerId,
+        });
+      }
+
       const insertData: {
         organization_id: string;
         title: string;
@@ -281,6 +303,10 @@ export function useKeyResults(objectiveId?: string) {
       description?: string;
       ownerId?: string;
     }) => {
+      if (trpc) {
+        await trpc.okrs.updateKeyResult.mutate({ id, title, description, ownerId });
+        return;
+      }
       const { error } = await supabase
         .from("key_results")
         .update({
@@ -307,6 +333,10 @@ export function useKeyResults(objectiveId?: string) {
 
   const deleteKeyResult = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.okrs.deleteKeyResult.mutate({ id });
+        return;
+      }
       const { error } = await supabase.from("key_results").delete().eq("id", id);
 
       if (error) throw error;
