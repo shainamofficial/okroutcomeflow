@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { isElevated, type Role } from "@okroutcomeflow/shared";
 import type { Context } from "./context";
 import { getCallerRoles } from "./lib/roles";
 
@@ -23,8 +24,8 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
  * used by admin/manager-gated tables.
  */
 export const managerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const roles = await getCallerRoles(ctx.userId, ctx.orgId);
-  if (!roles.includes("admin") && !roles.includes("manager")) {
+  const roles = (await getCallerRoles(ctx.userId, ctx.orgId)) as Role[];
+  if (!isElevated({ userId: ctx.userId, roles })) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Manager or admin role required" });
   }
   return next({ ctx: { ...ctx, roles } });

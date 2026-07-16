@@ -152,9 +152,15 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
 
 ## Phase 3 — Auth cutover *(highest risk — tests first)*
 
-- [ ] Write tests for all route guards + permission logic BEFORE changes
-- [ ] Port the 22 SECURITY DEFINER functions' logic into `packages/shared/permissions.ts`
-      with unit tests (roles × actions matrix)
+- [x] Write tests for all route guards + permission logic BEFORE changes
+      (2026-07-16, PR phase-3/permissions-module: all 5 guards covered — Protected,
+      Admin, Manager, PlatformAdmin, Status)
+- [x] Port the SECURITY DEFINER functions' logic into `packages/shared/permissions.ts`
+      with unit tests (roles × actions matrix, 29 tests). Quirks preserved and tested:
+      viewer-owners manage KR metrics but can't edit the KR row; can_manage_entity's
+      task branch checks team membership, can_manage_task checks initiative ownership;
+      contributors edit custom-field values. API's managerProcedure now consumes
+      isElevated() from shared — first cross-workspace use of the module.
 - [ ] Better Auth setup: email/password, Google OAuth, organizations plugin
       (orgs, memberships, roles, invitations)
 - [ ] Migrate users: export `auth.users` bcrypt hashes → Better Auth import (passwords preserved)
