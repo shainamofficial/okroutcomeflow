@@ -77,6 +77,16 @@ describe("protectedProcedure gating", () => {
     ["updates.togglePin", (c) => c.updates.togglePin({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341", pinned: true })],
     ["updates.delete", (c) => c.updates.delete({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["updates.toggleReaction", (c) => c.updates.toggleReaction({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341", reactionType: "like" })],
+    ["teams.create", (c) => c.teams.create({ name: "T" })],
+    ["teams.rename", (c) => c.teams.rename({ teamId: "1b671a64-40d5-491e-99b0-da01ff1f3341", name: "T" })],
+    ["teams.remove", (c) => c.teams.remove({ teamId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["teams.addMember", (c) => c.teams.addMember({ teamId: "1b671a64-40d5-491e-99b0-da01ff1f3341", userId: "2b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["teams.removeMember", (c) => c.teams.removeMember({ memberId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["customFields.definitions", (c) => c.customFields.definitions({ entityType: "task" })],
+    ["customFields.values", (c) => c.customFields.values({ entityIds: ["1b671a64-40d5-491e-99b0-da01ff1f3341"] })],
+    ["customFields.createDefinition", (c) => c.customFields.createDefinition({ entityType: "task", name: "F", fieldType: "text" })],
+    ["customFields.deleteDefinition", (c) => c.customFields.deleteDefinition({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["customFields.upsertValue", (c) => c.customFields.upsertValue({ fieldDefinitionId: "1b671a64-40d5-491e-99b0-da01ff1f3341", entityType: "task", entityId: "2b671a64-40d5-491e-99b0-da01ff1f3341", value: "x" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
