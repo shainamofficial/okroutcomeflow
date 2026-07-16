@@ -55,6 +55,11 @@ export function useTeams() {
     mutationFn: async (name: string) => {
       if (!profile?.organization_id) throw new Error('No organization');
 
+      if (trpc) {
+        await trpc.teams.create.mutate({ name });
+        return;
+      }
+
       const { error } = await supabase
         .from('teams')
         .insert({
@@ -80,6 +85,10 @@ export function useTeams() {
 
   const renameTeam = useMutation({
     mutationFn: async ({ teamId, name }: { teamId: string; name: string }) => {
+      if (trpc) {
+        await trpc.teams.rename.mutate({ teamId, name });
+        return;
+      }
       const { error } = await supabase
         .from('teams')
         .update({ name: name.trim() })
@@ -103,6 +112,10 @@ export function useTeams() {
 
   const deleteTeam = useMutation({
     mutationFn: async (teamId: string) => {
+      if (trpc) {
+        await trpc.teams.remove.mutate({ teamId });
+        return;
+      }
       const { error } = await supabase
         .from('teams')
         .delete()
@@ -165,6 +178,10 @@ export function useTeamMembers(teamId: string | null) {
 
   const addMember = useMutation({
     mutationFn: async ({ teamId, userId }: { teamId: string; userId: string }) => {
+      if (trpc) {
+        await trpc.teams.addMember.mutate({ teamId, userId });
+        return;
+      }
       const { error } = await supabase
         .from('team_members')
         .insert({ team_id: teamId, user_id: userId });
@@ -187,6 +204,10 @@ export function useTeamMembers(teamId: string | null) {
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
+      if (trpc) {
+        await trpc.teams.removeMember.mutate({ memberId });
+        return;
+      }
       const { error } = await supabase
         .from('team_members')
         .delete()
