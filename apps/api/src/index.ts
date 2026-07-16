@@ -21,7 +21,9 @@ const allowedOrigin = (origin: string) => {
   return allowed.includes(origin) ? origin : null;
 };
 
-app.use("/trpc/*", cors({ origin: allowedOrigin }));
+// Credentialed on both: /api/auth sets the session cookie, and /trpc reads
+// it back (Better Auth session).
+app.use("/trpc/*", cors({ origin: allowedOrigin, credentials: true }));
 app.use("/api/auth/*", cors({ origin: allowedOrigin, credentials: true }));
 
 app.get("/health", (c) =>

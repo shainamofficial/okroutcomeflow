@@ -13,6 +13,7 @@ import { platformRouter } from "./routers/platform";
 import { orgUsersRouter } from "./routers/org-users";
 import { reviewsRouter } from "./routers/reviews";
 import { searchRouter } from "./routers/search";
+import { sessionRouter } from "./routers/session";
 import { tasksRouter } from "./routers/tasks";
 import { teamsRouter } from "./routers/teams";
 import { updatesRouter } from "./routers/updates";
@@ -42,6 +43,7 @@ export const appRouter = router({
   automations: automationsRouter,
   invitations: invitationsRouter,
   platform: platformRouter,
+  session: sessionRouter,
 });
 
 // The frontend imports only this type (never the runtime router) to get

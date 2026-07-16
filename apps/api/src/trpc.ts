@@ -8,6 +8,15 @@ const t = initTRPC.context<Context>().create();
 export const router = t.router;
 export const publicProcedure = t.procedure;
 
+/** Authenticated, but does NOT require an active org (e.g. session.me for a
+ * freshly-signed-up user, or org switching). */
+export const userProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in required" });
+  }
+  return next({ ctx: { userId: ctx.userId, orgId: ctx.orgId } });
+});
+
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in required" });
