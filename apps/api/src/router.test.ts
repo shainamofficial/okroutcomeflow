@@ -72,6 +72,11 @@ describe("protectedProcedure gating", () => {
     ["notifications.markAllRead", (c) => c.notifications.markAllRead()],
     ["orgUsers.updateStatus", (c) => c.orgUsers.updateStatus({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", status: "active" })],
     ["orgUsers.updateRole", (c) => c.orgUsers.updateRole({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", newRole: "manager" })],
+    ["updates.list", (c) => c.updates.list({ entityType: "kr", entityId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["updates.create", (c) => c.updates.create({ entityType: "kr", entityId: "1b671a64-40d5-491e-99b0-da01ff1f3341", updateKind: "comment", content: "x" })],
+    ["updates.togglePin", (c) => c.updates.togglePin({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341", pinned: true })],
+    ["updates.delete", (c) => c.updates.delete({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["updates.toggleReaction", (c) => c.updates.toggleReaction({ updateId: "1b671a64-40d5-491e-99b0-da01ff1f3341", reactionType: "like" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {

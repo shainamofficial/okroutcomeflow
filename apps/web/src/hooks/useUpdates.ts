@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -44,6 +45,9 @@ export function useUpdates(entityType: EntityType, entityId: string) {
   return useQuery({
     queryKey: ["updates", entityType, entityId],
     queryFn: async () => {
+      if (trpc) {
+        return (await trpc.updates.list.query({ entityType, entityId })) as unknown as Update[];
+      }
       const { data, error } = await supabase
         .from("updates")
         .select(`
@@ -90,6 +94,16 @@ export function useCreateUpdate() {
       mentionedUserIds: string[];
     }) => {
       if (!profile?.organization_id) throw new Error("No organization");
+
+      if (trpc) {
+        return await trpc.updates.create.mutate({
+          entityType,
+          entityId,
+          updateKind,
+          content,
+          mentionedUserIds,
+        });
+      }
 
       // Create the update
       const { data: update, error: updateError } = await supabase
@@ -151,6 +165,10 @@ export function useTogglePin() {
       entityType: EntityType;
       entityId: string;
     }) => {
+      if (trpc) {
+        await trpc.updates.togglePin.mutate({ updateId, pinned });
+        return;
+      }
       const { error } = await supabase
         .from("updates")
         .update({ pinned })
@@ -184,6 +202,10 @@ export function useDeleteUpdate() {
       entityType: EntityType;
       entityId: string;
     }) => {
+      if (trpc) {
+        await trpc.updates.delete.mutate({ updateId });
+        return;
+      }
       const { error } = await supabase
         .from("updates")
         .delete()
@@ -221,6 +243,11 @@ export function useToggleReaction() {
       entityId: string;
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
+
+      if (trpc) {
+        await trpc.updates.toggleReaction.mutate({ updateId, reactionType });
+        return;
+      }
 
       // Check if reaction exists
       const { data: existing } = await supabase

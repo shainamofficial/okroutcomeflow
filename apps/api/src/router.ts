@@ -11,6 +11,7 @@ import { reviewsRouter } from "./routers/reviews";
 import { searchRouter } from "./routers/search";
 import { tasksRouter } from "./routers/tasks";
 import { teamsRouter } from "./routers/teams";
+import { updatesRouter } from "./routers/updates";
 
 export const appRouter = router({
   ping: publicProcedure
@@ -32,6 +33,7 @@ export const appRouter = router({
   teams: teamsRouter,
   reviews: reviewsRouter,
   dashboard: dashboardRouter,
+  updates: updatesRouter,
 });
 
 // The frontend imports only this type (never the runtime router) to get
