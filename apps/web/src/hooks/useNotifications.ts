@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -25,6 +26,10 @@ export function useNotifications() {
     queryKey: ["notifications", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
+
+      if (trpc) {
+        return (await trpc.notifications.list.query()) as Notification[];
+      }
 
       const { data, error } = await supabase
         .from("notifications")

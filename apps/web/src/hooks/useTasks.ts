@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,6 +40,10 @@ export function useTasks(initiativeId?: string) {
     queryKey: ["tasks", initiativeId],
     queryFn: async () => {
       if (!initiativeId) return [];
+
+      if (trpc) {
+        return (await trpc.tasks.byInitiative.query({ initiativeId })) as Task[];
+      }
 
       const { data, error } = await supabase
         .from("tasks")
@@ -210,6 +215,12 @@ export function useAllTasks() {
     queryKey: ["all_tasks", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.tasks.listAll.query()) as (Task & {
+          initiative: { id: string; organization_id: string };
+        })[];
+      }
 
       const { data, error } = await supabase
         .from("tasks")

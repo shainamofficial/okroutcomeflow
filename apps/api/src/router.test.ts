@@ -51,6 +51,11 @@ describe("protectedProcedure gating", () => {
     ["reviews.sessions", (c) => c.reviews.sessions({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["reviews.allSessions", (c) => c.reviews.allSessions()],
     ["dashboard.get", (c) => c.dashboard.get()],
+    ["okrs.keyResults", (c) => c.okrs.keyResults()],
+    ["initiatives.list", (c) => c.initiatives.list()],
+    ["tasks.byInitiative", (c) => c.tasks.byInitiative({ initiativeId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["tasks.listAll", (c) => c.tasks.listAll()],
+    ["notifications.list", (c) => c.notifications.list()],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
@@ -107,6 +112,20 @@ describe("uuid input validation", () => {
     await expect(caller.reviews.cadence({ keyResultId: "42" })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
+  });
+
+  it("tasks.byInitiative rejects a non-uuid initiativeId", async () => {
+    const caller = appRouter.createCaller(member);
+    await expect(caller.tasks.byInitiative({ initiativeId: "nope" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
+  it("okrs.keyResults rejects a non-uuid objectiveId", async () => {
+    const caller = appRouter.createCaller(member);
+    await expect(
+      caller.okrs.keyResults({ objectiveId: "not-a-uuid" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 

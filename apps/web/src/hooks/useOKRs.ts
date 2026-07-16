@@ -168,6 +168,12 @@ export function useKeyResults(objectiveId?: string) {
     queryFn: async () => {
       if (!profile?.organization_id) return [];
 
+      if (trpc) {
+        return (await trpc.okrs.keyResults.query(
+          objectiveId ? { objectiveId } : undefined
+        )) as KeyResult[];
+      }
+
       let query = supabase
         .from("key_results")
         .select(
@@ -334,6 +340,10 @@ export function useAllKeyResults() {
     queryKey: ["all-key-results", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.okrs.keyResults.query()) as KeyResult[];
+      }
 
       const { data, error } = await supabase
         .from("key_results")
