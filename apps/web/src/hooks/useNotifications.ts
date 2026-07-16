@@ -48,6 +48,10 @@ export function useNotifications() {
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
+      if (trpc) {
+        await trpc.notifications.markRead.mutate({ id: notificationId });
+        return;
+      }
       const { error } = await supabase
         .from("notifications")
         .update({ read: true })
@@ -63,6 +67,11 @@ export function useNotifications() {
   const markAllAsRead = useMutation({
     mutationFn: async () => {
       if (!profile?.id) return;
+
+      if (trpc) {
+        await trpc.notifications.markAllRead.mutate();
+        return;
+      }
 
       const { error } = await supabase
         .from("notifications")

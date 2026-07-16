@@ -68,6 +68,10 @@ describe("protectedProcedure gating", () => {
     ["initiatives.create", (c) => c.initiatives.create({ title: "x" })],
     ["initiatives.update", (c) => c.initiatives.update({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["initiatives.delete", (c) => c.initiatives.delete({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["notifications.markRead", (c) => c.notifications.markRead({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["notifications.markAllRead", (c) => c.notifications.markAllRead()],
+    ["orgUsers.updateStatus", (c) => c.orgUsers.updateStatus({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", status: "active" })],
+    ["orgUsers.updateRole", (c) => c.orgUsers.updateRole({ userId: "1b671a64-40d5-491e-99b0-da01ff1f3341", newRole: "manager" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
