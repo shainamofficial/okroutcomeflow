@@ -11,12 +11,20 @@ vi.mock("@/hooks/use-toast", () => ({
   toast: vi.fn(),
 }));
 
+vi.mock("@/contexts/PlatformAdminContext", () => ({
+  usePlatformAdmin: vi.fn(),
+}));
+
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlatformAdmin } from "@/contexts/PlatformAdminContext";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
 import { ManagerRoute } from "./ManagerRoute";
+import { PlatformAdminRoute } from "./PlatformAdminRoute";
+import { StatusRoute } from "./StatusRoute";
 
 const mockedUseAuth = vi.mocked(useAuth);
+const mockedUsePlatformAdmin = vi.mocked(usePlatformAdmin);
 
 const baseAuth = {
   user: null as any,
@@ -36,8 +44,13 @@ const Sentinel = () => <div>PROTECTED</div>;
 const renderWithRouter = (ui: React.ReactNode) =>
   render(<MemoryRouter initialEntries={["/"]}>{ui}</MemoryRouter>);
 
+const setPlatformAdmin = (isPlatformAdmin: boolean, loading = false) => {
+  mockedUsePlatformAdmin.mockReturnValue({ isPlatformAdmin, loading } as any);
+};
+
 beforeEach(() => {
   mockedUseAuth.mockReset();
+  mockedUsePlatformAdmin.mockReset();
 });
 
 describe("ProtectedRoute", () => {
@@ -136,5 +149,95 @@ describe("ManagerRoute", () => {
       </ManagerRoute>
     );
     expect(screen.queryByText("PROTECTED")).not.toBeNull();
+  });
+});
+
+describe("PlatformAdminRoute", () => {
+  it("shows No Access instead of children for regular users", () => {
+    setAuth({ user: { id: "u1" }, profile: { id: "u1", status: "active" }, roles: ["admin"] });
+    setPlatformAdmin(false);
+    renderWithRouter(
+      <PlatformAdminRoute>
+        <Sentinel />
+      </PlatformAdminRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+    expect(screen.queryByText("No Access")).not.toBeNull();
+  });
+
+  it("renders children for platform admins", () => {
+    setAuth({ user: { id: "u1" }, profile: { id: "u1", status: "active" } });
+    setPlatformAdmin(true);
+    renderWithRouter(
+      <PlatformAdminRoute>
+        <Sentinel />
+      </PlatformAdminRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).not.toBeNull();
+  });
+
+  it("renders neither children nor No Access while loading", () => {
+    setAuth({ user: { id: "u1" }, profile: null, loading: true });
+    setPlatformAdmin(false, true);
+    renderWithRouter(
+      <PlatformAdminRoute>
+        <Sentinel />
+      </PlatformAdminRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+    expect(screen.queryByText("No Access")).toBeNull();
+  });
+
+  it("does not render children for unauthenticated visitors", () => {
+    setAuth({ user: null, profile: null });
+    setPlatformAdmin(false);
+    renderWithRouter(
+      <PlatformAdminRoute>
+        <Sentinel />
+      </PlatformAdminRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+  });
+});
+
+describe("StatusRoute", () => {
+  it("renders children when profile status matches requiredStatus", () => {
+    setAuth({ user: { id: "u1" }, profile: { id: "u1", status: "pending" } });
+    renderWithRouter(
+      <StatusRoute requiredStatus="pending">
+        <Sentinel />
+      </StatusRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).not.toBeNull();
+  });
+
+  it("does not render children for active users (they belong in the app)", () => {
+    setAuth({ user: { id: "u1" }, profile: { id: "u1", status: "active" } });
+    renderWithRouter(
+      <StatusRoute requiredStatus="pending">
+        <Sentinel />
+      </StatusRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+  });
+
+  it("does not render children when the status belongs on the other page", () => {
+    setAuth({ user: { id: "u1" }, profile: { id: "u1", status: "inactive" } });
+    renderWithRouter(
+      <StatusRoute requiredStatus="pending">
+        <Sentinel />
+      </StatusRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+  });
+
+  it("does not render children for unauthenticated visitors", () => {
+    setAuth({ user: null, profile: null });
+    renderWithRouter(
+      <StatusRoute requiredStatus="pending">
+        <Sentinel />
+      </StatusRoute>
+    );
+    expect(screen.queryByText("PROTECTED")).toBeNull();
   });
 });
