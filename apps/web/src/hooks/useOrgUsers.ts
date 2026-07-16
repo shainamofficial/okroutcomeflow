@@ -59,6 +59,10 @@ export function useOrgUsers() {
 
   const updateUserStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: UserStatus }) => {
+      if (trpc) {
+        await trpc.orgUsers.updateStatus.mutate({ userId, status });
+        return;
+      }
       const { error } = await supabase
         .from('users_profile')
         .update({ status })
@@ -77,6 +81,10 @@ export function useOrgUsers() {
 
   const updateUserRole = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
+      if (trpc) {
+        await trpc.orgUsers.updateRole.mutate({ userId, newRole });
+        return;
+      }
       // First delete existing role
       const { error: deleteError } = await supabase
         .from('user_roles')
