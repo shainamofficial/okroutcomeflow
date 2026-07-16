@@ -1,11 +1,15 @@
 import { z } from "zod";
 import { publicProcedure, router } from "./trpc";
 import { dashboardRouter } from "./routers/dashboard";
+import { initiativesRouter } from "./routers/initiatives";
 import { myItemsRouter } from "./routers/my-items";
+import { notificationsRouter } from "./routers/notifications";
 import { objectivesRouter } from "./routers/objectives";
+import { okrsRouter } from "./routers/okrs";
 import { orgUsersRouter } from "./routers/org-users";
 import { reviewsRouter } from "./routers/reviews";
 import { searchRouter } from "./routers/search";
+import { tasksRouter } from "./routers/tasks";
 import { teamsRouter } from "./routers/teams";
 
 export const appRouter = router({
@@ -18,6 +22,10 @@ export const appRouter = router({
     })),
 
   objectives: objectivesRouter,
+  okrs: okrsRouter,
+  initiatives: initiativesRouter,
+  tasks: tasksRouter,
+  notifications: notificationsRouter,
   myItems: myItemsRouter,
   orgUsers: orgUsersRouter,
   search: searchRouter,
