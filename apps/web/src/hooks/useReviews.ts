@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths, nextDay, format } from "date-fns";
@@ -92,6 +93,10 @@ export function useReviewCadence(keyResultId?: string) {
     queryKey: ["review_cadence", keyResultId],
     queryFn: async () => {
       if (!keyResultId) return null;
+
+      if (trpc) {
+        return (await trpc.reviews.cadence.query({ keyResultId })) as ReviewCadence | null;
+      }
 
       const { data, error } = await supabase
         .from("kr_review_cadence")
@@ -211,6 +216,10 @@ export function useReviewSessions(keyResultId?: string) {
     queryKey: ["review_sessions", keyResultId],
     queryFn: async () => {
       if (!keyResultId) return [];
+
+      if (trpc) {
+        return (await trpc.reviews.sessions.query({ keyResultId })) as ReviewSession[];
+      }
 
       const { data, error } = await supabase
         .from("kr_review_sessions")
@@ -337,6 +346,12 @@ export function useAllReviewSessions() {
     queryKey: ["all_review_sessions", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
+
+      if (trpc) {
+        return (await trpc.reviews.allSessions.query()) as (ReviewSession & {
+          key_result: { organization_id: string };
+        })[];
+      }
 
       const { data, error } = await supabase
         .from("kr_review_sessions")

@@ -45,6 +45,12 @@ describe("protectedProcedure gating", () => {
     ["myItems.tasks", (c) => c.myItems.tasks()],
     ["orgUsers.list", (c) => c.orgUsers.list()],
     ["search.global", (c) => c.search.global({ query: "ab" })],
+    ["teams.list", (c) => c.teams.list()],
+    ["teams.members", (c) => c.teams.members({ teamId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.cadence", (c) => c.reviews.cadence({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.sessions", (c) => c.reviews.sessions({ keyResultId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["reviews.allSessions", (c) => c.reviews.allSessions()],
+    ["dashboard.get", (c) => c.dashboard.get()],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
@@ -85,6 +91,22 @@ describe("managerProcedure (orgUsers.list)", () => {
       { id: "u1", name: "Alice", email: "a@x.co", status: "active", created_at: "t1", roles: ["admin", "manager"] },
       { id: "u2", name: "Bob", email: "b@x.co", status: "pending", created_at: "t2", roles: [] },
     ]);
+  });
+});
+
+describe("uuid input validation", () => {
+  it("teams.members rejects a non-uuid teamId", async () => {
+    const caller = appRouter.createCaller(member);
+    await expect(caller.teams.members({ teamId: "not-a-uuid" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
+  it("reviews.cadence rejects a non-uuid keyResultId", async () => {
+    const caller = appRouter.createCaller(member);
+    await expect(caller.reviews.cadence({ keyResultId: "42" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
   });
 });
 
