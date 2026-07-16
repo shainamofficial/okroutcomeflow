@@ -98,6 +98,13 @@ describe("protectedProcedure gating", () => {
     ["tasks.watchers", (c) => c.tasks.watchers({ taskId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["tasks.toggleWatch", (c) => c.tasks.toggleWatch({ taskId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
     ["tasks.dependencies", (c) => c.tasks.dependencies()],
+    ["automations.list", (c) => c.automations.list()],
+    ["automations.create", (c) => c.automations.create({ name: "A", triggerType: "task_status_change", actionType: "send_notification" })],
+    ["automations.toggle", (c) => c.automations.toggle({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341", enabled: true })],
+    ["automations.delete", (c) => c.automations.delete({ id: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
+    ["invitations.list", (c) => c.invitations.list()],
+    ["invitations.create", (c) => c.invitations.create({ email: "x@y.co", role: "contributor" })],
+    ["invitations.revoke", (c) => c.invitations.revoke({ invitationId: "1b671a64-40d5-491e-99b0-da01ff1f3341" })],
   ];
 
   it.each(cases)("%s rejects anonymous callers with UNAUTHORIZED", async (_name, call) => {
