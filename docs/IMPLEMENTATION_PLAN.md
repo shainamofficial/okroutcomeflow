@@ -161,8 +161,19 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       task branch checks team membership, can_manage_task checks initiative ownership;
       contributors edit custom-field values. API's managerProcedure now consumes
       isElevated() from shared — first cross-workspace use of the module.
-- [ ] Better Auth setup: email/password, Google OAuth, organizations plugin
-      (orgs, memberships, roles, invitations)
+- [x] Better Auth setup (2026-07-16, PR phase-3/better-auth): email/password + Google
+      (env-gated via GOOGLE_CLIENT_ID/SECRET) mounted at /api/auth/* on Hono, alongside
+      Supabase Auth. **Deviation from plan — NOT using the organization plugin.** The
+      existing organizations/organization_memberships/user_roles/users_profile model is
+      richer (org-switching via is_active, domain-based auto-provisioning) than the
+      plugin's; Better Auth owns authentication only, the existing tables stay the domain
+      model. Tables ba_user/ba_session/ba_account/ba_verification (namespaced to dodge the
+      reserved word `user`; migration 20260715120000). generateId → randomUUID so the user
+      migration below can import existing users under their current Supabase uuid and keep
+      every FK intact. Verified end-to-end: email/password signup → session (UUID id,
+      credential account with password hash, all rows confirmed in DB). 3 build-smoke tests.
+      ⚠️ Google needs the user to create Google Cloud creds (redirect URI
+      http://localhost:8787/api/auth/callback/google) — untestable until then.
 - [ ] Migrate users: export `auth.users` bcrypt hashes → Better Auth import (passwords preserved)
 - [ ] Rebuild flows: signup, login, forgot/reset password, invite accept, org switching,
       pending-approval + inactive states
