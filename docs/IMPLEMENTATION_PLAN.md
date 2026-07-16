@@ -185,14 +185,27 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       - Migrated the single existing user (Google-only, no password — so no bcrypt/scrypt
         problem) into ba_user under their current uuid + a linked google ba_account, keeping
         every domain row intact. One-off data step via MCP (not committed — hardcoded ids).
-- [ ] **RE-SEQUENCED — the frontend AuthContext flip must come AFTER Phase 4 hook porting.**
-      Discovered dependency: Supabase RLS on un-ported hooks needs the Supabase session, so
-      the frontend can't drop it until every hook goes through the API. Remaining flip work:
-      API session context (validate Better Auth session), `session.me` + `session.switchOrganization`
-      procedures, rewrite AuthContext + Login/Signup/Forgot/Reset to Better Auth, remove the
-      13 `supabase.auth.*` sites, credentialed CORS on /trpc.
+- [x] **Phase 4 completed first (re-sequenced).** All 26 hooks ported to the API across
+      PRs #4–#17; Supabase RLS no longer relied on for data, so the frontend can drop the
+      Supabase session.
+- [x] Auth flip STAGE A (2026-07-16, PR #18): API session context accepts a Better Auth
+      session (cookie/bearer) first, Supabase token fallback — non-breaking. Added
+      `session.me` + `session.switchOrganization`, `userProcedure`, credentialed CORS on /trpc.
+- [x] Auth flip STAGE B (2026-07-16, PR phase-3/auth-flip-frontend): AuthContext rewritten
+      to Better Auth (`useSession`, `signIn.email`, `signIn.social` Google, `signOut`) +
+      `session.me`; Login/Signup/Forgot/Reset ported; tRPC client always-on with
+      credentials; supabase.auth removed from those pages. Verified live end-to-end: a
+      Better Auth email/password signup → dashboard (session.me + tRPC data via cookie, no
+      Supabase token) → sign-out → login. **Google login for the owner is their QA (needs
+      their account).**
+      - ⚠️ FOLLOW-UPS: (1) SignupInvite (invite-accept) still on supabase.auth — needs an
+        `invitations.accept` API procedure; unreachable without a pending invite.
+        (2) Dead Supabase data-fallback branches in hooks (trpc always non-null now) can be
+        removed. (3) `get_dashboard_data` SQL RPC now unused. (4) Wire a real reset-password
+        email sender (currently logs the link in dev).
 
 **Done when:** all auth flows pass manual QA + automated tests; no `supabase.auth` imports remain.
+**Status:** core auth flows on Better Auth + verified; SignupInvite is the last supabase.auth site.
 **Note:** backend is auth-complete; frontend flip resumes once Phase 4 hooks are fully ported.
 
 ## Phase 4 — Domain API port (hook by hook)

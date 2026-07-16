@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { authClient } from '@/lib/auth-client';
 import { Mail } from 'lucide-react';
 
 export default function ForgotPassword() {
@@ -17,7 +17,8 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    const { error } = await authClient.requestPasswordReset({
+      email: email.trim().toLowerCase(),
       redirectTo: `${window.location.origin}/reset-password`,
     });
 

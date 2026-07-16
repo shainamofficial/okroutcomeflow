@@ -33,6 +33,12 @@ export const auth = betterAuth({
     // confirm-email off in dev. Provisioning of profile/org/role happens in
     // the database trigger on the user table (see the better-auth migration).
     requireEmailVerification: false,
+    // No email service configured yet — log the reset link in dev. Wire a
+    // real sender (Resend/SMTP) before production. (The owner uses Google,
+    // so password reset is not on their critical path.)
+    sendResetPassword: async ({ url, user }) => {
+      console.log(`[password-reset] ${user.email}: ${url}`);
+    },
   },
   socialProviders,
 });
