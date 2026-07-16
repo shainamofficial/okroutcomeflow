@@ -174,12 +174,26 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       credential account with password hash, all rows confirmed in DB). 3 build-smoke tests.
       ⚠️ Google needs the user to create Google Cloud creds (redirect URI
       http://localhost:8787/api/auth/callback/google) — untestable until then.
-- [ ] Migrate users: export `auth.users` bcrypt hashes → Better Auth import (passwords preserved)
-- [ ] Rebuild flows: signup, login, forgot/reset password, invite accept, org switching,
-      pending-approval + inactive states
-- [ ] Swap `AuthContext` to API session; remove `supabase.auth.*` call sites (13)
+- [x] Google login verified (2026-07-16): user added Google Cloud creds + the Better Auth
+      redirect URI; `POST /api/auth/sign-in/social` returns a valid Google authorization URL.
+- [x] Auth cutover — BACKEND half (2026-07-16, PR phase-3/auth-cutover-backend), non-breaking:
+      - Migration 20260716120000: dropped the three `auth.users` FKs (users_profile,
+        user_roles, organization_memberships); added `handle_new_betterauth_user` trigger on
+        ba_user — a faithful port of handle_new_user, guarded so migrated users skip
+        re-provisioning. Verified: a fresh signup auto-creates org+domain+profile+admin
+        role+active membership (new-org path).
+      - Migrated the single existing user (Google-only, no password — so no bcrypt/scrypt
+        problem) into ba_user under their current uuid + a linked google ba_account, keeping
+        every domain row intact. One-off data step via MCP (not committed — hardcoded ids).
+- [ ] **RE-SEQUENCED — the frontend AuthContext flip must come AFTER Phase 4 hook porting.**
+      Discovered dependency: Supabase RLS on un-ported hooks needs the Supabase session, so
+      the frontend can't drop it until every hook goes through the API. Remaining flip work:
+      API session context (validate Better Auth session), `session.me` + `session.switchOrganization`
+      procedures, rewrite AuthContext + Login/Signup/Forgot/Reset to Better Auth, remove the
+      13 `supabase.auth.*` sites, credentialed CORS on /trpc.
 
 **Done when:** all auth flows pass manual QA + automated tests; no `supabase.auth` imports remain.
+**Note:** backend is auth-complete; frontend flip resumes once Phase 4 hooks are fully ported.
 
 ## Phase 4 — Domain API port (hook by hook)
 
