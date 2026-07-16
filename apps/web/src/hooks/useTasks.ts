@@ -75,6 +75,10 @@ export function useTasks(initiativeId?: string) {
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
 
+      if (trpc) {
+        return await trpc.tasks.create.mutate(params);
+      }
+
       const { data, error } = await supabase
         .from("tasks")
         .insert({
@@ -121,6 +125,11 @@ export function useTasks(initiativeId?: string) {
       dueDate?: string | null;
       color?: string | null;
     }) => {
+      if (trpc) {
+        await trpc.tasks.update.mutate(params);
+        return;
+      }
+
       const updateData: Record<string, unknown> = {};
       if (params.title !== undefined) updateData.title = params.title;
       if (params.description !== undefined) updateData.description = params.description || null;
@@ -181,6 +190,10 @@ export function useTasks(initiativeId?: string) {
 
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.tasks.delete.mutate({ id });
+        return;
+      }
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },

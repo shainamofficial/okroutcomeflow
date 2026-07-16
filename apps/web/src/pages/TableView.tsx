@@ -10,6 +10,7 @@ import { isPast, isToday, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -58,13 +59,31 @@ export default function TableView() {
       old?.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
 
-    const { error } = await supabase.from("tasks").update(updates).eq("id", id);
-    if (error) {
-      queryClient.setQueryData(cacheKey, previous);
-      toast({ title: "Failed to update task", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      if (trpc) {
+        // Map the snake_case column patch to the API's camelCase input.
+        const keyMap: Record<string, string> = {
+          due_date: "dueDate",
+          start_date: "startDate",
+          assignee_user_id: "assigneeUserId",
+          assignee_team_id: "assigneeTeamId",
+        };
+        const apiInput: Record<string, unknown> = { id };
+        for (const [k, v] of Object.entries(updates)) apiInput[keyMap[k] ?? k] = v;
+        await trpc.tasks.update.mutate(apiInput as Parameters<typeof trpc.tasks.update.mutate>[0]);
+      } else {
+        const { error } = await supabase.from("tasks").update(updates).eq("id", id);
+        if (error) throw error;
+      }
       queryClient.invalidateQueries({ queryKey: ["all_tasks"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    } catch (error) {
+      queryClient.setQueryData(cacheKey, previous);
+      toast({
+        title: "Failed to update task",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
     }
   };
 
