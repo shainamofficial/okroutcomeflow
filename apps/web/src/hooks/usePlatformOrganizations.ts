@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
 interface OrganizationWithCounts {
@@ -49,6 +50,9 @@ export function usePlatformOrganizations() {
   const { data: organizations = [], isLoading, error } = useQuery({
     queryKey: ['platform-organizations'],
     queryFn: async () => {
+      if (trpc) {
+        return (await trpc.platform.orgs.list.query()) as unknown as OrganizationWithCounts[];
+      }
       // Fetch all organizations
       const { data: orgs, error: orgsError } = await supabase
         .from('organizations')
@@ -89,6 +93,9 @@ export function usePlatformOrganizations() {
   });
 
   const getOrganizationDetail = async (orgId: string): Promise<OrganizationDetail | null> => {
+    if (trpc) {
+      return (await trpc.platform.orgs.detail.query({ orgId })) as OrganizationDetail | null;
+    }
     const { data: org, error: orgError } = await supabase
       .from('organizations')
       .select('*')
@@ -178,6 +185,10 @@ export function usePlatformOrganizations() {
 
   const deleteOrganization = useMutation({
     mutationFn: async (orgId: string) => {
+      if (trpc) {
+        await trpc.platform.orgs.delete.mutate({ orgId });
+        return;
+      }
       const { error } = await supabase
         .from('organizations')
         .delete()

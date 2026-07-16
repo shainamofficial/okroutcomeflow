@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
 interface PlatformAdmin {
@@ -15,6 +16,9 @@ export function usePlatformAdmins() {
   const { data: admins = [], isLoading, error } = useQuery({
     queryKey: ['platform-admins'],
     queryFn: async () => {
+      if (trpc) {
+        return (await trpc.platform.admins.list.query()) as PlatformAdmin[];
+      }
       const { data, error } = await supabase
         .from('platform_admins')
         .select('*')
@@ -27,8 +31,12 @@ export function usePlatformAdmins() {
 
   const addAdmin = useMutation({
     mutationFn: async (email: string) => {
+      if (trpc) {
+        await trpc.platform.admins.add.mutate({ email });
+        return;
+      }
       const normalizedEmail = email.trim().toLowerCase();
-      
+
       const { error } = await supabase
         .from('platform_admins')
         .insert({ email: normalizedEmail });
@@ -53,9 +61,13 @@ export function usePlatformAdmins() {
 
   const removeAdmin = useMutation({
     mutationFn: async (id: string) => {
+      if (trpc) {
+        await trpc.platform.admins.remove.mutate({ id });
+        return;
+      }
       // Check if this is the last admin
       const { data: countData } = await supabase.rpc('count_platform_admins');
-      
+
       if (countData && countData <= 1) {
         throw new Error('Cannot remove the last platform admin');
       }

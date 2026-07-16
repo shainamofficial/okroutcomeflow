@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
 type UserStatus = 'pending' | 'active' | 'inactive';
@@ -23,6 +24,9 @@ export function usePlatformUsers() {
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['platform-users'],
     queryFn: async () => {
+      if (trpc) {
+        return (await trpc.platform.users.list.query()) as unknown as PlatformUser[];
+      }
       // Fetch all users
       const { data: usersData, error: usersError } = await supabase
         .from('users_profile')
@@ -64,6 +68,10 @@ export function usePlatformUsers() {
 
   const updateUserStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: UserStatus }) => {
+      if (trpc) {
+        await trpc.platform.users.updateStatus.mutate({ userId, status });
+        return;
+      }
       const { error } = await supabase
         .from('users_profile')
         .update({ status })
@@ -89,6 +97,10 @@ export function usePlatformUsers() {
 
   const updateUserRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      if (trpc) {
+        await trpc.platform.users.updateRole.mutate({ userId, role });
+        return;
+      }
       // Delete existing roles
       await supabase.from('user_roles').delete().eq('user_id', userId);
 
@@ -117,6 +129,10 @@ export function usePlatformUsers() {
 
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
+      if (trpc) {
+        await trpc.platform.users.delete.mutate({ userId });
+        return;
+      }
       const { error } = await supabase
         .from('users_profile')
         .delete()

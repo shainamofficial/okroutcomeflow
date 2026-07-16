@@ -9,6 +9,7 @@ import { myItemsRouter } from "./routers/my-items";
 import { notificationsRouter } from "./routers/notifications";
 import { objectivesRouter } from "./routers/objectives";
 import { okrsRouter } from "./routers/okrs";
+import { platformRouter } from "./routers/platform";
 import { orgUsersRouter } from "./routers/org-users";
 import { reviewsRouter } from "./routers/reviews";
 import { searchRouter } from "./routers/search";
@@ -40,6 +41,7 @@ export const appRouter = router({
   customFields: customFieldsRouter,
   automations: automationsRouter,
   invitations: invitationsRouter,
+  platform: platformRouter,
 });
 
 // The frontend imports only this type (never the runtime router) to get
