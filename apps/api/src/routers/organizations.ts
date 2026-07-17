@@ -23,6 +23,13 @@ const orgShape = {
   created_at: organizations.createdAt,
 };
 
+// organizations.logo_url stores either an R2 object key (new) or a legacy
+// full URL. Consumers render <img src>, so project it to a stable redirect
+// endpoint (GET /files/org-logo/:id) that resolves either form. null = no logo.
+const API_BASE = process.env.BETTER_AUTH_URL ?? "http://localhost:8787";
+export const logoDisplayUrl = (raw: string | null, orgId: string): string | null =>
+  raw ? `${API_BASE}/files/org-logo/${orgId}` : null;
+
 const domainShape = {
   id: organizationDomains.id,
   organization_id: organizationDomains.organizationId,
@@ -41,17 +48,18 @@ export const organizationsRouter = router({
   // The caller's active organization.
   current: protectedProcedure.query(async ({ ctx }) => {
     const [row] = await db.select(orgShape).from(organizations).where(eq(organizations.id, ctx.orgId)).limit(1);
-    return row ?? null;
+    return row ? { ...row, logo_url: logoDisplayUrl(row.logo_url, row.id) } : null;
   }),
 
   // Every organization the caller is a member of (for the org switcher).
-  mine: protectedProcedure.query(({ ctx }) =>
-    db
+  mine: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await db
       .select(orgShape)
       .from(organizations)
       .innerJoin(organizationMemberships, eq(organizationMemberships.organizationId, organizations.id))
-      .where(eq(organizationMemberships.userId, ctx.userId))
-  ),
+      .where(eq(organizationMemberships.userId, ctx.userId));
+    return rows.map((r) => ({ ...r, logo_url: logoDisplayUrl(r.logo_url, r.id) }));
+  }),
 
   domains: protectedProcedure.query(({ ctx }) =>
     db
@@ -80,7 +88,7 @@ export const organizationsRouter = router({
         .set(set)
         .where(eq(organizations.id, ctx.orgId))
         .returning(orgShape);
-      return row;
+      return row ? { ...row, logo_url: logoDisplayUrl(row.logo_url, row.id) } : row;
     }),
 
   // Any authenticated user may spin up a new org (becomes its admin). Port of

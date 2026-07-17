@@ -1,9 +1,5 @@
 import { useRef, useState } from 'react';
-import { trpc } from '@/lib/trpc';
-// NOTE: logo upload still uses Supabase Storage (organization-logos bucket).
-// The storage backend is being decided with the file-attachments port; the
-// metadata write (logo_url) already goes through the API below.
-import { supabase } from '@/integrations/supabase/client';
+import { trpc, API_URL } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,32 +69,30 @@ export function OrganizationProfileSection({
 
     setUploadingLogo(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${organization.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${organization.id}/${fileName}`;
+      // Streamed to R2 through the API; it stores the object key and returns
+      // the stable display URL (a redirect endpoint with a cache-buster).
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${API_URL}/files/org-logo`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Upload failed (${res.status})`);
+      }
+      const { logo_url } = (await res.json()) as { logo_url: string };
 
-      const { error: uploadError } = await supabase.storage
-        .from('organization-logos')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('organization-logos')
-        .getPublicUrl(filePath);
-
-      await trpc.organizations.update.mutate({ logoUrl: urlData.publicUrl });
-
-      onOrganizationChange({ ...organization, logo_url: urlData.publicUrl });
+      onOrganizationChange({ ...organization, logo_url });
       toast({
         title: 'Success',
         description: 'Logo uploaded successfully.',
       });
     } catch (error) {
-      console.error('Error uploading logo:', error);
       toast({
         title: 'Error',
-        description: 'Failed to upload logo.',
+        description: error instanceof Error ? error.message : 'Failed to upload logo.',
         variant: 'destructive',
       });
     } finally {

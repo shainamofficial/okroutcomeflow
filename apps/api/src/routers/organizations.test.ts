@@ -72,10 +72,18 @@ beforeEach(() => {
 });
 
 describe("organizations queries", () => {
-  it("current returns the caller's active org", async () => {
+  it("current returns the caller's active org (null logo stays null)", async () => {
     selectQueue.mockReturnValueOnce([{ id: "org-1", name: "Acme", logo_url: null, created_at: "now" }]);
     const res = await appRouter.createCaller(caller).organizations.current();
-    expect(res).toMatchObject({ id: "org-1", name: "Acme" });
+    expect(res).toMatchObject({ id: "org-1", name: "Acme", logo_url: null });
+  });
+
+  it("current projects a stored logo key to the redirect endpoint", async () => {
+    selectQueue.mockReturnValueOnce([
+      { id: "org-1", name: "Acme", logo_url: "org-1/logo/abc.png", created_at: "now" },
+    ]);
+    const res = await appRouter.createCaller(caller).organizations.current();
+    expect(res?.logo_url).toMatch(/\/files\/org-logo\/org-1$/);
   });
 
   it("domains returns the org's domains", async () => {
