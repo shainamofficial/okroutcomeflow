@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/client";
+import { resetPasswordEmail, sendEmail } from "../lib/email";
 import * as authSchema from "./schema";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -33,11 +34,11 @@ export const auth = betterAuth({
     // confirm-email off in dev. Provisioning of profile/org/role happens in
     // the database trigger on the user table (see the better-auth migration).
     requireEmailVerification: false,
-    // No email service configured yet — log the reset link in dev. Wire a
-    // real sender (Resend/SMTP) before production. (The owner uses Google,
-    // so password reset is not on their critical path.)
+    // Sends via Resend when RESEND_API_KEY is set; otherwise sendEmail logs
+    // the link to the console (dev/CI fallback). See lib/email.ts.
     sendResetPassword: async ({ url, user }) => {
-      console.log(`[password-reset] ${user.email}: ${url}`);
+      const { subject, html, text } = resetPasswordEmail(url, user.name);
+      await sendEmail({ to: user.email, subject, html, text });
     },
   },
   socialProviders,
