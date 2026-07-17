@@ -5,6 +5,7 @@ import { customFieldsRouter } from "./routers/custom-fields";
 import { dashboardRouter } from "./routers/dashboard";
 import { initiativesRouter } from "./routers/initiatives";
 import { invitationsRouter } from "./routers/invitations";
+import { krMetricsRouter } from "./routers/krMetrics";
 import { myItemsRouter } from "./routers/my-items";
 import { notificationsRouter } from "./routers/notifications";
 import { objectivesRouter } from "./routers/objectives";
@@ -29,6 +30,7 @@ export const appRouter = router({
 
   objectives: objectivesRouter,
   okrs: okrsRouter,
+  krMetrics: krMetricsRouter,
   initiatives: initiativesRouter,
   tasks: tasksRouter,
   notifications: notificationsRouter,

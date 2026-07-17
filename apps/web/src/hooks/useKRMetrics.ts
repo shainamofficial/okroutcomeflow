@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -99,30 +99,14 @@ export function useKRMetricConfig(keyResultId: string) {
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["kr-metric-config", keyResultId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("kr_metric_config")
-        .select("*")
-        .eq("key_result_id", keyResultId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as KRMetricConfig | null;
-    },
+    queryFn: async () =>
+      (await trpc.krMetrics.config.query({ keyResultId })) as KRMetricConfig | null,
     enabled: !!keyResultId,
   });
 
   const createConfig = useMutation({
-    mutationFn: async (configData: Omit<KRMetricConfig, "id">) => {
-      const { data, error } = await supabase
-        .from("kr_metric_config")
-        .insert(configData)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: async (configData: Omit<KRMetricConfig, "id">) =>
+      trpc.krMetrics.createConfig.mutate(configData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kr-metric-config", keyResultId] });
       toast({ title: "Metric configuration saved" });
@@ -137,14 +121,8 @@ export function useKRMetricConfig(keyResultId: string) {
   });
 
   const updateConfig = useMutation({
-    mutationFn: async ({ id, ...configData }: KRMetricConfig) => {
-      const { error } = await supabase
-        .from("kr_metric_config")
-        .update(configData)
-        .eq("id", id);
-
-      if (error) throw error;
-    },
+    mutationFn: async ({ id, key_result_id: _krId, ...rest }: KRMetricConfig) =>
+      trpc.krMetrics.updateConfig.mutate({ id, ...rest }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kr-metric-config", keyResultId] });
       toast({ title: "Metric configuration updated" });
@@ -159,14 +137,8 @@ export function useKRMetricConfig(keyResultId: string) {
   });
 
   const deleteConfig = useMutation({
-    mutationFn: async (configId: string) => {
-      const { error } = await supabase
-        .from("kr_metric_config")
-        .delete()
-        .eq("id", configId);
-
-      if (error) throw error;
-    },
+    mutationFn: async (configId: string) =>
+      trpc.krMetrics.deleteConfig.mutate({ id: configId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kr-metric-config", keyResultId] });
       queryClient.invalidateQueries({ queryKey: ["kr-metric-values"] });
@@ -193,35 +165,15 @@ export function useKRMetricValues(configId: string | undefined) {
     queryKey: ["kr-metric-values", configId],
     queryFn: async () => {
       if (!configId) return [];
-      const { data, error } = await supabase
-        .from("kr_metric_values")
-        .select("*")
-        .eq("kr_metric_config_id", configId)
-        .order("date", { ascending: true });
-
-      if (error) throw error;
-      return data as KRMetricValue[];
+      return (await trpc.krMetrics.values.query({ configId })) as KRMetricValue[];
     },
     enabled: !!configId,
   });
 
   const addValue = useMutation({
     mutationFn: async ({ date, value }: { date: string; value: number }) => {
-      if (!configId || !profile?.id) throw new Error("Missing config or user");
-
-      const { data, error } = await supabase
-        .from("kr_metric_values")
-        .insert({
-          kr_metric_config_id: configId,
-          date,
-          value,
-          created_by: profile.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      if (!configId) throw new Error("Missing config");
+      return trpc.krMetrics.addValue.mutate({ configId, date, value });
     },
     onMutate: async ({ date, value }) => {
       await queryClient.cancelQueries({ queryKey: ["kr-metric-values", configId] });
@@ -258,14 +210,7 @@ export function useKRMetricValues(configId: string | undefined) {
   });
 
   const deleteValue = useMutation({
-    mutationFn: async (valueId: string) => {
-      const { error } = await supabase
-        .from("kr_metric_values")
-        .delete()
-        .eq("id", valueId);
-
-      if (error) throw error;
-    },
+    mutationFn: async (valueId: string) => trpc.krMetrics.deleteValue.mutate({ valueId }),
     onMutate: async (valueId) => {
       await queryClient.cancelQueries({ queryKey: ["kr-metric-values", configId] });
       const previous = queryClient.getQueryData<KRMetricValue[]>(["kr-metric-values", configId]);
