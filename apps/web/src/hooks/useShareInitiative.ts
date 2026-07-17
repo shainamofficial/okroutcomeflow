@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -8,18 +8,7 @@ export function useShareLink(initiativeId: string) {
 
   const { data: shareLink, isLoading } = useQuery({
     queryKey: ["share-link", initiativeId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("initiative_share_links")
-        .select("*")
-        .eq("initiative_id", initiativeId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => trpc.initiativeShares.link.query({ initiativeId }),
     enabled: !!initiativeId && !!profile?.id,
   });
 
@@ -31,14 +20,7 @@ export function useShareViewers(shareLinkId?: string) {
     queryKey: ["share-viewers", shareLinkId],
     queryFn: async () => {
       if (!shareLinkId) return [];
-      const { data, error } = await supabase
-        .from("initiative_share_viewers")
-        .select("*")
-        .eq("share_link_id", shareLinkId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      return data;
+      return trpc.initiativeShares.viewers.query({ shareLinkId });
     },
     enabled: !!shareLinkId,
   });
@@ -54,18 +36,7 @@ export function useCreateShareLink() {
   return useMutation({
     mutationFn: async (initiativeId: string) => {
       if (!profile?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("initiative_share_links")
-        .insert({
-          initiative_id: initiativeId,
-          created_by: profile.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return trpc.initiativeShares.createLink.mutate({ initiativeId });
     },
     onSuccess: (_, initiativeId) => {
       queryClient.invalidateQueries({ queryKey: ["share-link", initiativeId] });
@@ -83,12 +54,7 @@ export function useToggleShareLink() {
 
   return useMutation({
     mutationFn: async ({ id, isActive, initiativeId }: { id: string; isActive: boolean; initiativeId: string }) => {
-      const { error } = await supabase
-        .from("initiative_share_links")
-        .update({ is_active: isActive })
-        .eq("id", id);
-
-      if (error) throw error;
+      await trpc.initiativeShares.toggleLink.mutate({ id, isActive });
       return initiativeId;
     },
     onSuccess: (initiativeId) => {
@@ -106,19 +72,8 @@ export function useAddShareViewer() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ shareLinkId, email }: { shareLinkId: string; email: string }) => {
-      const { data, error } = await supabase
-        .from("initiative_share_viewers")
-        .insert({
-          share_link_id: shareLinkId,
-          email: email.toLowerCase().trim(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: async ({ shareLinkId, email }: { shareLinkId: string; email: string }) =>
+      trpc.initiativeShares.addViewer.mutate({ shareLinkId, email: email.toLowerCase().trim() }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["share-viewers", data.share_link_id] });
       toast({ title: "Viewer added" });
@@ -135,12 +90,7 @@ export function useRemoveShareViewer() {
 
   return useMutation({
     mutationFn: async ({ id, shareLinkId }: { id: string; shareLinkId: string }) => {
-      const { error } = await supabase
-        .from("initiative_share_viewers")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await trpc.initiativeShares.removeViewer.mutate({ id });
       return shareLinkId;
     },
     onSuccess: (shareLinkId) => {
