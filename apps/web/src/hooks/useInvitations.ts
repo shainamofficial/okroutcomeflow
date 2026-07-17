@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -18,17 +17,6 @@ interface Invitation {
   expires_at: string | null;
 }
 
-// Full invitation type returned after creation (includes token for sharing)
-interface NewInvitation extends Invitation {
-  token: string | null;
-}
-
-function generateToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 export function useInvitations() {
   const { profile, roles } = useAuth();
   const queryClient = useQueryClient();
@@ -39,20 +27,7 @@ export function useInvitations() {
     queryKey: ['invitations', profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.invitations.list.query()) as Invitation[];
-      }
-
-      // Query the safe view that excludes sensitive token data
-      const { data, error } = await supabase
-        .from('user_invitations_safe')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Invitation[];
+      return (await trpc.invitations.list.query()) as Invitation[];
     },
     enabled: !!profile?.organization_id && (isAdmin || isManager),
   });
@@ -60,50 +35,7 @@ export function useInvitations() {
   const createInvitation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
       if (!profile?.organization_id) throw new Error('No organization');
-
-      if (trpc) {
-        return await trpc.invitations.create.mutate({ email, role });
-      }
-
-      // Check if user already exists
-      const { data: existingUser } = await supabase
-        .from('users_profile')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
-
-      if (existingUser) {
-        throw new Error('User already exists with this email');
-      }
-
-      // Check if pending invitation exists
-      const { data: existingInvite } = await supabase
-        .from('user_invitations')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .eq('status', 'pending')
-        .maybeSingle();
-
-      if (existingInvite) {
-        throw new Error('A pending invitation already exists for this email');
-      }
-
-      const token = generateToken();
-
-      const { data, error } = await supabase
-        .from('user_invitations')
-        .insert({
-          organization_id: profile.organization_id,
-          email: email.toLowerCase().trim(),
-          role,
-          token,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await trpc.invitations.create.mutate({ email, role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
@@ -116,16 +48,7 @@ export function useInvitations() {
 
   const revokeInvitation = useMutation({
     mutationFn: async (invitationId: string) => {
-      if (trpc) {
-        await trpc.invitations.revoke.mutate({ invitationId });
-        return;
-      }
-      const { error } = await supabase
-        .from('user_invitations')
-        .update({ status: 'revoked' })
-        .eq('id', invitationId);
-
-      if (error) throw error;
+      await trpc.invitations.revoke.mutate({ invitationId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
