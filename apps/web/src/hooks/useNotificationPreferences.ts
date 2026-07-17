@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,14 +27,8 @@ export function useNotificationPreferences() {
 
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ["notification_preferences", profile?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notification_preferences")
-        .select("*")
-        .eq("user_id", profile!.id);
-      if (error) throw error;
-      return data as unknown as NotificationPreference[];
-    },
+    queryFn: async () =>
+      (await trpc.notifications.preferences.query()) as NotificationPreference[],
     enabled: !!profile?.id,
   });
 
@@ -45,19 +39,7 @@ export function useNotificationPreferences() {
 
   const upsertPreference = useMutation({
     mutationFn: async (params: { notification_type: string; in_app_enabled: boolean; email_enabled: boolean }) => {
-      const { error } = await supabase
-        .from("notification_preferences")
-        .upsert(
-          {
-            user_id: profile!.id,
-            notification_type: params.notification_type,
-            in_app_enabled: params.in_app_enabled,
-            email_enabled: params.email_enabled,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,notification_type" }
-        );
-      if (error) throw error;
+      await trpc.notifications.upsertPreference.mutate(params);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification_preferences"] });
