@@ -1,4 +1,8 @@
 import { useRef, useState } from 'react';
+import { trpc } from '@/lib/trpc';
+// NOTE: logo upload still uses Supabase Storage (organization-logos bucket).
+// The storage backend is being decided with the file-attachments port; the
+// metadata write (logo_url) already goes through the API below.
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -35,12 +39,7 @@ export function OrganizationProfileSection({
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .update({ name: orgName.trim() })
-        .eq('id', organization.id);
-
-      if (error) throw error;
+      await trpc.organizations.update.mutate({ name: orgName.trim() });
 
       onOrganizationChange({ ...organization, name: orgName.trim() });
       toast({
@@ -88,12 +87,7 @@ export function OrganizationProfileSection({
         .from('organization-logos')
         .getPublicUrl(filePath);
 
-      const { error: updateError } = await supabase
-        .from('organizations')
-        .update({ logo_url: urlData.publicUrl })
-        .eq('id', organization.id);
-
-      if (updateError) throw updateError;
+      await trpc.organizations.update.mutate({ logoUrl: urlData.publicUrl });
 
       onOrganizationChange({ ...organization, logo_url: urlData.publicUrl });
       toast({

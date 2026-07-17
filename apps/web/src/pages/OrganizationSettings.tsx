@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 import { OrganizationProfileSection } from '@/components/organization/OrganizationProfileSection';
 import { OrganizationDomainsSection } from '@/components/organization/OrganizationDomainsSection';
@@ -27,27 +27,13 @@ export default function OrganizationSettings() {
     }
 
     try {
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', profile.organization_id)
-        .maybeSingle();
+      const [orgData, domainsData] = await Promise.all([
+        trpc.organizations.current.query(),
+        trpc.organizations.domains.query(),
+      ]);
 
-      if (orgError) throw orgError;
-      if (orgData) {
-        setOrganization(orgData);
-      }
-
-      const { data: domainsData, error: domainsError } = await supabase
-        .from('organization_domains')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('created_at', { ascending: true });
-
-      if (domainsError) throw domainsError;
-      if (domainsData) {
-        setDomains(domainsData);
-      }
+      if (orgData) setOrganization(orgData);
+      setDomains(domainsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({

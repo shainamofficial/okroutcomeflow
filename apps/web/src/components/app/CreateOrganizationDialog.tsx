@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -27,22 +27,14 @@ export function CreateOrganizationDialog() {
     if (!name.trim()) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('create_new_organization' as any, {
-        _name: name.trim(),
-      });
-
-      if (error) {
-        toast({ title: 'Failed to create organization', description: error.message, variant: 'destructive' });
-        return;
-      }
+      const { id: newOrgId } = await trpc.organizations.create.mutate({ name: name.trim() });
 
       await refreshProfile();
       toast({ title: 'Organization created successfully' });
       setName('');
       setOpen(false);
 
-      // Offer to switch
-      const newOrgId = data as string;
+      // Offer to switch to the newly created org.
       if (newOrgId) {
         const { error: switchError } = await switchOrganization(newOrgId);
         if (!switchError) {
@@ -50,6 +42,12 @@ export function CreateOrganizationDialog() {
           toast({ title: 'Switched to new organization' });
         }
       }
+    } catch (error) {
+      toast({
+        title: 'Failed to create organization',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

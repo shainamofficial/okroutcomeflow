@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { LogOut, ChevronDown, Check, Building2, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -40,27 +40,19 @@ export function AppHeader() {
     const fetchOrganizations = async () => {
       if (!profile?.organization_id) return;
 
-      // Fetch current org
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('id, name, logo_url')
-        .eq('id', profile.organization_id)
-        .maybeSingle();
-
-      if (!error && data) {
-        setOrganization(data);
+      try {
+        const current = await trpc.organizations.current.query();
+        if (current) setOrganization(current);
+      } catch (err) {
+        console.error('Error fetching organization:', err);
       }
 
-      // Fetch all orgs user is a member of
+      // Fetch all orgs the user is a member of (for the switcher).
       if (memberships.length > 1) {
-        const orgIds = memberships.map((m) => m.organization_id);
-        const { data: orgsData, error: orgsError } = await supabase
-          .from('organizations')
-          .select('id, name, logo_url')
-          .in('id', orgIds);
-
-        if (!orgsError && orgsData) {
-          setAllOrgs(orgsData);
+        try {
+          setAllOrgs(await trpc.organizations.mine.query());
+        } catch (err) {
+          console.error('Error fetching organizations:', err);
         }
       } else {
         setAllOrgs([]);
