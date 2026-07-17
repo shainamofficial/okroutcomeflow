@@ -46,7 +46,7 @@ export function FileAttachmentsPanel({ entityType, entityId }: FileAttachmentsPr
   };
 
   const handleDownload = async (att: FileAttachment) => {
-    const url = await getDownloadUrl(att.storage_path);
+    const url = await getDownloadUrl(att.id);
     if (url) window.open(url, "_blank");
   };
 
