@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -34,47 +33,21 @@ export function useCustomFields(entityType: "kr" | "initiative" | "task") {
   const { data: definitions = [], isLoading: loadingDefs } = useQuery({
     queryKey: ["custom_field_definitions", profile?.organization_id, entityType],
     queryFn: async () => {
-      if (trpc) {
-        return (await trpc.customFields.definitions.query({
-          entityType,
-        })) as unknown as CustomFieldDefinition[];
-      }
-      const { data, error } = await supabase
-        .from("custom_field_definitions")
-        .select("*")
-        .eq("organization_id", profile!.organization_id!)
-        .eq("entity_type", entityType)
-        .order("created_at");
-      if (error) throw error;
-      return data as unknown as CustomFieldDefinition[];
+      return (await trpc.customFields.definitions.query({
+        entityType,
+      })) as unknown as CustomFieldDefinition[];
     },
     enabled: !!profile?.organization_id,
   });
 
   const createDefinition = useMutation({
     mutationFn: async (params: { name: string; field_type: CustomFieldType; options?: string[] }) => {
-      if (trpc) {
-        return await trpc.customFields.createDefinition.mutate({
-          entityType,
-          name: params.name,
-          fieldType: params.field_type,
-          options: params.options || [],
-        });
-      }
-      const { data, error } = await supabase
-        .from("custom_field_definitions")
-        .insert({
-          organization_id: profile!.organization_id!,
-          name: params.name,
-          field_type: params.field_type as any,
-          options: params.options || [],
-          entity_type: entityType as any,
-          created_by: profile!.id,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      return await trpc.customFields.createDefinition.mutate({
+        entityType,
+        name: params.name,
+        fieldType: params.field_type,
+        options: params.options || [],
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_field_definitions"] });
@@ -85,12 +58,7 @@ export function useCustomFields(entityType: "kr" | "initiative" | "task") {
 
   const deleteDefinition = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.customFields.deleteDefinition.mutate({ id });
-        return;
-      }
-      const { error } = await supabase.from("custom_field_definitions").delete().eq("id", id);
-      if (error) throw error;
+      await trpc.customFields.deleteDefinition.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_field_definitions"] });
@@ -110,45 +78,21 @@ export function useCustomFieldValues(entityIds: string[]) {
     queryKey: ["custom_field_values", JSON.stringify(entityIds.slice().sort())],
     queryFn: async () => {
       if (entityIds.length === 0) return [];
-      if (trpc) {
-        return (await trpc.customFields.values.query({
-          entityIds,
-        })) as unknown as CustomFieldValue[];
-      }
-      const { data, error } = await supabase
-        .from("custom_field_values")
-        .select("*")
-        .in("entity_id", entityIds);
-      if (error) throw error;
-      return data as unknown as CustomFieldValue[];
+      return (await trpc.customFields.values.query({
+        entityIds,
+      })) as unknown as CustomFieldValue[];
     },
     enabled: entityIds.length > 0,
   });
 
   const upsertValue = useMutation({
     mutationFn: async (params: { field_definition_id: string; entity_type: string; entity_id: string; value: unknown }) => {
-      if (trpc) {
-        await trpc.customFields.upsertValue.mutate({
-          fieldDefinitionId: params.field_definition_id,
-          entityType: params.entity_type as "kr" | "initiative" | "task",
-          entityId: params.entity_id,
-          value: params.value,
-        });
-        return;
-      }
-      const { error } = await supabase
-        .from("custom_field_values")
-        .upsert(
-          {
-            field_definition_id: params.field_definition_id,
-            entity_type: params.entity_type as any,
-            entity_id: params.entity_id,
-            value: params.value as any,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "field_definition_id,entity_id" }
-        );
-      if (error) throw error;
+      await trpc.customFields.upsertValue.mutate({
+        fieldDefinitionId: params.field_definition_id,
+        entityType: params.entity_type as "kr" | "initiative" | "task",
+        entityId: params.entity_id,
+        value: params.value,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_field_values"] });

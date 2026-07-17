@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -40,23 +39,7 @@ export function useTasks(initiativeId?: string) {
     queryKey: ["tasks", initiativeId],
     queryFn: async () => {
       if (!initiativeId) return [];
-
-      if (trpc) {
-        return (await trpc.tasks.byInitiative.query({ initiativeId })) as Task[];
-      }
-
-      const { data, error } = await supabase
-        .from("tasks")
-        .select(`
-          *,
-          assignee_user:users_profile!tasks_assignee_user_id_fkey(id, name, email),
-          assignee_team:teams!tasks_assignee_team_id_fkey(id, name)
-        `)
-        .eq("initiative_id", initiativeId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as Task[];
+      return (await trpc.tasks.byInitiative.query({ initiativeId })) as Task[];
     },
     enabled: !!initiativeId && !!profile?.organization_id,
   });
@@ -74,30 +57,7 @@ export function useTasks(initiativeId?: string) {
       parentTaskId?: string;
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
-
-      if (trpc) {
-        return await trpc.tasks.create.mutate(params);
-      }
-
-      const { data, error } = await supabase
-        .from("tasks")
-        .insert({
-          initiative_id: params.initiativeId,
-          title: params.title,
-          description: params.description || null,
-          assignee_user_id: params.assigneeUserId || null,
-          assignee_team_id: params.assigneeTeamId || null,
-          status: params.status || "todo",
-          start_date: params.startDate || null,
-          due_date: params.dueDate || null,
-          parent_task_id: params.parentTaskId || null,
-          created_by: profile.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await trpc.tasks.create.mutate(params);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -125,27 +85,7 @@ export function useTasks(initiativeId?: string) {
       dueDate?: string | null;
       color?: string | null;
     }) => {
-      if (trpc) {
-        await trpc.tasks.update.mutate(params);
-        return;
-      }
-
-      const updateData: Record<string, unknown> = {};
-      if (params.title !== undefined) updateData.title = params.title;
-      if (params.description !== undefined) updateData.description = params.description || null;
-      if (params.assigneeUserId !== undefined) updateData.assignee_user_id = params.assigneeUserId || null;
-      if (params.assigneeTeamId !== undefined) updateData.assignee_team_id = params.assigneeTeamId || null;
-      if (params.status !== undefined) updateData.status = params.status;
-      if (params.startDate !== undefined) updateData.start_date = params.startDate || null;
-      if (params.dueDate !== undefined) updateData.due_date = params.dueDate || null;
-      if (params.color !== undefined) updateData.color = params.color;
-
-      const { error } = await supabase
-        .from("tasks")
-        .update(updateData)
-        .eq("id", params.id);
-
-      if (error) throw error;
+      await trpc.tasks.update.mutate(params);
     },
     onMutate: async (params) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
@@ -190,12 +130,7 @@ export function useTasks(initiativeId?: string) {
 
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.tasks.delete.mutate({ id });
-        return;
-      }
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
+      await trpc.tasks.delete.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -228,26 +163,9 @@ export function useAllTasks() {
     queryKey: ["all_tasks", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.tasks.listAll.query()) as (Task & {
-          initiative: { id: string; organization_id: string };
-        })[];
-      }
-
-      const { data, error } = await supabase
-        .from("tasks")
-        .select(`
-          *,
-          assignee_user:users_profile!tasks_assignee_user_id_fkey(id, name, email),
-          assignee_team:teams!tasks_assignee_team_id_fkey(id, name),
-          initiative:initiatives!inner(id, organization_id)
-        `)
-        .eq("initiative.organization_id", profile.organization_id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return (data || []) as (Task & { initiative: { id: string; organization_id: string } })[];
+      return (await trpc.tasks.listAll.query()) as (Task & {
+        initiative: { id: string; organization_id: string };
+      })[];
     },
     enabled: !!profile?.organization_id,
   });

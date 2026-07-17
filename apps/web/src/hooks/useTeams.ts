@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -34,19 +33,7 @@ export function useTeams() {
     queryKey: ['teams', profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.teams.list.query()) as Team[];
-      }
-
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('organization_id', profile.organization_id)
-        .order('name');
-
-      if (error) throw error;
-      return data as Team[];
+      return (await trpc.teams.list.query()) as Team[];
     },
     enabled: !!profile?.organization_id,
   });
@@ -54,25 +41,7 @@ export function useTeams() {
   const createTeam = useMutation({
     mutationFn: async (name: string) => {
       if (!profile?.organization_id) throw new Error('No organization');
-
-      if (trpc) {
-        await trpc.teams.create.mutate({ name });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('teams')
-        .insert({
-          organization_id: profile.organization_id,
-          name: name.trim(),
-        });
-
-      if (error) {
-        if (error.code === '23505') {
-          throw new Error('A team with this name already exists');
-        }
-        throw error;
-      }
+      await trpc.teams.create.mutate({ name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -85,21 +54,7 @@ export function useTeams() {
 
   const renameTeam = useMutation({
     mutationFn: async ({ teamId, name }: { teamId: string; name: string }) => {
-      if (trpc) {
-        await trpc.teams.rename.mutate({ teamId, name });
-        return;
-      }
-      const { error } = await supabase
-        .from('teams')
-        .update({ name: name.trim() })
-        .eq('id', teamId);
-
-      if (error) {
-        if (error.code === '23505') {
-          throw new Error('A team with this name already exists');
-        }
-        throw error;
-      }
+      await trpc.teams.rename.mutate({ teamId, name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -112,16 +67,7 @@ export function useTeams() {
 
   const deleteTeam = useMutation({
     mutationFn: async (teamId: string) => {
-      if (trpc) {
-        await trpc.teams.remove.mutate({ teamId });
-        return;
-      }
-      const { error } = await supabase
-        .from('teams')
-        .delete()
-        .eq('id', teamId);
-
-      if (error) throw error;
+      await trpc.teams.remove.mutate({ teamId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -150,48 +96,14 @@ export function useTeamMembers(teamId: string | null) {
     queryKey: ['team-members', teamId],
     queryFn: async () => {
       if (!teamId) return [];
-
-      if (trpc) {
-        return (await trpc.teams.members.query({ teamId })) as TeamMember[];
-      }
-
-      const { data, error } = await supabase
-        .from('team_members')
-        .select(`
-          id,
-          team_id,
-          user_id,
-          created_at,
-          user:users_profile!team_members_user_id_fkey(id, name, email)
-        `)
-        .eq('team_id', teamId);
-
-      if (error) throw error;
-
-      return (data || []).map(m => ({
-        ...m,
-        user: Array.isArray(m.user) ? m.user[0] : m.user,
-      })) as TeamMember[];
+      return (await trpc.teams.members.query({ teamId })) as TeamMember[];
     },
     enabled: !!teamId,
   });
 
   const addMember = useMutation({
     mutationFn: async ({ teamId, userId }: { teamId: string; userId: string }) => {
-      if (trpc) {
-        await trpc.teams.addMember.mutate({ teamId, userId });
-        return;
-      }
-      const { error } = await supabase
-        .from('team_members')
-        .insert({ team_id: teamId, user_id: userId });
-
-      if (error) {
-        if (error.code === '23505') {
-          throw new Error('User is already a member of this team');
-        }
-        throw error;
-      }
+      await trpc.teams.addMember.mutate({ teamId, userId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
@@ -204,16 +116,7 @@ export function useTeamMembers(teamId: string | null) {
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
-      if (trpc) {
-        await trpc.teams.removeMember.mutate({ memberId });
-        return;
-      }
-      const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('id', memberId);
-
-      if (error) throw error;
+      await trpc.teams.removeMember.mutate({ memberId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] });

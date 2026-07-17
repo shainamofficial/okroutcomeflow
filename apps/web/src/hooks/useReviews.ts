@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -93,19 +92,7 @@ export function useReviewCadence(keyResultId?: string) {
     queryKey: ["review_cadence", keyResultId],
     queryFn: async () => {
       if (!keyResultId) return null;
-
-      if (trpc) {
-        return (await trpc.reviews.cadence.query({ keyResultId })) as ReviewCadence | null;
-      }
-
-      const { data, error } = await supabase
-        .from("kr_review_cadence")
-        .select("*")
-        .eq("key_result_id", keyResultId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as ReviewCadence | null;
+      return (await trpc.reviews.cadence.query({ keyResultId })) as ReviewCadence | null;
     },
     enabled: !!keyResultId && !!profile?.organization_id,
   });
@@ -123,54 +110,13 @@ export function useReviewCadence(keyResultId?: string) {
       );
 
       const nextReviewDateStr = format(nextReviewDate, "yyyy-MM-dd");
-
-      if (trpc) {
-        return await trpc.reviews.upsertCadence.mutate({
-          keyResultId: params.keyResultId,
-          frequency: params.frequency,
-          dayOfWeek: params.dayOfWeek ?? null,
-          time: params.time || "09:00",
-          nextReviewDate: nextReviewDateStr,
-        });
-      }
-
-      const { data, error } = await supabase
-        .from("kr_review_cadence")
-        .upsert({
-          key_result_id: params.keyResultId,
-          frequency: params.frequency,
-          day_of_week: params.dayOfWeek ?? null,
-          time: params.time || "09:00",
-          next_review_date: nextReviewDateStr,
-        }, {
-          onConflict: "key_result_id",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Check if a scheduled session already exists for this date
-      const { data: existingSession } = await supabase
-        .from("kr_review_sessions")
-        .select("id")
-        .eq("key_result_id", params.keyResultId)
-        .eq("review_date", nextReviewDateStr)
-        .eq("status", "scheduled")
-        .maybeSingle();
-
-      // Create a new review session if one doesn't exist
-      if (!existingSession) {
-        await supabase
-          .from("kr_review_sessions")
-          .insert({
-            key_result_id: params.keyResultId,
-            review_date: nextReviewDateStr,
-            status: "scheduled",
-          });
-      }
-
-      return data;
+      return await trpc.reviews.upsertCadence.mutate({
+        keyResultId: params.keyResultId,
+        frequency: params.frequency,
+        dayOfWeek: params.dayOfWeek ?? null,
+        time: params.time || "09:00",
+        nextReviewDate: nextReviewDateStr,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_cadence"] });
@@ -189,16 +135,7 @@ export function useReviewCadence(keyResultId?: string) {
 
   const deleteCadence = useMutation({
     mutationFn: async (keyResultId: string) => {
-      if (trpc) {
-        await trpc.reviews.deleteCadence.mutate({ keyResultId });
-        return;
-      }
-      const { error } = await supabase
-        .from("kr_review_cadence")
-        .delete()
-        .eq("key_result_id", keyResultId);
-
-      if (error) throw error;
+      await trpc.reviews.deleteCadence.mutate({ keyResultId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_cadence"] });
@@ -230,25 +167,7 @@ export function useReviewSessions(keyResultId?: string) {
     queryKey: ["review_sessions", keyResultId],
     queryFn: async () => {
       if (!keyResultId) return [];
-
-      if (trpc) {
-        return (await trpc.reviews.sessions.query({ keyResultId })) as ReviewSession[];
-      }
-
-      const { data, error } = await supabase
-        .from("kr_review_sessions")
-        .select(`
-          *,
-          key_result:key_results(
-            id, title, owner_id,
-            owner:users_profile!key_results_owner_id_fkey(id, name, email)
-          )
-        `)
-        .eq("key_result_id", keyResultId)
-        .order("review_date", { ascending: true });
-
-      if (error) throw error;
-      return data as ReviewSession[];
+      return (await trpc.reviews.sessions.query({ keyResultId })) as ReviewSession[];
     },
     enabled: !!keyResultId && !!profile?.organization_id,
   });
@@ -259,25 +178,11 @@ export function useReviewSessions(keyResultId?: string) {
       reviewDate: string;
       status?: ReviewSessionStatus;
     }) => {
-      if (trpc) {
-        return await trpc.reviews.createSession.mutate({
-          keyResultId: params.keyResultId,
-          reviewDate: params.reviewDate,
-          status: params.status,
-        });
-      }
-      const { data, error } = await supabase
-        .from("kr_review_sessions")
-        .insert({
-          key_result_id: params.keyResultId,
-          review_date: params.reviewDate,
-          status: params.status || "scheduled",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await trpc.reviews.createSession.mutate({
+        keyResultId: params.keyResultId,
+        reviewDate: params.reviewDate,
+        status: params.status,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_sessions"] });
@@ -301,28 +206,13 @@ export function useReviewSessions(keyResultId?: string) {
       notes?: string | null;
       completedAt?: string | null;
     }) => {
-      if (trpc) {
-        await trpc.reviews.updateSession.mutate({
-          id: params.id,
-          reviewDate: params.reviewDate,
-          status: params.status,
-          notes: params.notes,
-          completedAt: params.completedAt,
-        });
-        return;
-      }
-      const updateData: Record<string, unknown> = {};
-      if (params.reviewDate !== undefined) updateData.review_date = params.reviewDate;
-      if (params.status !== undefined) updateData.status = params.status;
-      if (params.notes !== undefined) updateData.notes = params.notes;
-      if (params.completedAt !== undefined) updateData.completed_at = params.completedAt;
-
-      const { error } = await supabase
-        .from("kr_review_sessions")
-        .update(updateData)
-        .eq("id", params.id);
-
-      if (error) throw error;
+      await trpc.reviews.updateSession.mutate({
+        id: params.id,
+        reviewDate: params.reviewDate,
+        status: params.status,
+        notes: params.notes,
+        completedAt: params.completedAt,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_sessions"] });
@@ -340,16 +230,7 @@ export function useReviewSessions(keyResultId?: string) {
 
   const deleteSession = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.reviews.deleteSession.mutate({ id });
-        return;
-      }
-      const { error } = await supabase
-        .from("kr_review_sessions")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await trpc.reviews.deleteSession.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_sessions"] });
@@ -381,27 +262,9 @@ export function useAllReviewSessions() {
     queryKey: ["all_review_sessions", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.reviews.allSessions.query()) as (ReviewSession & {
-          key_result: { organization_id: string };
-        })[];
-      }
-
-      const { data, error } = await supabase
-        .from("kr_review_sessions")
-        .select(`
-          *,
-          key_result:key_results!inner(
-            id, title, owner_id, organization_id,
-            owner:users_profile!key_results_owner_id_fkey(id, name, email)
-          )
-        `)
-        .eq("key_result.organization_id", profile.organization_id)
-        .order("review_date", { ascending: true });
-
-      if (error) throw error;
-      return data as (ReviewSession & { key_result: { organization_id: string } })[];
+      return (await trpc.reviews.allSessions.query()) as (ReviewSession & {
+        key_result: { organization_id: string };
+      })[];
     },
     enabled: !!profile?.organization_id,
   });
@@ -418,44 +281,17 @@ export function useReviewParticipants(sessionId?: string) {
     queryKey: ["review_participants", sessionId],
     queryFn: async () => {
       if (!sessionId) return [];
-
-      if (trpc) {
-        return (await trpc.reviews.participants.query({ sessionId })) as ReviewParticipant[];
-      }
-
-      const { data, error } = await supabase
-        .from("kr_review_participants")
-        .select(`
-          *,
-          user:users_profile(id, name, email)
-        `)
-        .eq("review_session_id", sessionId);
-
-      if (error) throw error;
-      return data as ReviewParticipant[];
+      return (await trpc.reviews.participants.query({ sessionId })) as ReviewParticipant[];
     },
     enabled: !!sessionId && !!profile?.organization_id,
   });
 
   const addParticipant = useMutation({
     mutationFn: async (params: { sessionId: string; userId: string }) => {
-      if (trpc) {
-        return await trpc.reviews.addParticipant.mutate({
-          sessionId: params.sessionId,
-          userId: params.userId,
-        });
-      }
-      const { data, error } = await supabase
-        .from("kr_review_participants")
-        .insert({
-          review_session_id: params.sessionId,
-          user_id: params.userId,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await trpc.reviews.addParticipant.mutate({
+        sessionId: params.sessionId,
+        userId: params.userId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_participants"] });
@@ -471,16 +307,7 @@ export function useReviewParticipants(sessionId?: string) {
 
   const removeParticipant = useMutation({
     mutationFn: async (participantId: string) => {
-      if (trpc) {
-        await trpc.reviews.removeParticipant.mutate({ participantId });
-        return;
-      }
-      const { error } = await supabase
-        .from("kr_review_participants")
-        .delete()
-        .eq("id", participantId);
-
-      if (error) throw error;
+      await trpc.reviews.removeParticipant.mutate({ participantId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review_participants"] });

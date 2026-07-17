@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as perms from "@okroutcomeflow/shared";
 import { db } from "../db/client";
-import { initiativeKrLinks, initiatives, usersProfile } from "../db/schema";
+import { initiativeKrLinks, initiatives, keyResults, usersProfile } from "../db/schema";
 import { getActor } from "../lib/roles";
 import { protectedProcedure, router } from "../trpc";
 
@@ -53,6 +53,90 @@ export const initiativesRouter = router({
       .where(eq(initiatives.organizationId, ctx.orgId))
       .orderBy(desc(initiatives.createdAt))
   ),
+
+  // KR links for one initiative, with the linked key result — org-scoped.
+  // Backs useInitiativeKRLinks.
+  krLinks: protectedProcedure
+    .input(z.object({ initiativeId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const init = await loadInitiative(input.initiativeId, ctx.orgId);
+      if (!init) return [];
+      const rows = await db
+        .select({
+          id: initiativeKrLinks.id,
+          initiative_id: initiativeKrLinks.initiativeId,
+          key_result_id: initiativeKrLinks.keyResultId,
+          weight: initiativeKrLinks.weight,
+          created_at: initiativeKrLinks.createdAt,
+          key_result: {
+            id: keyResults.id,
+            title: keyResults.title,
+            objective_id: keyResults.objectiveId,
+          },
+        })
+        .from(initiativeKrLinks)
+        .leftJoin(keyResults, eq(keyResults.id, initiativeKrLinks.keyResultId))
+        .where(eq(initiativeKrLinks.initiativeId, input.initiativeId));
+      return rows.map((r) => ({ ...r, weight: r.weight === null ? null : Number(r.weight) }));
+    }),
+
+  // Initiatives linked to one key result, with owner — org-scoped (via the
+  // initiative's org). Backs useKRInitiativeLinks. Selected flat then shaped
+  // in JS (drizzle's typed select doesn't support two-level nesting).
+  initiativeLinks: protectedProcedure
+    .input(z.object({ keyResultId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const rows = await db
+        .select({
+          id: initiativeKrLinks.id,
+          initiative_id: initiativeKrLinks.initiativeId,
+          key_result_id: initiativeKrLinks.keyResultId,
+          weight: initiativeKrLinks.weight,
+          created_at: initiativeKrLinks.createdAt,
+          i_id: initiatives.id,
+          i_org: initiatives.organizationId,
+          i_title: initiatives.title,
+          i_desc: initiatives.description,
+          i_ownerId: initiatives.ownerId,
+          i_status: initiatives.status,
+          i_start: initiatives.startDate,
+          i_end: initiatives.endDate,
+          i_createdBy: initiatives.createdBy,
+          i_createdAt: initiatives.createdAt,
+          o_id: usersProfile.id,
+          o_name: usersProfile.name,
+          o_email: usersProfile.email,
+        })
+        .from(initiativeKrLinks)
+        .innerJoin(initiatives, eq(initiatives.id, initiativeKrLinks.initiativeId))
+        .leftJoin(usersProfile, eq(usersProfile.id, initiatives.ownerId))
+        .where(
+          and(
+            eq(initiativeKrLinks.keyResultId, input.keyResultId),
+            eq(initiatives.organizationId, ctx.orgId)
+          )
+        );
+      return rows.map((r) => ({
+        id: r.id,
+        initiative_id: r.initiative_id,
+        key_result_id: r.key_result_id,
+        weight: r.weight === null ? null : Number(r.weight),
+        created_at: r.created_at,
+        initiative: {
+          id: r.i_id,
+          organization_id: r.i_org,
+          title: r.i_title,
+          description: r.i_desc,
+          owner_id: r.i_ownerId,
+          status: r.i_status,
+          start_date: r.i_start,
+          end_date: r.i_end,
+          created_by: r.i_createdBy,
+          created_at: r.i_createdAt,
+          owner: r.o_id ? { id: r.o_id, name: r.o_name, email: r.o_email } : null,
+        },
+      }));
+    }),
 
   create: protectedProcedure
     .input(
