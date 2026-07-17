@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUpdates } from "@/hooks/useUpdates";
 import { UpdateComposer } from "./UpdateComposer";
 import { UpdateItem } from "./UpdateItem";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
 type UpdateKind = Database["public"]["Enums"]["update_kind"];

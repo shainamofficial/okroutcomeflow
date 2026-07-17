@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type UpdateKind = Database["public"]["Enums"]["update_kind"];
 

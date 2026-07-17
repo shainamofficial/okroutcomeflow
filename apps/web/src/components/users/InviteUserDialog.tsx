@@ -21,7 +21,7 @@ import {
 import { UserPlus, Copy, Check } from 'lucide-react';
 import { useInvitations } from '@/hooks/useInvitations';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/types/db';
 
 type AppRole = Database['public']['Enums']['app_role'];
 

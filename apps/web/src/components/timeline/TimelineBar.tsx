@@ -10,7 +10,7 @@ import {
 import { TimelineColorPicker } from "./TimelineColorPicker";
 import { getCustomColorClasses } from "@/lib/timeline-colors";
 
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type InitiativeStatus = Database["public"]["Enums"]["initiative_status"];
 type TaskStatus = Database["public"]["Enums"]["task_status"];

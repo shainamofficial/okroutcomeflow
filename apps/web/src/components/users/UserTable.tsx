@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { format } from 'date-fns';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/types/db';
 
 type UserStatus = Database['public']['Enums']['user_status'];
 type AppRole = Database['public']['Enums']['app_role'];

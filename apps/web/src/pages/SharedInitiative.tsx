@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { z } from "zod";
+import { trpc } from "@/lib/trpc";
 
 const emailSchema = z.string().trim().email().max(255);
 
@@ -105,31 +106,20 @@ export default function SharedInitiative() {
       return;
     }
 
+    if (!token) {
+      setErrorMessage("Invalid or expired share link");
+      setViewState("error");
+      return;
+    }
+
     setViewState("loading");
 
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/get-shared-initiative`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, email: result.data }),
-        }
-      );
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(json.error || "Unable to access this initiative");
-        setViewState("error");
-        return;
-      }
-
-      setData(json);
+      const shared = await trpc.sharedInitiatives.get.query({ token, email: result.data });
+      setData(shared as SharedData);
       setViewState("viewing");
-    } catch {
-      setErrorMessage("Something went wrong. Please try again.");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Unable to access this initiative");
       setViewState("error");
     }
   };

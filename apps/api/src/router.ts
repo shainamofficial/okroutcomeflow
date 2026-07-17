@@ -18,6 +18,7 @@ import { orgUsersRouter } from "./routers/org-users";
 import { reviewsRouter } from "./routers/reviews";
 import { searchRouter } from "./routers/search";
 import { sessionRouter } from "./routers/session";
+import { sharedInitiativesRouter } from "./routers/sharedInitiatives";
 import { tasksRouter } from "./routers/tasks";
 import { teamsRouter } from "./routers/teams";
 import { updatesRouter } from "./routers/updates";
@@ -52,6 +53,7 @@ export const appRouter = router({
   platform: platformRouter,
   session: sessionRouter,
   attachments: attachmentsRouter,
+  sharedInitiatives: sharedInitiativesRouter,
 });
 
 // The frontend imports only this type (never the runtime router) to get
