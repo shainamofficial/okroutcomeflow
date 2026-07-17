@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { trpc, API_URL } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,42 +22,29 @@ export function useFileAttachments(entityType: "kr" | "initiative" | "task", ent
 
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["file-attachments", entityType, entityId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("file_attachments")
-        .select("*")
-        .eq("entity_type", entityType)
-        .eq("entity_id", entityId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as FileAttachment[];
-    },
+    queryFn: async () =>
+      (await trpc.attachments.list.query({ entityType, entityId: entityId! })) as FileAttachment[],
     enabled: !!entityId && !!profile?.organization_id,
   });
 
   const uploadFile = useMutation({
     mutationFn: async (file: File) => {
-      if (!profile?.organization_id || !entityId) throw new Error("Missing context");
-
-      const ext = file.name.split(".").pop();
-      const storagePath = `${profile.organization_id}/${entityType}/${entityId}/${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("attachments")
-        .upload(storagePath, file);
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase.from("file_attachments").insert({
-        organization_id: profile.organization_id,
-        entity_type: entityType,
-        entity_id: entityId,
-        file_name: file.name,
-        file_size: file.size,
-        file_type: file.type || null,
-        storage_path: storagePath,
-        uploaded_by: profile.id,
+      if (!entityId) throw new Error("Missing context");
+      // Proxied through the API (which streams to R2); credentials carry the
+      // Better Auth session cookie.
+      const form = new FormData();
+      form.append("file", file);
+      form.append("entityType", entityType);
+      form.append("entityId", entityId);
+      const res = await fetch(`${API_URL}/files/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
       });
-      if (dbError) throw dbError;
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Upload failed (${res.status})`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["file-attachments", entityType, entityId] });
@@ -70,9 +57,7 @@ export function useFileAttachments(entityType: "kr" | "initiative" | "task", ent
 
   const deleteAttachment = useMutation({
     mutationFn: async (attachment: FileAttachment) => {
-      await supabase.storage.from("attachments").remove([attachment.storage_path]);
-      const { error } = await supabase.from("file_attachments").delete().eq("id", attachment.id);
-      if (error) throw error;
+      await trpc.attachments.delete.mutate({ id: attachment.id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["file-attachments", entityType, entityId] });
@@ -83,9 +68,10 @@ export function useFileAttachments(entityType: "kr" | "initiative" | "task", ent
     },
   });
 
-  const getDownloadUrl = async (storagePath: string) => {
-    const { data } = await supabase.storage.from("attachments").createSignedUrl(storagePath, 3600);
-    return data?.signedUrl;
+  // Short-lived presigned download URL for an attachment (by id).
+  const getDownloadUrl = async (id: string) => {
+    const { url } = await trpc.attachments.downloadUrl.query({ id });
+    return url;
   };
 
   return { attachments, isLoading, uploadFile, deleteAttachment, getDownloadUrl };

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "./trpc";
+import { attachmentsRouter } from "./routers/attachments";
 import { automationsRouter } from "./routers/automations";
 import { customFieldsRouter } from "./routers/custom-fields";
 import { dashboardRouter } from "./routers/dashboard";
@@ -50,6 +51,7 @@ export const appRouter = router({
   invitations: invitationsRouter,
   platform: platformRouter,
   session: sessionRouter,
+  attachments: attachmentsRouter,
 });
 
 // The frontend imports only this type (never the runtime router) to get
