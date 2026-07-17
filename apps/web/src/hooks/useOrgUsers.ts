@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -27,48 +26,14 @@ export function useOrgUsers() {
     queryKey: ['org-users', profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.orgUsers.list.query()) as OrgUser[];
-      }
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('users_profile')
-        .select('id, name, email, status, created_at')
-        .eq('organization_id', profile.organization_id);
-
-      if (profilesError) throw profilesError;
-
-      const { data: allRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      const usersWithRoles: OrgUser[] = (profiles || []).map((p) => ({
-        ...p,
-        roles: (allRoles || [])
-          .filter((r) => r.user_id === p.id)
-          .map((r) => r.role),
-      }));
-
-      return usersWithRoles;
+      return (await trpc.orgUsers.list.query()) as OrgUser[];
     },
     enabled: !!profile?.organization_id && (isAdmin || isManager),
   });
 
   const updateUserStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: UserStatus }) => {
-      if (trpc) {
-        await trpc.orgUsers.updateStatus.mutate({ userId, status });
-        return;
-      }
-      const { error } = await supabase
-        .from('users_profile')
-        .update({ status })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await trpc.orgUsers.updateStatus.mutate({ userId, status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org-users'] });
@@ -81,24 +46,7 @@ export function useOrgUsers() {
 
   const updateUserRole = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
-      if (trpc) {
-        await trpc.orgUsers.updateRole.mutate({ userId, newRole });
-        return;
-      }
-      // First delete existing role
-      const { error: deleteError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (deleteError) throw deleteError;
-
-      // Then insert new role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: newRole });
-
-      if (insertError) throw insertError;
+      await trpc.orgUsers.updateRole.mutate({ userId, newRole });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org-users'] });

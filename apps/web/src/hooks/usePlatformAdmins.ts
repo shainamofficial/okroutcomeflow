@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,33 +14,12 @@ export function usePlatformAdmins() {
 
   const { data: admins = [], isLoading, error } = useQuery({
     queryKey: ['platform-admins'],
-    queryFn: async () => {
-      if (trpc) {
-        return (await trpc.platform.admins.list.query()) as PlatformAdmin[];
-      }
-      const { data, error } = await supabase
-        .from('platform_admins')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data as PlatformAdmin[];
-    },
+    queryFn: async () => (await trpc.platform.admins.list.query()) as PlatformAdmin[],
   });
 
   const addAdmin = useMutation({
     mutationFn: async (email: string) => {
-      if (trpc) {
-        await trpc.platform.admins.add.mutate({ email });
-        return;
-      }
-      const normalizedEmail = email.trim().toLowerCase();
-
-      const { error } = await supabase
-        .from('platform_admins')
-        .insert({ email: normalizedEmail });
-
-      if (error) throw error;
+      await trpc.platform.admins.add.mutate({ email });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admins'] });
@@ -61,23 +39,7 @@ export function usePlatformAdmins() {
 
   const removeAdmin = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.platform.admins.remove.mutate({ id });
-        return;
-      }
-      // Check if this is the last admin
-      const { data: countData } = await supabase.rpc('count_platform_admins');
-
-      if (countData && countData <= 1) {
-        throw new Error('Cannot remove the last platform admin');
-      }
-
-      const { error } = await supabase
-        .from('platform_admins')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await trpc.platform.admins.remove.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admins'] });
