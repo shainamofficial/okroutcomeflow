@@ -198,11 +198,13 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
       Better Auth email/password signup → dashboard (session.me + tRPC data via cookie, no
       Supabase token) → sign-out → login. **Google login for the owner is their QA (needs
       their account).**
-      - ⚠️ FOLLOW-UPS: (1) SignupInvite (invite-accept) still on supabase.auth — needs an
-        `invitations.accept` API procedure; unreachable without a pending invite.
-        (2) Dead Supabase data-fallback branches in hooks (trpc always non-null now) can be
-        removed. (3) `get_dashboard_data` SQL RPC now unused. (4) Wire a real reset-password
-        email sender (currently logs the link in dev).
+      - ✅ FOLLOW-UP (1) DONE (PR phase-5/invitations-accept-api): added
+        `invitations.byToken` (public) + `invitations.accept` (userProcedure) — faithful
+        ports of get_invitation_by_token / accept_invitation — and rewrote SignupInvite onto
+        the API + Better Auth. No `supabase.auth` anywhere in the SPA now.
+      - ⚠️ REMAINING FOLLOW-UPS: (2) Dead Supabase data-fallback branches in hooks (trpc
+        always non-null now) can be removed. (3) `get_dashboard_data` SQL RPC now unused.
+        (4) Wire a real reset-password email sender (currently logs the link in dev).
 
 **Done when:** all auth flows pass manual QA + automated tests; no `supabase.auth` imports remain.
 **Status:** core auth flows on Better Auth + verified; SignupInvite is the last supabase.auth site.

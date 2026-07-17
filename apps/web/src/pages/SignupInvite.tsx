@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { trpc } from '@/lib/trpc';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
 
-type AppRole = Database['public']['Enums']['app_role'];
-type InvitationStatus = Database['public']['Enums']['invitation_status'];
+type AppRole = 'admin' | 'manager' | 'contributor' | 'viewer';
+type InvitationStatus = 'pending' | 'accepted' | 'revoked';
 
 interface Invitation {
   id: string;
@@ -24,13 +24,13 @@ export default function SignupInvite() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const { user, signUp, refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [success, setSuccess] = useState(false);
-  const [existingUser, setExistingUser] = useState(false);
 
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -45,18 +45,15 @@ export default function SignupInvite() {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .rpc('get_invitation_by_token', { _token: token });
+        const inv = (await trpc.invitations.byToken.query({ token })) as Invitation | null;
 
-        if (fetchError) throw fetchError;
-
-        if (!data || data.length === 0) {
-          setError('Invalid invitation token');
+        if (!inv) {
+          // byToken already filters out expired tokens, so a null here means
+          // the token is unknown or lapsed.
+          setError('This invitation link is invalid or has expired');
           setLoading(false);
           return;
         }
-
-        const inv = data[0] as Invitation;
 
         if (inv.status === 'revoked') {
           setError('This invitation has been revoked');
@@ -70,21 +67,6 @@ export default function SignupInvite() {
           return;
         }
 
-        // Check if user already exists
-        const { data: existingUserData } = await supabase
-          .from('users_profile')
-          .select('id')
-          .eq('email', inv.email)
-          .maybeSingle();
-
-        if (existingUserData) {
-          // Existing user — they need to log in to accept the invitation
-          setExistingUser(true);
-          setInvitation(inv);
-          setLoading(false);
-          return;
-        }
-
         setInvitation(inv);
         setLoading(false);
       } catch (err) {
@@ -94,57 +76,28 @@ export default function SignupInvite() {
       }
     }
 
-    validateToken();
+    void validateToken();
   }, [token]);
 
-  const handleAcceptAsExistingUser = async () => {
-    if (!invitation || !token) return;
+  const acceptInvitation = async (personName: string) => {
+    if (!token) return;
+    await trpc.invitations.accept.mutate({ token, name: personName });
+    // Pull in the freshly-added membership/role so the header + guards update.
+    await refreshProfile();
+  };
+
+  // Already signed in as the invited person: one click to join.
+  const handleAcceptAsCurrentUser = async () => {
     setSubmitting(true);
-
     try {
-      // Check if user is currently logged in
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Redirect to login with return URL
-        toast({
-          title: 'Please log in first',
-          description: 'Sign in to accept this invitation and join the organization.',
-        });
-        navigate(`/login?redirect=${encodeURIComponent(`/signup-invite?token=${token}`)}`);
-        return;
-      }
-
-      // Verify logged-in user email matches invitation
-      if (session.user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
-        toast({
-          title: 'Email mismatch',
-          description: `Please log in with ${invitation.email} to accept this invitation.`,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Accept invitation as existing user
-      const { error: acceptError } = await supabase.rpc('accept_invitation', {
-        _user_id: session.user.id,
-        _invitation_token: token,
-        _name: '',
-      });
-
-      if (acceptError) throw acceptError;
-
+      await acceptInvitation('');
       setSuccess(true);
       toast({
         title: 'Invitation accepted!',
         description: 'You can now switch to the new organization from the header.',
       });
-
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      setTimeout(() => navigate('/app'), 1500);
     } catch (err) {
-      console.error('Accept invitation error:', err);
       toast({
         title: 'Failed to accept invitation',
         description: err instanceof Error ? err.message : 'An error occurred',
@@ -155,17 +108,15 @@ export default function SignupInvite() {
     }
   };
 
+  // New person: create the account (Better Auth signs them in), then accept.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!invitation) return;
 
     if (password !== confirmPassword) {
-      toast({
-        title: 'Passwords do not match',
-        variant: 'destructive',
-      });
+      toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
     }
-
     if (password.length < 6) {
       toast({
         title: 'Password too short',
@@ -175,61 +126,35 @@ export default function SignupInvite() {
       return;
     }
 
-    if (!invitation) return;
-
     setSubmitting(true);
-
     try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: invitation.email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            name: name.trim(),
-            invitation_id: invitation.id,
-            organization_id: invitation.organization_id,
-            role: invitation.role,
-          },
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      if (!authData.user) {
-        throw new Error('Failed to create user account');
+      const { error: signUpError } = await signUp(invitation.email, password, name.trim());
+      if (signUpError) {
+        const alreadyExists = /exist|registered|taken/i.test(signUpError.message);
+        toast({
+          title: alreadyExists ? 'Account already exists' : 'Failed to create account',
+          description: alreadyExists
+            ? 'Sign in first, then reopen this invitation link to accept it.'
+            : signUpError.message,
+          variant: 'destructive',
+        });
+        setSubmitting(false);
+        return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const { error: acceptError } = await supabase.rpc('accept_invitation', {
-        _user_id: authData.user.id,
-        _invitation_token: token!,
-        _name: name.trim(),
-      });
-
-      if (acceptError) {
-        console.error('Accept invitation error:', acceptError);
-        throw acceptError;
-      }
-
+      await acceptInvitation(name.trim());
       setSuccess(true);
       toast({
-        title: 'Account created successfully!',
-        description: 'You can now sign in to your account.',
+        title: 'Account created!',
+        description: "You've joined the organization.",
       });
-
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setTimeout(() => navigate('/app'), 1500);
     } catch (err) {
-      console.error('Signup error:', err);
       toast({
-        title: 'Failed to create account',
+        title: 'Failed to accept invitation',
         description: err instanceof Error ? err.message : 'An error occurred',
         variant: 'destructive',
       });
-    } finally {
       setSubmitting(false);
     }
   };
@@ -259,7 +184,7 @@ export default function SignupInvite() {
 
   if (success) {
     return (
-      <AuthLayout title={existingUser ? 'Invitation Accepted!' : 'Account Created!'} subtitle={existingUser ? 'Redirecting to dashboard...' : 'Redirecting to login...'}>
+      <AuthLayout title="Invitation Accepted!" subtitle="Redirecting...">
         <div className="flex flex-col items-center justify-center py-4 text-center">
           <CheckCircle className="h-12 w-12 text-primary mb-4" />
           <p className="text-muted-foreground">Please wait...</p>
@@ -268,22 +193,26 @@ export default function SignupInvite() {
     );
   }
 
-  // Existing user flow: show accept invitation screen
-  if (existingUser) {
+  const invitedEmail = invitation?.email ?? '';
+  const signedInMatches = user && user.email.toLowerCase() === invitedEmail.toLowerCase();
+  const signedInDiffers = user && !signedInMatches;
+
+  // Signed in as the invited person — offer a one-click accept.
+  if (signedInMatches) {
     return (
-      <AuthLayout
-        title="Join Organization"
-        subtitle={`You've been invited to join as a ${invitation?.role}`}
-      >
+      <AuthLayout title="Join Organization" subtitle={`You've been invited as a ${invitation?.role}`}>
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-muted/50 p-4 flex items-start gap-3">
             <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
             <div className="text-sm text-muted-foreground">
-              <p>An account already exists for <span className="font-medium text-foreground">{invitation?.email}</span>.</p>
-              <p className="mt-1">Log in to accept this invitation and join the new organization. You can switch between organizations from the header.</p>
+              <p>
+                Accept this invitation to join the organization as{' '}
+                <span className="font-medium text-foreground">{invitation?.email}</span>. You can
+                switch between organizations from the header.
+              </p>
             </div>
           </div>
-          <Button onClick={handleAcceptAsExistingUser} className="w-full" disabled={submitting}>
+          <Button onClick={handleAcceptAsCurrentUser} className="w-full" disabled={submitting}>
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -293,16 +222,34 @@ export default function SignupInvite() {
               'Accept Invitation'
             )}
           </Button>
-          <div className="text-center text-sm text-muted-foreground">
-            <Link to="/login" className="text-primary hover:underline">
-              Go to Login
-            </Link>
-          </div>
         </div>
       </AuthLayout>
     );
   }
 
+  // Signed in as someone else — the emails must match to accept.
+  if (signedInDiffers) {
+    return (
+      <AuthLayout title="Wrong account" subtitle={`This invite is for ${invitedEmail}`}>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/50 p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              You're signed in as{' '}
+              <span className="font-medium text-foreground">{user?.email}</span>. Sign in as{' '}
+              <span className="font-medium text-foreground">{invitedEmail}</span> to accept this
+              invitation.
+            </p>
+          </div>
+          <Button variant="outline" asChild className="w-full">
+            <Link to="/login">Go to Login</Link>
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  // Not signed in — create the account for the invited email.
   return (
     <AuthLayout
       title="Complete Your Registration"
@@ -311,13 +258,7 @@ export default function SignupInvite() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={invitation?.email || ''}
-            disabled
-            className="bg-muted"
-          />
+          <Input id="email" type="email" value={invitedEmail} disabled className="bg-muted" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
@@ -328,6 +269,7 @@ export default function SignupInvite() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            disabled={submitting}
           />
         </div>
         <div className="space-y-2">
@@ -340,6 +282,7 @@ export default function SignupInvite() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
+            disabled={submitting}
           />
         </div>
         <div className="space-y-2">
@@ -351,6 +294,7 @@ export default function SignupInvite() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            disabled={submitting}
           />
         </div>
         <Button type="submit" className="w-full" disabled={submitting}>
@@ -364,6 +308,12 @@ export default function SignupInvite() {
           )}
         </Button>
       </form>
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link to="/login" className="text-foreground underline underline-offset-4 hover:text-primary">
+          Sign in
+        </Link>
+      </p>
     </AuthLayout>
   );
 }
