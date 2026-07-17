@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,51 +77,9 @@ export function OrganizationDomainsSection({
         return;
       }
 
-      const { data: isGeneric, error: genericError } = await supabase.rpc(
-        'is_generic_domain',
-        { _domain: normalizedDomain }
-      );
-
-      if (genericError) throw genericError;
-
-      if (isGeneric) {
-        toast({
-          title: 'Error',
-          description: 'Generic email domains like gmail.com, outlook.com, etc. cannot be added. Please use a corporate domain.',
-          variant: 'destructive',
-        });
-        setAddingDomain(false);
-        return;
-      }
-
-      const { data: existsGlobally, error: checkError } = await supabase.rpc(
-        'domain_exists_for_other_org',
-        { _domain: normalizedDomain, _org_id: organizationId }
-      );
-
-      if (checkError) throw checkError;
-
-      if (existsGlobally) {
-        toast({
-          title: 'Error',
-          description: 'Domain already claimed by another organization.',
-          variant: 'destructive',
-        });
-        setAddingDomain(false);
-        return;
-      }
-
-      const { data: newDomainData, error: insertError } = await supabase
-        .from('organization_domains')
-        .insert({
-          organization_id: organizationId,
-          domain: normalizedDomain,
-          verified: false,
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
+      // The API enforces the generic-domain and cross-org-claim checks and
+      // returns a specific error message when either fails.
+      const newDomainData = await trpc.organizations.addDomain.mutate({ domain: normalizedDomain });
 
       onDomainsChange([...domains, newDomainData]);
       setNewDomain('');
@@ -130,10 +88,9 @@ export function OrganizationDomainsSection({
         description: 'Domain added successfully.',
       });
     } catch (error) {
-      console.error('Error adding domain:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add domain.',
+        description: error instanceof Error ? error.message : 'Failed to add domain.',
         variant: 'destructive',
       });
     } finally {
@@ -171,12 +128,7 @@ export function OrganizationDomainsSection({
     }
 
     try {
-      const { error } = await supabase
-        .from('organization_domains')
-        .delete()
-        .eq('id', domain.id);
-
-      if (error) throw error;
+      await trpc.organizations.removeDomain.mutate({ id: domain.id });
 
       onDomainsChange(domains.filter((d) => d.id !== domain.id));
       toast({
@@ -184,10 +136,9 @@ export function OrganizationDomainsSection({
         description: 'Domain deleted successfully.',
       });
     } catch (error) {
-      console.error('Error deleting domain:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete domain.',
+        description: error instanceof Error ? error.message : 'Failed to delete domain.',
         variant: 'destructive',
       });
     }
@@ -217,12 +168,7 @@ export function OrganizationDomainsSection({
     }
 
     try {
-      const { error } = await supabase
-        .from('organization_domains')
-        .update({ verified: newValue })
-        .eq('id', domain.id);
-
-      if (error) throw error;
+      await trpc.organizations.setDomainVerified.mutate({ id: domain.id, verified: newValue });
 
       onDomainsChange(domains.map((d) => (d.id === domain.id ? { ...d, verified: newValue } : d)));
       toast({
@@ -230,10 +176,9 @@ export function OrganizationDomainsSection({
         description: `Domain ${newValue ? 'verified' : 'unverified'} successfully.`,
       });
     } catch (error) {
-      console.error('Error updating domain:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update domain verification.',
+        description: error instanceof Error ? error.message : 'Failed to update domain verification.',
         variant: 'destructive',
       });
     }

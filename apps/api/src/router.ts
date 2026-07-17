@@ -11,6 +11,7 @@ import { myItemsRouter } from "./routers/my-items";
 import { notificationsRouter } from "./routers/notifications";
 import { objectivesRouter } from "./routers/objectives";
 import { okrsRouter } from "./routers/okrs";
+import { organizationsRouter } from "./routers/organizations";
 import { platformRouter } from "./routers/platform";
 import { orgUsersRouter } from "./routers/org-users";
 import { reviewsRouter } from "./routers/reviews";
@@ -38,6 +39,7 @@ export const appRouter = router({
   notifications: notificationsRouter,
   myItems: myItemsRouter,
   orgUsers: orgUsersRouter,
+  organizations: organizationsRouter,
   search: searchRouter,
   teams: teamsRouter,
   reviews: reviewsRouter,
