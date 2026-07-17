@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,17 +17,7 @@ export function useTaskDependencies() {
     queryKey: ["task_dependencies", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.tasks.dependencies.query()) as TaskDependency[];
-      }
-
-      const { data, error } = await supabase
-        .from("task_dependencies")
-        .select("*");
-
-      if (error) throw error;
-      return data as TaskDependency[];
+      return (await trpc.tasks.dependencies.query()) as TaskDependency[];
     },
     enabled: !!profile?.organization_id,
   });

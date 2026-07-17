@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -80,17 +79,8 @@ function useDashboardData<T>(select: (data: DashboardData) => T) {
 
   return useQuery({
     queryKey: ["dashboard_data", profile?.organization_id],
-    queryFn: async (): Promise<DashboardData> => {
-      if (trpc) {
-        return (await trpc.dashboard.get.query()) as DashboardData;
-      }
-
-      const { data, error } = await supabase.rpc("get_dashboard_data", {
-        _org_id: profile!.organization_id!,
-      });
-      if (error) throw error;
-      return data as unknown as DashboardData;
-    },
+    queryFn: async (): Promise<DashboardData> =>
+      (await trpc.dashboard.get.query()) as DashboardData,
     select,
     enabled: !!profile?.organization_id,
   });
