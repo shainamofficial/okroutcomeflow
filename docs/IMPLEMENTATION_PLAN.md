@@ -202,8 +202,18 @@ access. Fresh-start migration executed via the Supabase MCP (data was disposable
         `invitations.byToken` (public) + `invitations.accept` (userProcedure) — faithful
         ports of get_invitation_by_token / accept_invitation — and rewrote SignupInvite onto
         the API + Better Auth. No `supabase.auth` anywhere in the SPA now.
-      - ⚠️ REMAINING FOLLOW-UPS: (2) Dead Supabase data-fallback branches in hooks (trpc
-        always non-null now) can be removed. (3) `get_dashboard_data` SQL RPC now unused.
+      - ✅ FOLLOW-UP (1) DONE — see above.
+      - 🔎 DISCOVERY (2026-07-17): starting the dead-branch cleanup surfaced that 11 files
+        were never ported and still hit Supabase directly — broken for Better Auth users
+        (no Supabase session → anon RLS). Ported them (user chose "port all first"):
+        - ✅ PR #21 KR metrics (krMetrics router)
+        - ✅ PR #22 notification preferences (notifications.preferences/upsertPreference)
+        - ✅ PR #23 share-initiative (initiativeShares router)
+        - ✅ PR #24 organizations CRUD + domains (organizations router)
+        - ✅ PR #25 platform-admin check + activity log (platform.amIAdmin, updates.activityLog)
+      - ⚠️ REMAINING: (10) file attachments + org-logo uploads still use Supabase STORAGE —
+        needs a storage-backend decision. (2) Dead Supabase data-fallback branches in the
+        ~19 ported hooks can now be removed. (3) `get_dashboard_data` SQL RPC now unused.
         (4) Wire a real reset-password email sender (currently logs the link in dev).
 
 **Done when:** all auth flows pass manual QA + automated tests; no `supabase.auth` imports remain.

@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
@@ -26,20 +25,7 @@ export function useNotifications() {
     queryKey: ["notifications", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
-
-      if (trpc) {
-        return (await trpc.notifications.list.query()) as Notification[];
-      }
-
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", profile.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data as Notification[];
+      return (await trpc.notifications.list.query()) as Notification[];
     },
     enabled: !!profile?.id,
   });
@@ -48,16 +34,7 @@ export function useNotifications() {
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
-      if (trpc) {
-        await trpc.notifications.markRead.mutate({ id: notificationId });
-        return;
-      }
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("id", notificationId);
-
-      if (error) throw error;
+      await trpc.notifications.markRead.mutate({ id: notificationId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -67,33 +44,7 @@ export function useNotifications() {
   const markAllAsRead = useMutation({
     mutationFn: async () => {
       if (!profile?.id) return;
-
-      if (trpc) {
-        await trpc.notifications.markAllRead.mutate();
-        return;
-      }
-
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", profile.id)
-        .eq("read", false);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const deleteNotification = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("notifications")
-        .delete()
-        .eq("id", notificationId);
-
-      if (error) throw error;
+      await trpc.notifications.markAllRead.mutate();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -106,6 +57,5 @@ export function useNotifications() {
     isLoading,
     markAsRead,
     markAllAsRead,
-    deleteNotification,
   };
 }
