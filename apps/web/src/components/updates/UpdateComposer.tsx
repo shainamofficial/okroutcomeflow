@@ -10,7 +10,7 @@ import {
 import { MentionInput } from "./MentionInput";
 import { useCreateUpdate } from "@/hooks/useUpdates";
 import { Send } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
 type UpdateKind = Database["public"]["Enums"]["update_kind"];

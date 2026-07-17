@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, isPast } from 'date-fns';
 import { X } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/types/db';
 
 type AppRole = Database['public']['Enums']['app_role'];
 type InvitationStatus = Database['public']['Enums']['invitation_status'];

@@ -13,7 +13,7 @@ import { UpdateKindBadge } from "./UpdateKindBadge";
 import { ReactionPicker, ReactionButton } from "./ReactionPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
 

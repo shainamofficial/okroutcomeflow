@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type NotificationType = Database["public"]["Enums"]["notification_type"];
 type EntityType = Database["public"]["Enums"]["entity_type"];

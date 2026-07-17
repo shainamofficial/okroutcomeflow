@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/types/db";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
 type UpdateKind = Database["public"]["Enums"]["update_kind"];

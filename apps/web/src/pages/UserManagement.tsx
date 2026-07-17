@@ -7,7 +7,7 @@ import { useOrgUsers } from '@/hooks/useOrgUsers';
 import { useInvitations } from '@/hooks/useInvitations';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/types/db';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
