@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -45,31 +44,7 @@ export function useUpdates(entityType: EntityType, entityId: string) {
   return useQuery({
     queryKey: ["updates", entityType, entityId],
     queryFn: async () => {
-      if (trpc) {
-        return (await trpc.updates.list.query({ entityType, entityId })) as unknown as Update[];
-      }
-      const { data, error } = await supabase
-        .from("updates")
-        .select(`
-          *,
-          user:users_profile!updates_user_id_fkey(id, name, email, avatar_url),
-          mentions:update_mentions(
-            id,
-            mentioned_user:users_profile!update_mentions_mentioned_user_id_fkey(id, name, email, avatar_url)
-          ),
-          reactions:update_reactions(
-            id,
-            user_id,
-            reaction_type
-          )
-        `)
-        .eq("entity_type", entityType)
-        .eq("entity_id", entityId)
-        .order("pinned", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as unknown as Update[];
+      return (await trpc.updates.list.query({ entityType, entityId })) as unknown as Update[];
     },
     enabled: !!entityId,
   });
@@ -94,48 +69,13 @@ export function useCreateUpdate() {
       mentionedUserIds: string[];
     }) => {
       if (!profile?.organization_id) throw new Error("No organization");
-
-      if (trpc) {
-        return await trpc.updates.create.mutate({
-          entityType,
-          entityId,
-          updateKind,
-          content,
-          mentionedUserIds,
-        });
-      }
-
-      // Create the update
-      const { data: update, error: updateError } = await supabase
-        .from("updates")
-        .insert({
-          organization_id: profile.organization_id,
-          entity_type: entityType,
-          entity_id: entityId,
-          user_id: profile.id,
-          update_kind: updateKind,
-          content,
-        })
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      // Create mentions if any
-      if (mentionedUserIds.length > 0) {
-        const mentions = mentionedUserIds.map((userId) => ({
-          update_id: update.id,
-          mentioned_user_id: userId,
-        }));
-
-        const { error: mentionError } = await supabase
-          .from("update_mentions")
-          .insert(mentions);
-
-        if (mentionError) throw mentionError;
-      }
-
-      return update;
+      return await trpc.updates.create.mutate({
+        entityType,
+        entityId,
+        updateKind,
+        content,
+        mentionedUserIds,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -165,16 +105,7 @@ export function useTogglePin() {
       entityType: EntityType;
       entityId: string;
     }) => {
-      if (trpc) {
-        await trpc.updates.togglePin.mutate({ updateId, pinned });
-        return;
-      }
-      const { error } = await supabase
-        .from("updates")
-        .update({ pinned })
-        .eq("id", updateId);
-
-      if (error) throw error;
+      await trpc.updates.togglePin.mutate({ updateId, pinned });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -202,16 +133,7 @@ export function useDeleteUpdate() {
       entityType: EntityType;
       entityId: string;
     }) => {
-      if (trpc) {
-        await trpc.updates.delete.mutate({ updateId });
-        return;
-      }
-      const { error } = await supabase
-        .from("updates")
-        .delete()
-        .eq("id", updateId);
-
-      if (error) throw error;
+      await trpc.updates.delete.mutate({ updateId });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -243,41 +165,7 @@ export function useToggleReaction() {
       entityId: string;
     }) => {
       if (!profile?.id) throw new Error("Not authenticated");
-
-      if (trpc) {
-        await trpc.updates.toggleReaction.mutate({ updateId, reactionType });
-        return;
-      }
-
-      // Check if reaction exists
-      const { data: existing } = await supabase
-        .from("update_reactions")
-        .select("id")
-        .eq("update_id", updateId)
-        .eq("user_id", profile.id)
-        .eq("reaction_type", reactionType)
-        .maybeSingle();
-
-      if (existing) {
-        // Remove reaction
-        const { error } = await supabase
-          .from("update_reactions")
-          .delete()
-          .eq("id", existing.id);
-
-        if (error) throw error;
-      } else {
-        // Add reaction
-        const { error } = await supabase
-          .from("update_reactions")
-          .insert({
-            update_id: updateId,
-            user_id: profile.id,
-            reaction_type: reactionType,
-          });
-
-        if (error) throw error;
-      }
+      await trpc.updates.toggleReaction.mutate({ updateId, reactionType });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

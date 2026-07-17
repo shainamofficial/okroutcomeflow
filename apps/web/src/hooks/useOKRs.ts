@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -41,21 +40,7 @@ export function useObjectives() {
     queryKey: ["objectives", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      // Strangler migration: served by the owned API when VITE_API_URL is
-      // set; identical response shape either way.
-      if (trpc) {
-        return (await trpc.objectives.list.query()) as Objective[];
-      }
-
-      const { data, error } = await supabase
-        .from("objectives")
-        .select("*")
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as Objective[];
+      return (await trpc.objectives.list.query()) as Objective[];
     },
     enabled: !!profile?.organization_id,
   });
@@ -71,24 +56,7 @@ export function useObjectives() {
       if (!profile?.organization_id || !profile?.id) {
         throw new Error("No organization or user");
       }
-
-      if (trpc) {
-        return await trpc.objectives.create.mutate({ title, description });
-      }
-
-      const { data, error } = await supabase
-        .from("objectives")
-        .insert({
-          organization_id: profile.organization_id,
-          title,
-          description: description || null,
-          created_by: profile.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return await trpc.objectives.create.mutate({ title, description });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
@@ -113,16 +81,7 @@ export function useObjectives() {
       title: string;
       description?: string;
     }) => {
-      if (trpc) {
-        await trpc.objectives.update.mutate({ id, title, description });
-        return;
-      }
-      const { error } = await supabase
-        .from("objectives")
-        .update({ title, description: description || null })
-        .eq("id", id);
-
-      if (error) throw error;
+      await trpc.objectives.update.mutate({ id, title, description });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
@@ -139,13 +98,7 @@ export function useObjectives() {
 
   const deleteObjective = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.objectives.delete.mutate({ id });
-        return;
-      }
-      const { error } = await supabase.from("objectives").delete().eq("id", id);
-
-      if (error) throw error;
+      await trpc.objectives.delete.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
@@ -179,32 +132,9 @@ export function useKeyResults(objectiveId?: string) {
     queryKey: ["key-results", profile?.organization_id, objectiveId],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.okrs.keyResults.query(
-          objectiveId ? { objectiveId } : undefined
-        )) as KeyResult[];
-      }
-
-      let query = supabase
-        .from("key_results")
-        .select(
-          `
-          *,
-          owner:users_profile!key_results_owner_id_fkey(id, name, email)
-        `
-        )
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: true });
-
-      if (objectiveId) {
-        query = query.eq("objective_id", objectiveId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as KeyResult[];
+      return (await trpc.okrs.keyResults.query(
+        objectiveId ? { objectiveId } : undefined
+      )) as KeyResult[];
     },
     enabled: !!profile?.organization_id,
   });
@@ -235,47 +165,13 @@ export function useKeyResults(objectiveId?: string) {
         throw new Error("Key Result cannot belong to both an Objective and a parent Key Result");
       }
 
-      if (trpc) {
-        return await trpc.okrs.createKeyResult.mutate({
-          title,
-          description,
-          objectiveId,
-          parentKrId,
-          ownerId,
-        });
-      }
-
-      const insertData: {
-        organization_id: string;
-        title: string;
-        description: string | null;
-        objective_id: string | null;
-        parent_kr_id: string | null;
-        owner_id: string | null;
-        created_by: string;
-      } = {
-        organization_id: profile.organization_id,
+      return await trpc.okrs.createKeyResult.mutate({
         title,
-        description: description || null,
-        objective_id: objectiveId ?? null,
-        parent_kr_id: parentKrId ?? null,
-        owner_id: ownerId || null,
-        created_by: profile.id,
-      };
-
-      const { data, error } = await supabase
-        .from("key_results")
-        .insert(insertData)
-        .select(
-          `
-          *,
-          owner:users_profile!key_results_owner_id_fkey(id, name, email)
-        `
-        )
-        .single();
-
-      if (error) throw error;
-      return data;
+        description,
+        objectiveId,
+        parentKrId,
+        ownerId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["key-results"] });
@@ -303,20 +199,7 @@ export function useKeyResults(objectiveId?: string) {
       description?: string;
       ownerId?: string;
     }) => {
-      if (trpc) {
-        await trpc.okrs.updateKeyResult.mutate({ id, title, description, ownerId });
-        return;
-      }
-      const { error } = await supabase
-        .from("key_results")
-        .update({
-          title,
-          description: description || null,
-          owner_id: ownerId || null,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
+      await trpc.okrs.updateKeyResult.mutate({ id, title, description, ownerId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["key-results"] });
@@ -333,13 +216,7 @@ export function useKeyResults(objectiveId?: string) {
 
   const deleteKeyResult = useMutation({
     mutationFn: async (id: string) => {
-      if (trpc) {
-        await trpc.okrs.deleteKeyResult.mutate({ id });
-        return;
-      }
-      const { error } = await supabase.from("key_results").delete().eq("id", id);
-
-      if (error) throw error;
+      await trpc.okrs.deleteKeyResult.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["key-results"] });
@@ -370,24 +247,7 @@ export function useAllKeyResults() {
     queryKey: ["all-key-results", profile?.organization_id],
     queryFn: async () => {
       if (!profile?.organization_id) return [];
-
-      if (trpc) {
-        return (await trpc.okrs.keyResults.query()) as KeyResult[];
-      }
-
-      const { data, error } = await supabase
-        .from("key_results")
-        .select(
-          `
-          *,
-          owner:users_profile!key_results_owner_id_fkey(id, name, email)
-        `
-        )
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      return data as KeyResult[];
+      return (await trpc.okrs.keyResults.query()) as KeyResult[];
     },
     enabled: !!profile?.organization_id,
   });
