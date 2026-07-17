@@ -70,6 +70,24 @@ describe("platform gate", () => {
   });
 });
 
+describe("platform.amIAdmin", () => {
+  it("is auth-only and reports the caller's status (false)", async () => {
+    isPlatformAdminMock.mockResolvedValue(false);
+    await expect(caller().platform.amIAdmin()).resolves.toBe(false);
+  });
+
+  it("reports true for a platform admin", async () => {
+    isPlatformAdminMock.mockResolvedValue(true);
+    await expect(caller().platform.amIAdmin()).resolves.toBe(true);
+  });
+
+  it("UNAUTHORIZED without a session", async () => {
+    await expect(
+      appRouter.createCaller({ userId: null, orgId: null }).platform.amIAdmin()
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
 describe("platform.admins.remove last-admin protection", () => {
   it("BAD_REQUEST when only one platform admin remains", async () => {
     isPlatformAdminMock.mockResolvedValue(true);

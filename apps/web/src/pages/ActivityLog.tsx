@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,17 +16,8 @@ export default function ActivityLog() {
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["activity-log", profile?.organization_id],
-    queryFn: async ({ pageParam }) => {
-      const from = pageParam * PAGE_SIZE;
-      const { data, error } = await supabase
-        .from("updates")
-        .select("*, user:users_profile!updates_user_id_fkey(name, email, avatar_url)")
-        .eq("organization_id", profile!.organization_id!)
-        .order("created_at", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async ({ pageParam }) =>
+      trpc.updates.activityLog.query({ page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) =>
       lastPage.length === PAGE_SIZE ? pages.length : undefined,

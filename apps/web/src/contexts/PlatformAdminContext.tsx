@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface PlatformAdminContextType {
@@ -23,20 +23,9 @@ export function PlatformAdminProvider({ children }: { children: React.ReactNode 
     }
 
     try {
-      const { data, error } = await supabase
-        .from('platform_admins')
-        .select('id')
-        .eq('email', user.email.toLowerCase())
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking platform admin status:', error);
-        setIsPlatformAdmin(false);
-      } else {
-        setIsPlatformAdmin(!!data);
-      }
+      setIsPlatformAdmin(await trpc.platform.amIAdmin.query());
     } catch (error) {
-      console.error('Error in checkPlatformAdmin:', error);
+      console.error('Error checking platform admin status:', error);
       setIsPlatformAdmin(false);
     } finally {
       setLoading(false);

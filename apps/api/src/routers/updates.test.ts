@@ -71,6 +71,23 @@ beforeEach(() => {
   writeSpy.mockReset();
 });
 
+describe("updates.activityLog", () => {
+  it("returns the org-wide feed page", async () => {
+    const rows = [
+      { id: ID, organization_id: "org-1", update_kind: "comment", entity_type: "kr", content: "hi", pinned: false, created_at: "now", user: { id: OTHER, name: "A", email: "a@co.com", avatar_url: null } },
+    ];
+    selectRows.mockReturnValue(rows);
+    const res = await appRouter.createCaller(member).updates.activityLog({ page: 0, pageSize: 50 });
+    expect(res).toEqual(rows);
+  });
+
+  it("UNAUTHORIZED without a session", async () => {
+    await expect(
+      appRouter.createCaller({ userId: null, orgId: null }).updates.activityLog({})
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
 describe("updates.create", () => {
   it("a viewer may post a COMMENT on an entity they don't own", async () => {
     await appRouter
