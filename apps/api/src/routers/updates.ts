@@ -17,6 +17,42 @@ const notFound = (what = "Item") =>
   new TRPCError({ code: "NOT_FOUND", message: `${what} not found in your organization` });
 
 export const updatesRouter = router({
+  // Org-wide reverse-chronological activity feed with the author joined,
+  // paginated. Backs the Activity Log page (offset pagination, page size 50).
+  activityLog: protectedProcedure
+    .input(
+      z.object({
+        page: z.number().int().min(0).default(0),
+        pageSize: z.number().int().min(1).max(100).default(50),
+      })
+    )
+    .query(({ ctx, input }) =>
+      db
+        .select({
+          id: updates.id,
+          organization_id: updates.organizationId,
+          entity_type: updates.entityType,
+          entity_id: updates.entityId,
+          user_id: updates.userId,
+          update_kind: updates.updateKind,
+          content: updates.content,
+          pinned: updates.pinned,
+          created_at: updates.createdAt,
+          user: {
+            id: usersProfile.id,
+            name: usersProfile.name,
+            email: usersProfile.email,
+            avatar_url: usersProfile.avatarUrl,
+          },
+        })
+        .from(updates)
+        .leftJoin(usersProfile, eq(usersProfile.id, updates.userId))
+        .where(eq(updates.organizationId, ctx.orgId))
+        .orderBy(desc(updates.createdAt))
+        .limit(input.pageSize)
+        .offset(input.page * input.pageSize)
+    ),
+
   // Updates for one entity with user, mentions, and reactions — matches
   // the shape useUpdates got from Supabase. Assembled from three queries
   // (relational nesting) rather than one big join.

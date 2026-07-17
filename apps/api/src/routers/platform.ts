@@ -3,7 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { db } from "../db/client";
 import { organizations, platformAdmins, userRoles, usersProfile } from "../db/schema";
-import { platformProcedure, router } from "../trpc";
+import { isCallerPlatformAdmin } from "../lib/roles";
+import { platformProcedure, router, userProcedure } from "../trpc";
 
 const appRole = z.enum(["admin", "manager", "contributor", "viewer"]);
 const userStatus = z.enum(["pending", "active", "inactive"]);
@@ -11,6 +12,10 @@ const userStatus = z.enum(["pending", "active", "inactive"]);
 const conflict = (message: string) => new TRPCError({ code: "CONFLICT", message });
 
 export const platformRouter = router({
+  // Whether the caller is a platform admin. Auth-only (NOT platformProcedure)
+  // so any signed-in user can learn their own status — backs PlatformAdminContext.
+  amIAdmin: userProcedure.query(({ ctx }) => isCallerPlatformAdmin(ctx.userId)),
+
   // --- platform admins ---
   admins: router({
     list: platformProcedure.query(() =>
