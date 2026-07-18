@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { rateLimiter } from "hono-rate-limiter";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./router";
 import { createContext, type Context } from "./context";
@@ -37,6 +38,25 @@ const allowedOrigin = (origin: string) => {
 app.use("/trpc/*", cors({ origin: allowedOrigin, credentials: true }));
 app.use("/api/auth/*", cors({ origin: allowedOrigin, credentials: true }));
 app.use("/files/*", cors({ origin: allowedOrigin, credentials: true }));
+
+// Per-IP rate limiting (in-memory; single instance). CORS runs first and
+// short-circuits OPTIONS preflights, so those aren't counted. Auth routes
+// (/api/auth) are rate-limited by Better Auth itself (see auth.ts).
+const clientIp = (c: { req: { header: (n: string) => string | undefined } }) =>
+  c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
+  c.req.header("cf-connecting-ip") ??
+  "unknown";
+
+// Generous bucket for authenticated app traffic (batched tRPC calls add up).
+app.use(
+  "/trpc/*",
+  rateLimiter({ windowMs: 60_000, limit: 300, standardHeaders: "draft-6", keyGenerator: clientIp })
+);
+// Tighter bucket for the upload/logo/download file routes.
+app.use(
+  "/files/*",
+  rateLimiter({ windowMs: 60_000, limit: 40, standardHeaders: "draft-6", keyGenerator: clientIp })
+);
 
 // File-attachment upload proxy: the browser POSTs multipart form-data here so
 // it never needs R2 bucket CORS; we stream the bytes to R2 and record the

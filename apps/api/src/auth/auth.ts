@@ -22,6 +22,20 @@ export const auth = betterAuth({
     .split(",")
     .map((o) => o.trim()),
   database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
+  // Per-IP rate limiting on the auth routes. A generous global bucket plus
+  // tight buckets on the abuse-prone paths (credential stuffing, reset-email
+  // bombing, signup spam). In-memory store — fine for a single instance.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 10 },
+      "/sign-up/email": { window: 60, max: 10 },
+      "/request-password-reset": { window: 60, max: 5 },
+      "/reset-password": { window: 60, max: 10 },
+    },
+  },
   // Generate UUID ids so a future migration can import existing users with
   // their current Supabase auth uuid as the Better Auth id, preserving every
   // FK (users_profile / user_roles / organization_memberships all key on it).
