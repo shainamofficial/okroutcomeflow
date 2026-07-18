@@ -23,6 +23,10 @@ account-side setup.
    - Builder: Nixpacks (auto `npm ci` at the root, installs all workspaces).
    - Node version: pinned to 22 via `.nvmrc` (Nixpacks reads it). Do **not**
      rely on the Nixpacks default, which is Node 18 and too old for this stack.
+   - Build step: **skipped** (`buildCommand` is a no-op in `railway.json`). The
+     API runs from TS source via `tsx`, and skipping avoids Nixpacks trying to
+     run the root `build` script (which builds the *web* app and breaks under
+     `NODE_ENV=production` once devDeps are pruned).
    - Start: `npm run start -w apps/api` (runs `tsx src/index.ts`; env comes from
      Railway's injected variables — no `.env` file in prod).
    - Health check: `GET /health`.
@@ -41,6 +45,7 @@ account-side setup.
    | `RESEND_API_KEY` | (same) |
    | `EMAIL_FROM` | `OutcomeFlow <noreply@send.okroutcomeflow.com>` |
    | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | (same) |
+   | `NODE_ENV` | `production` (secure cookies; hides tRPC stack traces) |
 
    - **Do NOT set `PORT`** — Railway injects it and the app reads it.
    - `SUPABASE_URL` / `SUPABASE_ANON_KEY` are **optional** now (only the retired
