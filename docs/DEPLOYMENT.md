@@ -21,8 +21,10 @@ account-side setup.
 1. **Create the service**: railway.app → New Project → *Deploy from GitHub repo* →
    pick this repo. Railway reads `railway.json` at the repo root:
    - Builder: Nixpacks (auto `npm ci` at the root, installs all workspaces).
-   - Start: `npm run start -w apps/api` (runs `tsx src/index.ts`; loads `.env`
-     only if present, otherwise uses Railway's injected env).
+   - Node version: pinned to 22 via `.nvmrc` (Nixpacks reads it). Do **not**
+     rely on the Nixpacks default, which is Node 18 and too old for this stack.
+   - Start: `npm run start -w apps/api` (runs `tsx src/index.ts`; env comes from
+     Railway's injected variables — no `.env` file in prod).
    - Health check: `GET /health`.
    - **Leave the service Root Directory as `/`** (the monorepo root) — the start
      command targets the `apps/api` workspace.
