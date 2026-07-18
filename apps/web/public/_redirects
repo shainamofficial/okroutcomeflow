@@ -1,0 +1,3 @@
+# SPA fallback: serve index.html for any path so client-side routing works
+# on direct navigation / refresh (e.g. /app/okrs, /reset-password, /shared/:token).
+/*    /index.html   200
