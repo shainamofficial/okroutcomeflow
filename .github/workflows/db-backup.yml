@@ -1,0 +1,62 @@
+name: DB Backup
+
+# Daily logical backup of the public schema to R2, independent of Supabase's
+# own backups. Restore instructions + required secrets: docs/BACKUPS.md.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump database (public schema)
+        env:
+          # Must be a DIRECT or SESSION-pooler connection (port 5432) with
+          # sslmode=require — the transaction pooler (6543) does not work with
+          # pg_dump. See docs/BACKUPS.md.
+          DB_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          # Pinned pg_dump via the official image so the client version is
+          # always >= the server; dumps the app schema only.
+          docker run --rm -e DB_URL="$DB_URL" postgres:17 \
+            pg_dump "$DB_URL" --schema=public --no-owner --no-privileges \
+            | gzip -9 > backup.sql.gz
+          echo "Dump size: $(du -h backup.sql.gz | cut -f1)"
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          KEY="backups/okroutcomeflow-$(date -u +%Y-%m-%d-%H%M).sql.gz"
+          aws s3 cp backup.sql.gz "s3://$BUCKET/$KEY" --endpoint-url "$ENDPOINT"
+          echo "Uploaded s3://$BUCKET/$KEY"
+
+      - name: Rotate (keep 30 newest)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          # Keys sort lexicographically by date, so all but the 30 newest are
+          # the oldest — delete those.
+          aws s3 ls "s3://$BUCKET/backups/" --endpoint-url "$ENDPOINT" \
+            | awk '{print $4}' | grep -E '\.sql\.gz$' | sort | head -n -30 \
+            | while read -r key; do
+                [ -n "$key" ] && aws s3 rm "s3://$BUCKET/backups/$key" --endpoint-url "$ENDPOINT"
+              done
+          echo "Rotation complete."
