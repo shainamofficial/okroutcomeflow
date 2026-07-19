@@ -46,6 +46,7 @@ account-side setup.
    | `EMAIL_FROM` | `OutcomeFlow <noreply@send.okroutcomeflow.com>` |
    | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | (same) |
    | `NODE_ENV` | `production` (secure cookies; hides tRPC stack traces) |
+   | `SENTRY_DSN` | (optional) the API project's Sentry DSN — blank disables it |
 
    - **Do NOT set `PORT`** — Railway injects it and the app reads it.
    - `SUPABASE_URL` / `SUPABASE_ANON_KEY` are **optional** now (only the retired
@@ -73,6 +74,7 @@ account-side setup.
 3. **Environment variables** (Build & deploy → Variables):
    - `VITE_API_URL` = `https://api.okroutcomeflow.com`  ← baked in at build time
    - `NODE_VERSION` = `22`
+   - `VITE_SENTRY_DSN` = (optional) the web project's Sentry DSN — blank disables it
 4. Deploy. Then **Custom domains → Set up a custom domain → `app.okroutcomeflow.com`**
    (Cloudflare wires the DNS automatically since the zone is in the same account).
 5. SPA routing is handled by `apps/web/public/_redirects` (already in the repo).

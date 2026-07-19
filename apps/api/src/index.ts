@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+// Imported first so Sentry initializes before anything handles requests.
+import { Sentry, sentryEnabled } from "./lib/sentry";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -186,6 +188,7 @@ app.use("/trpc/*", trpcServer({ router: appRouter, createContext }));
 
 app.onError((err, c) => {
   console.error("Unhandled error:", err);
+  if (sentryEnabled) Sentry.captureException(err);
   return c.json({ error: "Internal server error" }, 500);
 });
 
