@@ -41,6 +41,11 @@ export const auth = betterAuth({
   // FK (users_profile / user_roles / organization_memberships all key on it).
   advanced: {
     database: { generateId: () => randomUUID() },
+    // Resolve the real client IP from the proxy (Railway sets x-forwarded-for)
+    // so per-IP rate limiting works in prod instead of one shared bucket.
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
+    },
   },
   emailAndPassword: {
     enabled: true,

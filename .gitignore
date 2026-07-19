@@ -32,3 +32,7 @@ dist-ssr
 # drizzle-kit pull artifacts (schema.ts/relations.ts are kept; snapshots are not)
 apps/api/src/db/meta/
 apps/api/src/db/*.sql
+
+# Playwright E2E artifacts
+apps/web/test-results/
+apps/web/playwright-report/
