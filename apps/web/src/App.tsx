@@ -43,6 +43,9 @@ const SharedInitiative = lazy(() => import("./pages/SharedInitiative"));
 const InitiativeDetail = lazy(() => import("./pages/InitiativeDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Help = lazy(() => import("./pages/Help"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Contact = lazy(() => import("./pages/Contact"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,6 +145,11 @@ const App = () => (
 
                   {/* Invite signup route - public */}
                   <Route path="/signup-invite" element={<SignupInvite />} />
+
+                  {/* Legal / info — public, viewable whether signed in or not */}
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/contact" element={<Contact />} />
 
                   {/* Status-specific routes */}
                   <Route
